@@ -47,14 +47,26 @@
 
 调试参数：`?auto=groom` 跳过选角 · `?at=x,y` 传送 · `?scene=museum|hall` · `?q=N` 跳任务 · `?show=final|settings|fish` · `?debug=1`
 
-## 📁 文件
-- `index.html` — 游戏版请帖（全部逻辑，单文件）
-- `classic.html` — 经典滚动版（不想玩游戏的长辈也能看）
-- `wedding-config.json` — （可选）DEBUG 导出的展品/桌位/碎片配置
+## 📁 文件结构
+```
+index.html            页面骨架（DOM）
+css/style.css         全部样式
+js/config.js          ★ 请帖内容配置（姓名/日期/文案/剧情分支）
+js/assets.js          素材清单+加载器 & 程序化像素画回退
+js/game.js            游戏引擎与全部逻辑
+assets/               星露谷素材（角色/肖像/动物/树/向日葵/水井/农舍）
+classic.html          经典滚动版（不想玩游戏的长辈也能看）
+wedding-config.json   （可选）DEBUG 导出的展品/桌位/碎片配置
+```
 
 ## 🛠 技术
-Canvas 2D 像素渲染（程序化地图/建筑/精灵），Web Audio 实时合成 8-bit BGM 与音效，
+Canvas 2D 像素渲染（spritesheet + 程序化绘制混合），Web Audio 实时合成 8-bit BGM 与音效，
 多场景引擎（户外 + 2 内景），移动端虚拟摇杆，中文像素字体（缝合像素 via jsDelivr）。
+素材图加载失败时自动回退到内置程序化像素画，离线/file:// 也能玩。
+
+## 🎨 素材声明
+`assets/` 内游戏美术素材取自 [Huu-Yuu/StardewValley-Assets](https://github.com/Huu-Yuu/StardewValley-Assets)，
+版权归 **ConcernedApe（Stardew Valley）** 所有，仅用于个人婚礼请帖的**非商业**粉丝创作用途，请勿商用或二次分发。
 
 ---
 💝 Made with Claude Code · 祝新人百年好合
