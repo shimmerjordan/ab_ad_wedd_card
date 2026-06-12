@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>婚礼请帖 · Stardew Wedding</title>
+<!-- 中文像素字体：缝合像素字体 Fusion Pixel -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-proportional-sc@latest/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-proportional-sc@latest/chinese-simplified.css">
+<style>
+:root{
+  /* 星露谷 UI 配色 */
+  --wood-dark:#5b2c0e;
+  --wood:#8c4615;
+  --wood-light:#b3661f;
+  --orange:#e8943a;
+  --cream:#ffe6b0;
+  --cream-deep:#f6d291;
+  --text:#5b2c0e;
+  --red:#c0392b;
+  --night1:#1b1035;
+  --night2:#3a2360;
+  --night3:#6a4587;
+  --day1:#8fd3ff;
+  --day2:#c8ecff;
+  --grass:#4c9b3c;
+  --grass-dark:#3a7a2c;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Fusion Pixel 12px Proportional SC','Zpix',monospace;
+  color:var(--text);
+  background:#2e1c0e;
+  overflow-x:hidden;
+}
+img,canvas{image-rendering:pixelated}
+
+/* ====== 整体竖向画布，手机优先 ====== */
+.page{max-width:480px;margin:0 auto;position:relative;box-shadow:0 0 40px rgba(0,0,0,.6)}
+
+section{position:relative;padding:48px 20px;overflow:hidden}
+
+/* ====== 通用：星露谷面板 ====== */
+.sdv-panel{
+  background:var(--cream);
+  border:4px solid var(--wood-dark);
+  box-shadow:inset 0 0 0 4px var(--orange), inset 0 0 0 8px var(--cream-deep), 0 6px 0 rgba(0,0,0,.25);
+  border-radius:6px;
+  padding:24px 18px;
+  position:relative;
+}
+/* 四角铆钉 */
+.sdv-panel::before,.sdv-panel::after{
+  content:'';position:absolute;width:8px;height:8px;background:var(--wood);
+  box-shadow:0 0 0 2px var(--wood-dark);
+}
+.sdv-panel::before{top:8px;left:8px}
+.sdv-panel::after{top:8px;right:8px}
+
+/* 木牌标题 */
+.plank{
+  display:inline-block;
+  background:linear-gradient(180deg,var(--wood-light),var(--wood));
+  color:#ffefc9;
+  border:4px solid var(--wood-dark);
+  box-shadow:0 5px 0 rgba(0,0,0,.3), inset 0 3px 0 rgba(255,255,255,.18);
+  border-radius:4px;
+  padding:10px 26px;
+  font-size:22px;
+  letter-spacing:4px;
+  text-shadow:2px 2px 0 rgba(0,0,0,.35);
+  position:relative;
+  margin-bottom:26px;
+}
+.plank::before,.plank::after{
+  content:'';position:absolute;top:50%;width:6px;height:6px;margin-top:-3px;
+  background:#3a1d08;border-radius:0;
+}
+.plank::before{left:8px}
+.plank::after{right:8px}
+
+.center{text-align:center}
+
+/* 像素爱心（SVG data-uri，可平铺） */
+.px-heart{
+  display:inline-block;width:26px;height:24px;vertical-align:middle;
+  background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 12" shape-rendering="crispEdges"><path fill="%23e0457b" d="M2 1h3v1h1v1h1V2h1V1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v-1H4V9H3V8H2V7H1V6H0V2h1V1h1z"/><path fill="%23ff7daa" d="M2 2h2v1H3v2H2z"/></svg>') no-repeat center/contain;
+  animation:beat 1.2s ease-in-out infinite;
+}
+@keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+
+/* ====== 第一屏：封面（夜空） ====== */
+#cover{
+  min-height:100svh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--night1) 0%,var(--night2) 55%,var(--night3) 82%,#8a5da0 100%);
+  text-align:center;
+}
+#cover .stars,#cover .ground{position:absolute;left:0;right:0;pointer-events:none}
+#cover .stars{top:0;bottom:0}
+.star{position:absolute;background:#ffe9a8;animation:twinkle 2.4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.15}50%{opacity:1}}
+.shoot{
+  position:absolute;width:46px;height:3px;border-radius:0;
+  background:linear-gradient(90deg,#fff,transparent);
+  transform:rotate(38deg);opacity:0;pointer-events:none;
+  animation:shoot 1.1s linear forwards;
+}
+@keyframes shoot{0%{opacity:0;transform:rotate(38deg) translateX(0)}10%{opacity:1}100%{opacity:0;transform:rotate(38deg) translateX(240px)}}
+/* 封面草地 */
+#cover .ground{
+  bottom:0;height:64px;
+  background:
+    linear-gradient(180deg,var(--grass) 0 8px,var(--grass-dark) 8px 12px,var(--grass) 12px);
+}
+#cover .ground::before{
+  content:'';position:absolute;top:-10px;left:0;right:0;height:10px;
+  background:
+   repeating-linear-gradient(90deg,transparent 0 6px,var(--grass) 6px 12px,transparent 12px 18px,var(--grass) 18px 30px);
+}
+.cover-title{
+  color:#ffe9a8;font-size:18px;letter-spacing:6px;margin-bottom:18px;
+  text-shadow:2px 2px 0 rgba(0,0,0,.5);
+}
+.cover-names{
+  color:#fff;font-size:38px;letter-spacing:4px;line-height:1.5;
+  text-shadow:3px 3px 0 #b3478f, 5px 5px 0 rgba(0,0,0,.4);
+  margin:6px 0 14px;
+}
+.cover-sub{color:#d9c4f0;font-size:15px;letter-spacing:3px;margin-bottom:40px}
+.sdv-btn{
+  font-family:inherit;cursor:pointer;
+  background:linear-gradient(180deg,#ffd789,#f0a94e);
+  color:var(--wood-dark);
+  border:4px solid var(--wood-dark);
+  box-shadow:0 6px 0 var(--wood-dark), inset 0 3px 0 rgba(255,255,255,.5);
+  border-radius:4px;
+  font-size:18px;letter-spacing:3px;
+  padding:14px 30px;
+  transition:transform .08s, box-shadow .08s;
+}
+.sdv-btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--wood-dark)}
+.bounce{animation:bounce 1.6s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* ====== 白天区域共用天空 ====== */
+.day{background:linear-gradient(180deg,var(--day1),var(--day2))}
+.day + .day{border-top:4px dashed rgba(91,44,14,.18)}
+/* 像素云 */
+.cloud{position:absolute;background:#fff;opacity:.9;pointer-events:none;z-index:0;
+  box-shadow:18px 6px 0 #fff, -16px 8px 0 #fff, 4px -8px 0 #fff;
+  width:34px;height:14px;animation:drift 36s linear infinite}
+/* 内容浮在云层之上 */
+.plank,.sdv-panel,.letter,.couple,.countdown{position:relative;z-index:1}
+@keyframes drift{from{transform:translateX(-80px)}to{transform:translateX(560px)}}
+
+/* ====== 新人介绍 ====== */
+.couple{display:flex;justify-content:center;gap:10px;align-items:flex-start;margin-top:8px}
+.who{flex:1;text-align:center}
+.who .frame{
+  display:inline-block;background:#fdf3dc;border:4px solid var(--wood-dark);
+  box-shadow:inset 0 0 0 4px var(--orange), 0 5px 0 rgba(0,0,0,.2);
+  padding:10px;border-radius:4px;
+}
+.who canvas{display:block;width:112px;height:128px}
+.who .name{margin-top:12px;font-size:20px;letter-spacing:2px}
+.who .desc{margin-top:6px;font-size:13px;color:#8a5a2b;line-height:1.7}
+.couple .mid{align-self:center;padding-top:40px}
+
+/* ====== 婚礼信息/倒计时 ====== */
+.info-row{display:flex;align-items:center;gap:12px;padding:10px 4px;font-size:16px;line-height:1.6}
+.info-row + .info-row{border-top:3px dashed rgba(140,70,21,.25)}
+.info-ico{
+  flex:none;width:34px;height:34px;border-radius:4px;
+  background:var(--wood);border:3px solid var(--wood-dark);
+  color:#ffe9a8;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.countdown{display:flex;justify-content:center;gap:8px;margin-top:20px}
+.cd-cell{
+  background:var(--wood-dark);color:#ffe9a8;border-radius:4px;
+  border:3px solid #3a1d08;box-shadow:inset 0 3px 0 rgba(255,255,255,.12);
+  min-width:62px;padding:10px 4px;text-align:center;
+}
+.cd-cell b{display:block;font-size:24px;line-height:1.1}
+.cd-cell span{font-size:11px;opacity:.85}
+.cd-done{font-size:18px;color:var(--red);letter-spacing:2px;margin-top:18px}
+
+/* ====== 信件（邀请函正文）====== */
+.letter{
+  background:
+    linear-gradient(180deg,#fdf3dc,#f7e6c0);
+  border:4px solid var(--wood-dark);
+  box-shadow:inset 0 0 0 3px #d9b97e, 0 6px 0 rgba(0,0,0,.22);
+  border-radius:4px;padding:30px 22px;position:relative;
+  font-size:15px;line-height:2.1;
+}
+.letter::before,.letter::after{
+  content:'❀';position:absolute;color:#cf9c52;font-size:16px;
+}
+.letter::before{top:8px;left:12px}
+.letter::after{bottom:8px;right:12px}
+.letter .sign{text-align:right;margin-top:14px}
+
+/* ====== 流程 ====== */
+.timeline{margin-top:6px}
+.tl-row{display:flex;align-items:center;gap:14px;padding:11px 2px}
+.tl-row + .tl-row{border-top:3px dashed rgba(140,70,21,.22)}
+.tl-time{
+  flex:none;background:var(--orange);color:#fff;border:3px solid var(--wood-dark);
+  border-radius:4px;padding:5px 8px;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,.2);
+}
+.tl-what{font-size:15px}
+
+/* ====== 页脚 ====== */
+#footer{
+  background:linear-gradient(180deg,var(--day2) 0%, #ffe2ae 60%, var(--grass) 60.5%, var(--grass-dark) 100%);
+  text-align:center;padding-bottom:64px;
+}
+#footer .end{font-size:20px;letter-spacing:4px;line-height:2;margin-top:10px}
+.flower{position:absolute;bottom:18px;width:10px;height:10px;border-radius:50%;
+  box-shadow:0 -8px 0 currentColor, 8px 0 0 currentColor, -8px 0 0 currentColor, 0 8px 0 currentColor;
+  transform:scale(.5)}
+
+/* ====== BGM 按钮 ====== */
+#bgmBtn{
+  position:fixed;top:14px;right:14px;z-index:99;
+  width:48px;height:48px;font-size:20px;padding:0;
+}
+#bgmBtn.playing{animation:spinHop 2s ease-in-out infinite}
+@keyframes spinHop{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+
+/* ====== 点击飘心 ====== */
+.fly-heart{position:fixed;z-index:98;pointer-events:none;animation:fly 1.4s ease-out forwards}
+@keyframes fly{
+  0%{transform:translateY(0) scale(.6);opacity:1}
+  100%{transform:translateY(-130px) scale(1.25);opacity:0}
+}
+
+/* ====== 滚动入场 ====== */
+.reveal{opacity:0;transform:translateY(34px);transition:opacity .7s ease, transform .7s ease}
+.reveal.show{opacity:1;transform:translateY(0)}
+
+@media (min-width:481px){
+  body{background:radial-gradient(circle at 50% 30%, #4a2d12, #20120a)}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ① 封面 -->
+  <section id="cover">
+    <div class="stars" id="starField"></div>
+    <div>
+      <div class="cover-title">WEDDING INVITATION</div>
+      <div class="cover-names" id="cNames">新郎名字<br><span class="px-heart"></span><br>新娘名字</div>
+      <div class="cover-sub" id="cDate">2026 . 10 . 01</div>
+      <button class="sdv-btn bounce" id="openBtn">♪ 开启请帖 ▼</button>
+    </div>
+    <div class="ground"></div>
+  </section>
+
+  <!-- ② 新人介绍 -->
+  <section class="day center reveal" id="couple">
+    <div class="plank">♥ 新人介绍 ♥</div>
+    <div class="couple">
+      <div class="who">
+        <div class="frame"><canvas id="groomCv" width="14" height="16"></canvas></div>
+        <div class="name" id="groomName">新郎名字</div>
+        <div class="desc" id="groomDesc">鹈鹕镇农场主<br>擅长种地与钓鱼</div>
+      </div>
+      <div class="mid"><span class="px-heart"></span></div>
+      <div class="who">
+        <div class="frame"><canvas id="brideCv" width="14" height="16"></canvas></div>
+        <div class="name" id="brideName">新娘名字</div>
+        <div class="desc" id="brideDesc">小镇图书馆常客<br>最爱的礼物是向日葵</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ 婚礼信息 + 倒计时 -->
+  <section class="day center reveal" id="info">
+    <div class="plank">✦ 婚礼信息 ✦</div>
+    <div class="sdv-panel" style="text-align:left">
+      <div class="info-row"><div class="info-ico">日</div><div id="iDate">2026 年 10 月 1 日（星期四）<br>农历八月廿一</div></div>
+      <div class="info-row"><div class="info-ico">时</div><div id="iTime">上午 11 : 08 准时开席</div></div>
+      <div class="info-row"><div class="info-ico">地</div><div id="iPlace">某某市某某区<br>幸福大酒店 · 二楼宴会厅</div></div>
+      <div class="info-row"><div class="info-ico">话</div><div id="iPhone">新郎 138-0000-0000<br>新娘 139-0000-0000</div></div>
+    </div>
+    <div class="countdown" id="countdown">
+      <div class="cd-cell"><b id="cdD">--</b><span>天</span></div>
+      <div class="cd-cell"><b id="cdH">--</b><span>时</span></div>
+      <div class="cd-cell"><b id="cdM">--</b><span>分</span></div>
+      <div class="cd-cell"><b id="cdS">--</b><span>秒</span></div>
+    </div>
+    <div class="cd-done" id="cdDone" style="display:none">♥ 今天就是大喜之日 ♥</div>
+  </section>
+
+  <!-- ④ 邀请函正文 -->
+  <section class="day reveal" id="letterSec">
+    <div class="center"><div class="plank">✉ 邀请函 ✉</div></div>
+    <div class="letter" id="letterBody">
+      亲爱的朋友：<br><br>
+      &emsp;&emsp;在星露谷的季节流转里，我们相遇、相知、相爱。如今终于要在所有亲友的见证下，互换「美人鱼吊坠」，结为夫妻。<br><br>
+      &emsp;&emsp;诚挚邀请你来参加我们的婚礼，分享这一刻的喜悦。届时备有薄酒果蔬（还有星之果实味的喜糖），恭候光临！
+      <div class="sign">新郎名字 &amp; 新娘名字<br>敬邀</div>
+    </div>
+  </section>
+
+  <!-- ⑤ 当日流程 -->
+  <section class="day center reveal" id="schedule">
+    <div class="plank">⚑ 当日流程 ⚑</div>
+    <div class="sdv-panel timeline" style="text-align:left">
+      <div class="tl-row"><div class="tl-time">10:00</div><div class="tl-what">宾客签到 · 合影留念</div></div>
+      <div class="tl-row"><div class="tl-time">10:58</div><div class="tl-what">婚礼仪式开始</div></div>
+      <div class="tl-row"><div class="tl-time">11:08</div><div class="tl-what">喜宴开席 · 举杯同庆</div></div>
+      <div class="tl-row"><div class="tl-time">13:00</div><div class="tl-what">茶歇游戏 · 自由活动</div></div>
+    </div>
+  </section>
+
+  <!-- ⑥ 页脚 -->
+  <section id="footer" class="reveal">
+    <span class="px-heart"></span><span class="px-heart" style="animation-delay:.3s"></span><span class="px-heart" style="animation-delay:.6s"></span>
+    <div class="end">敬备喜宴 · 恭候光临<br><span style="font-size:13px;color:#8a5a2b">— 点击屏幕任意处有惊喜 —</span></div>
+  </section>
+
+</div>
+
+<button class="sdv-btn" id="bgmBtn" title="背景音乐">♪</button>
+
+<script>
+/* ============================================================
+ * ★★★ 请帖内容都在这里改 ★★★
+ * ============================================================ */
+const CONFIG = {
+  groom:      '新郎名字',
+  bride:      '新娘名字',
+  groomDesc:  '鹈鹕镇农场主<br>擅长种地与钓鱼',
+  brideDesc:  '小镇图书馆常客<br>最爱的礼物是向日葵',
+  dateText:   '2026 . 10 . 01',
+  dateDetail: '2026 年 10 月 1 日（星期四）<br>农历八月廿一',
+  timeDetail: '上午 11 : 08 准时开席',
+  place:      '某某市某某区<br>幸福大酒店 · 二楼宴会厅',
+  phone:      '新郎 138-0000-0000<br>新娘 139-0000-0000',
+  /* 倒计时目标时间（注意保留 +08:00 时区） */
+  weddingISO: '2026-10-01T11:08:00+08:00',
+};
+
+/* —— 把 CONFIG 填进页面 —— */
+document.getElementById('cNames').innerHTML =
+  CONFIG.groom + '<br><span class="px-heart"></span><br>' + CONFIG.bride;
+document.getElementById('cDate').textContent  = CONFIG.dateText;
+document.getElementById('groomName').textContent = CONFIG.groom;
+document.getElementById('brideName').textContent = CONFIG.bride;
+document.getElementById('groomDesc').innerHTML = CONFIG.groomDesc;
+document.getElementById('brideDesc').innerHTML = CONFIG.brideDesc;
+document.getElementById('iDate').innerHTML  = CONFIG.dateDetail;
+document.getElementById('iTime').innerHTML  = CONFIG.timeDetail;
+document.getElementById('iPlace').innerHTML = CONFIG.place;
+document.getElementById('iPhone').innerHTML = CONFIG.phone;
+document.querySelector('.letter .sign').innerHTML =
+  CONFIG.groom + ' & ' + CONFIG.bride + '<br>敬邀';
+
+/* ============================================================
+ * 像素头像（canvas 逐格绘制）
+ * ============================================================ */
+const PALETTE = {
+  h:'#3b2a1e', H:'#7a4a2a',          // 头发：新郎深棕 / 新娘棕
+  s:'#f8c890', e:'#4a2c17', b:'#f4a0a0', m:'#c75b5b',
+  k:'#2b2b34', w:'#ffffff', t:'#c0392b',
+  v:'#fdfdff', d:'#fdfdfd', f:'#ff7daa',
+};
+const GROOM = [
+'..hhhhhhhhhh..',
+'.hhhhhhhhhhhh.',
+'.hhhhhhhhhhhh.',
+'.hhsssssssshh.',
+'.hssssssssssh.',
+'.hsseesseessh.',
+'.hssssssssssh.',
+'..sbssssssbs..',
+'..ssssmmssss..',
+'...ssssssss...',
+'....kkkkkk....',
+'..kkkwttwkkk..',
+'..kkkwttwkkk..',
+'..kkkwwwwkkk..',
+'..kkkkkkkkkk..',
+'...kkkkkkkk...',
+];
+const BRIDE = [
+'..vvvvvvvvvv..',
+'.vvHHfHHHHHvv.',
+'.vHHHHHHHHHHv.',
+'.vHHssssssHHv.',
+'.HHssssssssHH.',
+'.HHseesseesHH.',
+'.HHssssssssHH.',
+'.HsbssssssbsH.',
+'.HssssmmssssH.',
+'.H.ssssssss.H.',
+'.H..dddddd..H.',
+'....dddddd....',
+'...dddddddd...',
+'..dddddddddd..',
+'.dddddddddddd.',
+'.dddddddddddd.',
+];
+function drawSprite(canvasId, map){
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  map.forEach((row,y)=>{
+    [...row].forEach((c,x)=>{
+      if(c==='.') return;
+      ctx.fillStyle = PALETTE[c] || '#000';
+      ctx.fillRect(x,y,1,1);
+    });
+  });
+}
+drawSprite('groomCv', GROOM);
+drawSprite('brideCv', BRIDE);
+
+/* ============================================================
+ * 封面：星星 + 流星 + 漂浮云
+ * ============================================================ */
+const starField = document.getElementById('starField');
+for(let i=0;i<46;i++){
+  const s = document.createElement('div');
+  s.className='star';
+  const sz = Math.random()<.3 ? 4 : 2;
+  s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*78}%;animation-delay:${(Math.random()*2.4).toFixed(2)}s`;
+  starField.appendChild(s);
+}
+setInterval(()=>{
+  const m = document.createElement('div');
+  m.className='shoot';
+  m.style.left = (5+Math.random()*55)+'%';
+  m.style.top  = (5+Math.random()*40)+'%';
+  starField.appendChild(m);
+  setTimeout(()=>m.remove(),1200);
+}, 2600);
+/* 白天区域加几朵云 */
+document.querySelectorAll('section.day').forEach((sec,i)=>{
+  for(let c=0;c<2;c++){
+    const cl=document.createElement('div');
+    cl.className='cloud';
+    cl.style.top=(6+c*9)+'%';
+    cl.style.animationDelay = (-(i*7+c*13))+'s';
+    sec.appendChild(cl);
+  }
+});
+
+/* ============================================================
+ * 倒计时
+ * ============================================================ */
+const target = new Date(CONFIG.weddingISO).getTime();
+function pad(n){return String(n).padStart(2,'0')}
+function tick(){
+  const diff = target - Date.now();
+  if(diff <= 0){
+    document.getElementById('countdown').style.display='none';
+    document.getElementById('cdDone').style.display='block';
+    return;
+  }
+  document.getElementById('cdD').textContent = Math.floor(diff/864e5);
+  document.getElementById('cdH').textContent = pad(Math.floor(diff/36e5)%24);
+  document.getElementById('cdM').textContent = pad(Math.floor(diff/6e4)%60);
+  document.getElementById('cdS').textContent = pad(Math.floor(diff/1e3)%60);
+}
+tick(); setInterval(tick,1000);
+
+/* ============================================================
+ * 滚动入场
+ * ============================================================ */
+const io = new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('show'); io.unobserve(e.target);} });
+},{threshold:.18});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ============================================================
+ * 8-bit 背景音乐（Web Audio 合成，无需音频文件）
+ * ============================================================ */
+let actx=null, bgmOn=false, loopTimer=null;
+const BPM=152, BEAT=60/BPM;            // 三拍子小圆舞曲
+const f = m => 440*Math.pow(2,(m-69)/12);
+/* 旋律：[MIDI 音高, 拍数]，0 表示休止 */
+const MELODY=[
+  [64,1],[67,1],[72,1],  [71,1.5],[69,.5],[67,1],
+  [69,1],[67,1],[64,1],  [67,3],
+  [64,1],[67,1],[72,1],  [74,1.5],[76,.5],[74,1],
+  [72,1],[69,1],[71,1],  [72,3],
+];
+/* 低音：每小节 根音 + 两个和弦音 */
+const BASS=[
+  [48,55,55],[43,50,50],[45,52,52],[48,55,55],
+  [48,55,55],[43,50,50],[41,48,53],[48,52,55],
+];
+function note(type, midi, t, dur, vol){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.value=f(midi);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+.02);
+  g.gain.setValueAtTime(vol,t+dur*.6);
+  g.gain.linearRampToValueAtTime(0,t+dur*.95);
+  o.connect(g).connect(actx.destination);
+  o.start(t); o.stop(t+dur);
+}
+function scheduleLoop(t0){
+  let t=t0;
+  MELODY.forEach(([m,b])=>{ if(m) note('square',m,t,b*BEAT,.045); t+=b*BEAT; });
+  BASS.forEach((bar,bi)=>{
+    const bt=t0+bi*3*BEAT;
+    bar.forEach((m,i)=>note('triangle',m,bt+i*BEAT,BEAT*.9,i===0?.07:.04));
+  });
+  return t - t0; // loop 时长
+}
+function bgmLoop(){
+  const start = actx.currentTime + .05;
+  const len = scheduleLoop(start);
+  loopTimer = setTimeout(bgmLoop, (len-.15)*1000);
+}
+function toggleBgm(force){
+  const want = force!==undefined ? force : !bgmOn;
+  if(want && !bgmOn){
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    actx.resume();
+    bgmOn=true; bgmLoop();
+  }else if(!want && bgmOn){
+    bgmOn=false; clearTimeout(loopTimer);
+    actx.close(); actx=null;
+  }
+  const btn=document.getElementById('bgmBtn');
+  btn.textContent = bgmOn ? '♪' : '✕';
+  btn.classList.toggle('playing', bgmOn);
+}
+document.getElementById('bgmBtn').addEventListener('click',e=>{e.stopPropagation();toggleBgm();});
+
+/* 封面按钮：开音乐 + 滚到下一屏 */
+document.getElementById('openBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  toggleBgm(true);
+  document.getElementById('couple').scrollIntoView({behavior:'smooth'});
+});
+
+/* ============================================================
+ * 点击屏幕飘像素爱心
+ * ============================================================ */
+const HEART_COLORS=['%23e0457b','%23ff7daa','%23f0a94e','%23a06ee0'];
+document.addEventListener('pointerdown',ev=>{
+  for(let i=0;i<3;i++){
+    const h=document.createElement('div');
+    h.className='fly-heart';
+    const c=HEART_COLORS[Math.floor(Math.random()*HEART_COLORS.length)];
+    const sz=14+Math.random()*14;
+    h.style.cssText=`left:${ev.clientX-sz/2+(Math.random()*36-18)}px;top:${ev.clientY-sz/2}px;width:${sz}px;height:${sz}px;animation-delay:${i*.08}s;`+
+      `background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 12" shape-rendering="crispEdges"><path fill="${c}" d="M2 1h3v1h1v1h1V2h1V1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v-1H4V9H3V8H2V7H1V6H0V2h1V1h1z"/></svg>') no-repeat center/contain`;
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(),1600);
+  }
+});
+
+/* 页脚小花 */
+const foot=document.getElementById('footer');
+['#ff7daa','#ffd84d','#a06ee0','#ff8a5c','#7dc4ff'].forEach((c,i)=>{
+  const fl=document.createElement('div');
+  fl.className='flower';
+  fl.style.color=c;
+  fl.style.left=(8+i*20)+'%';
+  foot.appendChild(fl);
+});
+</script>
+</body>
+</html>
