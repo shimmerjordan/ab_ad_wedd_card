@@ -49,9 +49,10 @@ function rect(g,x0,y0,x1,y1,ch){ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++) 
 function hline(g,x0,x1,y,ch){ rect(g,x0,y,x1,y,ch); }
 function vline(g,x,y0,y1,ch){ rect(g,x,y0,x,y1,ch); }
 
-/* —— 户外大世界 36x40 —— */
+/* —— 户外大世界 36x46（镇区建筑改用高大真立面，整体南移） ——
+ *  新增地块: B 开花灌木(可跳过) u 小灌木(装饰) G 觅食灌木(采谷粒) */
 function buildWorld(){
-  const W=36,H=40,g=grid(W,H,'.');
+  const W=36,H=46,g=grid(W,H,'.');
   /* 湖（椭圆 + 沙边） */
   const cx=29.2,cy=5.6,rx=5.6,ry=4.1;
   for(let y=1;y<12;y++)for(let x=22;x<35;x++){
@@ -61,8 +62,7 @@ function buildWorld(){
   for(let y=1;y<13;y++)for(let x=21;x<36;x++){
     if(g[y][x]==='.'&&[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]].some(([a,b])=>g[y+b]&&g[y+b][x+a]==='~')) g[y][x]='n';
   }
-  /* 木栈道伸进湖里 */
-  vline(g,29,7,10,'=');
+  vline(g,29,7,10,'=');                       // 木栈道
   /* 农田 + 篱笆（底部留门，可跳跃） */
   rect(g,9,7,14,9,'P');
   hline(g,8,15,6,'f'); hline(g,8,10,10,'f'); hline(g,13,15,10,'f');
@@ -70,95 +70,154 @@ function buildWorld(){
   /* 鸡圈（无门，跳进去） */
   hline(g,18,21,6,'f'); hline(g,18,21,9,'f');
   vline(g,18,7,8,'f');  vline(g,21,7,8,'f');
-  /* 花田 */
-  for(let y=20;y<=25;y++)for(let x=27;x<=33;x++) if(hash(x,y)%3<2) g[y][x]='F';
-  /* 西边小树林 + 神秘草丛 */
-  for(const [tx,ty] of [[2,20],[4,21],[2,24],[5,24],[3,26],[2,30],[5,29],[3,33],[6,32],[2,36]]) g[ty][tx]='T';
-  g[22][3]=',';
-  /* 路网 */
-  vline(g,5,6,18,':');             // 家门口往南
-  hline(g,5,30,18,':');            // 主路东西
-  vline(g,18,18,28,':');           // 往殿堂
-  hline(g,18,27,22,':');           // 往花田
-  vline(g,9,17,18,':');            // 杂货店门口
-  vline(g,27,17,18,':');           // 邻居门口
-  vline(g,29,11,13,':'); hline(g,29,30,13,':'); vline(g,30,13,18,':'); // 湖往主路
-  hline(g,17,18,28,':'); vline(g,17,28,36,':'); vline(g,18,28,36,':'); // 殿堂红毯前
+  /* 花田（东南） */
+  for(let y=25;y<=30;y++)for(let x=26;x<=33;x++) if(hash(x,y)%3<2) g[y][x]='F';
+  /* 西边小树林 + 神秘草丛(蛋) */
+  for(const [tx,ty] of [[2,20],[4,21],[2,24],[5,25],[3,27],[2,31],[5,30],[3,34],[6,33],[2,38],[5,38],[3,42]]) g[ty][tx]='T';
+  /* 路网：家→主路→各门口→殿堂门前广场 */
+  vline(g,5,6,22,':');                        // 家门口往南
+  hline(g,5,30,22,':');                       // 主路（镇区门前）
+  vline(g,12,21,22,':');                      // 杂货店门口
+  vline(g,20,21,22,':');                      // 博物馆门口
+  vline(g,27,21,22,':');                      // 邻居门口
+  vline(g,29,11,14,':'); hline(g,29,30,14,':'); vline(g,30,14,21,':'); // 湖→主路
+  vline(g,18,22,30,':');                      // 主路往南
+  hline(g,18,26,30,':');                      // 往花田
+  vline(g,24,30,40,':');                      // 绕殿堂东侧
+  hline(g,17,24,40,':');                      // 殿堂门前横路
+  rect(g,15,37,20,39,':');                    // ★ 殿堂门前广场（直达大门）
+  vline(g,17,36,37,':'); vline(g,18,36,37,':');
+  /* 开花灌木(B, 可跳)与小灌木(u, 装饰) */
+  for(const [bx,by] of [[7,12],[16,12],[22,15],[31,16],[7,24],[14,24],[25,23],[34,22],[12,31],[26,33],[33,33],[10,38],[26,41],[31,38]]) if(g[by][bx]==='.') g[by][bx]='B';
+  for(const [ux,uy] of [[4,12],[10,12],[19,15],[24,12],[33,12],[8,20],[15,20],[23,20],[31,20],[6,27],[13,27],[21,28],[34,27],[9,34],[21,34],[30,35],[14,42],[22,43],[28,43]]) if(g[uy][ux]==='.') g[uy][ux]='u';
+  /* 觅食灌木(G: 鸡饲料谷粒) */
+  for(const [gx,gy] of [[4,18],[24,16],[34,30],[26,31],[6,40]]) g[gy][gx]='G';
   /* 草丛点缀 */
   for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++) if(g[y][x]==='.'&&hash(x,y)%13===0) g[y][x]=',';
   /* 树木点缀（避开空地建筑） */
-  const forb=(x,y)=> (x>=1&&x<=10&&y>=1&&y<=6)||(x>=7&&x<=16&&y>=5&&y<=11)||(x>=17&&x<=22&&y>=5&&y<=10)||
-    (x>=20&&x<=35&&y>=0&&y<=13)||(x>=6&&x<=31&&y>=12&&y<=19)||(x>=25&&x<=35&&y>=19&&y<=26)||
-    (x>=10&&x<=25&&y>=28&&y<=39)||(x>=16&&x<=19&&y>=18&&y<=39);
+  const forb=(x,y)=> (x>=1&&x<=10&&y>=1&&y<=10)||(x>=7&&x<=16&&y>=5&&y<=11)||(x>=17&&x<=22&&y>=5&&y<=10)||
+    (x>=20&&x<=35&&y>=0&&y<=14)||(x>=3&&x<=33&&y>=11&&y<=23)||(x>=24&&x<=35&&y>=24&&y<=31)||
+    (x>=11&&x<=25&&y>=30&&y<=45)||(x>=15&&x<=20&&y>=22&&y<=45);
   for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++)
-    if(g[y][x]==='.'&&!forb(x,y)&&hash(x*3,y*7)%17===0) g[y][x]='T';
+    if(g[y][x]==='.'&&!forb(x,y)&&hash(x*3,y*7)%15===0) g[y][x]='T';
   /* 边界树墙 */
   hline(g,0,W-1,0,'T'); hline(g,0,W-1,H-1,'T');
   vline(g,0,0,H-1,'T'); vline(g,W-1,0,H-1,'T');
   return {w:W,h:H,g};
 }
-/* —— 博物馆内景 20x14 —— */
+/* —— 博物馆内景 26x18：上墙矿物大展架+4油画，中央两排圆桌展台 —— */
 function buildMuseum(){
-  const W=20,H=14,g=grid(W,H,'w');
-  rect(g,0,0,W-1,1,'W'); hline(g,0,W-1,H-1,'W');
+  const W=26,H=18,g=grid(W,H,'w');
+  rect(g,0,0,W-1,2,'W');                      // 上墙(3行墙面)
+  hline(g,0,W-1,H-1,'W');
   vline(g,0,0,H-1,'W'); vline(g,W-1,0,H-1,'W');
-  g[H-1][9]='w'; g[H-1][10]='w';          // 门口
-  rect(g,8,6,11,7,'c');                   // 中央地毯
+  g[H-1][12]='w'; g[H-1][13]='w';             // 门口
   return {w:W,h:H,g};
 }
-/* —— 婚礼殿堂内景 26x20 —— */
+/* —— 婚礼殿堂内景 26x20：墙面3行+舞台+中央红毯 —— */
 function buildHall(){
   const W=26,H=20,g=grid(W,H,'w');
-  rect(g,0,0,W-1,0,'W'); hline(g,0,W-1,H-1,'W');
+  rect(g,0,0,W-1,2,'W');
+  hline(g,0,W-1,H-1,'W');
   vline(g,0,0,H-1,'W'); vline(g,W-1,0,H-1,'W');
-  rect(g,7,1,18,4,'S');                   // 舞台
-  rect(g,12,5,13,18,'c');                 // 中央红毯通道
-  g[H-1][12]='c'; g[H-1][13]='c';         // 门口
+  rect(g,7,3,18,6,'S');                       // 舞台
+  rect(g,12,7,13,18,'c');                     // 中央红毯
+  g[H-1][12]='c'; g[H-1][13]='c';             // 门口
   return {w:W,h:H,g};
 }
 
-/* —— 建筑（户外，参数化绘制+碰撞） —— */
+/* —— 建筑（img=星露谷立面素材, 底边对齐地基; 无图时回退参数化绘制） —— */
 const BUILDINGS = [
   {key:'home',   x:2, y:2, w:6, h:4, wall:'#e8d5a8', roof:'#b04a3a', label:'',
    door:{x:4.5,w:1,  act:'homeDoor'}},
-  {key:'shop',   x:7, y:13,w:6, h:4, wall:'#f0e0b8', roof:'#3f8a3c', label:'杂货店',
-   door:{x:9,  w:1,  act:'shop'}},
-  {key:'museum', x:14,y:12,w:9, h:5, wall:'#e8e0d0', roof:'#5a6fb0', label:'博物馆',
-   door:{x:18, w:1,  act:'enterMuseum'}},
-  {key:'nb1',    x:25,y:13,w:5, h:4, wall:'#e8d5a8', roof:'#c9772e', label:'',
-   door:{x:27, w:1,  act:'nbDoor'}},
-  {key:'hall',   x:11,y:28,w:14,h:7, wall:'#f5ead0', roof:'#c0392b', label:'婚礼殿堂',
-   door:{x:17, w:2,  act:'enterHall'}},
+  {key:'shop',   x:7, y:17,w:11,h:4, wall:'#f0e0b8', roof:'#3f8a3c', label:'杂货店',
+   img:'shopB', doorOff:110, doorW:36,
+   door:{x:11.5,w:1.6,act:'shop'}},
+  {key:'museum', x:17,y:17,w:8, h:4, wall:'#e8e0d0', roof:'#5a6fb0', label:'博物馆',
+   img:'museumB', doorOff:64, doorW:32,
+   door:{x:20.6,w:1.6,act:'enterMuseum'}},
+  {key:'nb1',    x:26,y:17,w:5, h:4, wall:'#e8d5a8', roof:'#c9772e', label:'',
+   door:{x:28, w:1,  act:'nbDoor'}},
+  {key:'hall',   x:13,y:33,w:10,h:4, wall:'#f5ead0', roof:'#c0392b', label:'婚礼殿堂',
+   img:'hallB', doorOff:58, doorW:48,
+   door:{x:17,  w:2,  act:'enterHall'}},
 ];
+/* 立面图左缘的世界 X（图按地基宽度水平居中） */
+function bldImgX(b,im){ return b.x*TILE+((b.w*TILE-im.width)/2|0); }
+/* 门的世界矩形：素材建筑用像素偏移，参数化建筑用 tile 偏移 */
+function bldDoorRect(b){
+  const im=b.img&&img(b.img);
+  if(im&&b.doorOff!==undefined){
+    return {x:bldImgX(b,im)+b.doorOff, y:(b.y+b.h)*TILE-20, w:b.doorW, h:30};
+  }
+  return {x:b.door.x*TILE-6, y:(b.y+b.h)*TILE-18, w:b.door.w*TILE+12, h:26};
+}
 /* 户外固定对象 */
 const WOBJ = {
   mailbox:{x:8*TILE+4, y:5*TILE+2, w:8, h:12},
   well:   {x:2*TILE,   y:8*TILE,  w:30, h:28},
   chest:  {x:19*TILE+2,y:7*TILE+2, w:12, h:10},
-  bush:   {x:3*TILE,   y:22*TILE,  w:16, h:14},
+  bush:   {x:3*TILE,   y:22*TILE,  w:16, h:14},   // 神秘草丛(跳3次彩蛋)
 };
-/* 殿堂内对象：8 桌 + 互动点 */
-const TABLE_POS=[[3,7],[8,7],[15,7],[20,7],[3,12],[8,12],[15,12],[20,12]]; // tile 坐标(2x2)
+/* 户外装饰（殿堂/博物馆门前：干净盆栽） */
+const WDECOR = [
+  {img:'potA', x:15.2*TILE, y:36.4*TILE, w:14, h:10, solid:1},
+  {img:'potC', x:16.2*TILE, y:36.4*TILE, w:14, h:10, solid:1},
+  {img:'potC', x:19.4*TILE, y:36.4*TILE, w:14, h:10, solid:1},
+  {img:'potA', x:20.4*TILE, y:36.4*TILE, w:14, h:10, solid:1},
+  {img:'potB', x:19.4*TILE, y:20.5*TILE, w:14, h:10, solid:1},
+  {img:'potB', x:22.4*TILE, y:20.5*TILE, w:14, h:10, solid:1},
+  {img:'potC', x:11*TILE,   y:20.5*TILE, w:14, h:10, solid:1},
+  {img:'potA', x:13.6*TILE, y:20.5*TILE, w:14, h:10, solid:1},
+];
+/* 殿堂内对象：8 圆桌 + 互动点 + 自助宴会桌/装饰 */
+const TABLE_POS=[[4,9],[8,9],[15,9],[19,9],[4,14],[8,14],[15,14],[19,14]];
 const HOBJ = {
-  piano:  {x:2*TILE, y:2*TILE, w:38, h:26},
-  tower:  {x:21*TILE,y:1*TILE+8, w:30, h:30},
-  cake:   {x:21*TILE,y:15*TILE, w:30, h:24},
-  popperL:{x:1*TILE+4,y:16*TILE, w:12, h:16},
-  popperR:{x:24*TILE, y:16*TILE, w:12, h:16},
+  piano:  {x:8*TILE, y:3.6*TILE, w:38, h:26},
+  tower:  {x:15.5*TILE,y:3.4*TILE, w:30, h:30},
+  cake:   {x:21.5*TILE,y:7.4*TILE, w:30, h:24},
+  buffetL:{x:1*TILE+6, y:6.4*TILE, w:44, h:58, img:'tableRedA'},
+  buffetR:{x:22*TILE+4,y:12.4*TILE,w:44, h:58, img:'tableRedB'},
+  poleL:  {x:2*TILE,  y:16.6*TILE, w:24, h:18, img:'maypole'},
+  poleR:  {x:22.6*TILE,y:16.6*TILE,w:24, h:18, img:'maypole'},
+  popperL:{x:1*TILE+4,y:11*TILE, w:12, h:16},
+  popperR:{x:23.6*TILE,y:5*TILE, w:12, h:16},
 };
-/* 博物馆展位坐标（前8面墙画，后4台座） */
-const EX_WALL=[[2,2],[4,2],[6,2],[8,2],[11,2],[13,2],[15,2],[17,2]];
-const EX_PED =[[4,7],[8,7],[12,7],[16,7]];
+/* 殿堂内装饰（无碰撞）：盆栽列于舞台两侧 + 红毯夹道 */
+const HDECOR = [
+  {img:'potB', x:9.8*TILE, y:6.2*TILE},
+  {img:'potB', x:15.2*TILE,y:6.2*TILE},
+  {img:'potC', x:10.8*TILE,y:11.4*TILE},
+  {img:'potC', x:14*TILE,  y:11.4*TILE},
+  {img:'potA', x:10.8*TILE,y:16.4*TILE},
+  {img:'potA', x:14*TILE,  y:16.4*TILE},
+];
+/* 博物馆展位：
+ *  1-4 → 上墙油画(矿架两侧各2幅, 像素坐标)
+ *  5-12 → 中央两排圆木桌展台(tile 坐标) */
+const EX_WALL_PX=[[26,8],[74,8],[296,8],[344,8]];
+const EX_TBL=[[3,5],[9,5],[15,5],[21,5],[3,10],[9,10],[15,10],[21,10]];
+const MUSEUM_PAINTS=['paintBoat','paintHills','paintSunset','paintNight'];
+/* 博物馆家具(贴地摆放, 带碰撞) */
+const MOBJ = {
+  bookL:{x:5*TILE,   y:15*TILE,   w:36, h:26, img:'bookshelf'},
+  bookR:{x:18*TILE+8,y:15*TILE,   w:36, h:26, img:'bookshelf'},
+  skel: {x:11.4*TILE,y:7.6*TILE,  w:50, h:22, img:'skeleton'},
+  plantA:{x:1*TILE+6, y:3.6*TILE, w:28, h:16, img:'plantA'},
+  plantB:{x:21.6*TILE,y:3.6*TILE, w:36, h:16, img:'plantB'},
+  plantC:{x:1*TILE+6, y:14.6*TILE,w:28, h:16, img:'plantA'},
+  plantD:{x:21.6*TILE,y:14.6*TILE,w:36, h:16, img:'plantB'},
+};
 
 const SCENES = {
   world:  Object.assign(buildWorld(),  {type:'out'}),
-  museum: Object.assign(buildMuseum(), {type:'in', exit:{to:'world', x:18.5*TILE, y:18.2*TILE}}),
-  hall:   Object.assign(buildHall(),  {type:'in', exit:{to:'world', x:17.5*TILE, y:36*TILE}}),
+  museum: Object.assign(buildMuseum(), {type:'in', exit:{to:'world', x:21*TILE, y:21.2*TILE}}),
+  hall:   Object.assign(buildHall(),  {type:'in', exit:{to:'world', x:17.5*TILE, y:37.2*TILE}}),
 };
-/* 场景间寻路（指引箭头用）：当前场景到目标场景该走哪个“门” */
+/* 场景间寻路（指引箭头用） */
 function routeDoor(from,to){
-  if(from==='world') return to==='museum' ? {x:18.5*TILE,y:17*TILE} : {x:17.5*TILE,y:35*TILE};
-  return {x:from==='museum'?9.5*TILE:12.5*TILE, y:(SCENES[from].h-1)*TILE};
+  if(from==='world') return to==='museum' ? {x:21.3*TILE,y:21*TILE} : {x:18*TILE,y:37*TILE};
+  return {x:12.5*TILE, y:(SCENES[from].h-1)*TILE};
 }
 
 /* ============================================================
@@ -168,17 +227,24 @@ const game = {
   mode:'title',                 // title|play|dialog|ui|fish
   scene:'world',
   quest:0,                      // 0找TA 1农务 2钓鱼 3收信 4博物馆 5殿堂仪式 6完结
-  coins:10, seeds:0, fert:0, water:0, fruits:0, fishN:0, fishQ:false, rod:false,
+  coins:10, seeds:0, fert:0, water:0, fruits:0, fishN:0, fishQ:false,
+  rod:false, hasCan:false,      // 鱼竿(商店购买)/水壶(水井任务获取)
+  bait:0, eggs:0, feed:0, flowers:0, giftN:0,
+  chickenFedT:-99,              // 母鸡消化计时
   meetReplyIdx:0, vowIdx:0,
-  chestOpened:false, chickenTalk:0, wellWish:0, bushJump:0, catTalk:false, bootCaught:false,
+  chestOpened:false, chickenTalk:0, wellWish:0, bushJump:0, catTalk:false, catFed:0, bootCaught:false,
   fragGot:[],                   // 已收集碎片下标
   exhibitSeen:false,
   playerRole:'groom', time:0,
 };
+/* 觅食灌木/野花 重生计时 */
+const forageT={}, pickedF={};
 const player  = {x:5.5*TILE, y:6.5*TILE, dir:'down', flip:false, moving:false, animT:0, frame:'A', frameI:0, z:0, vz:0};
-const partner = {x:30*TILE, y:22*TILE, scene:'world', dir:'down', flip:false, role:'bride', bob:0};
+const partner = {x:30*TILE, y:27*TILE, scene:'world', dir:'down', flip:false, role:'bride', bob:0};
 const chicken = {x:19*TILE, y:8*TILE, dir:1, t:0, pause:false};
-const cat     = {x:23*TILE, y:12*TILE};
+/* 猫：状态机漫游(博物馆与邻居家之间的街角) + 喂食后跟随 */
+const cat = {x:24*TILE, y:21.6*TILE, homeX:24*TILE, homeY:21.6*TILE,
+             tx:24*TILE, ty:21.6*TILE, state:'sit', t:2, flip:false, followT:0, animT:0, frame:0};
 const plots = {};               // "x,y"->{st:0空/1种/2浇, fert:0/1, t}
 {
   const wg=SCENES.world.g;
@@ -262,19 +328,21 @@ function tileAt(px,py){
   return s.g[ty][tx];
 }
 function objList(){
-  if(game.scene==='world') return Object.values(WOBJ).concat(BUILDINGS.map(b=>({x:b.x*TILE,y:b.y*TILE,w:b.w*TILE,h:b.h*TILE})));
+  if(game.scene==='world') return Object.values(WOBJ)
+    .concat(WDECOR.filter(d=>d.solid))
+    .concat(BUILDINGS.map(b=>({x:b.x*TILE,y:b.y*TILE,w:b.w*TILE,h:b.h*TILE})));
   if(game.scene==='hall')  return Object.values(HOBJ).concat(TABLE_POS.map(([tx,ty])=>({x:tx*TILE+2,y:ty*TILE+6,w:28,h:22})));
   if(game.scene==='museum'){
-    const peds=[];
-    RT.museum.forEach((ex,i)=>{ if(i>=8&&i<12){const[px,py]=EX_PED[i-8];peds.push({x:px*TILE,y:py*TILE,w:16,h:14});} });
-    return peds;
+    const obs=Object.values(MOBJ).slice();
+    EX_TBL.forEach(([tx,ty])=>obs.push({x:tx*TILE+2,y:ty*TILE+8,w:40,h:24}));
+    return obs;
   }
   return [];
 }
 function solidAt(px,py,airborne){
   const t=tileAt(px,py);
   if(t==='T'||t==='W'||t==='~')return true;
-  if(t==='f'&&!airborne)return true;
+  if((t==='f'||t==='B')&&!airborne)return true;   // 篱笆/开花灌木均可跳越
   for(const o of objList()) if(px>=o.x&&px<o.x+o.w&&py>=o.y&&py<o.y+o.h)return true;
   return false;
 }
@@ -339,7 +407,7 @@ function updateFish(dt){
 function endFishing(ok){
   fishUI.style.display='none';fishHint.style.display='none';
   game.mode='play';
-  if(!ok){ sfx('blip'); toast('鱼跑掉了…再试一次！'); return; }
+  if(!ok){ sfx('blip'); toast('鱼跑掉了，鱼饵也被吃了…再试一次！'); return; }
   sfx('harvest'); flyHearts(innerWidth/2,innerHeight/2,3);
   if(fish.quest){
     game.fishQ=true;
@@ -418,6 +486,28 @@ function update(dt){
     if(nx>18.2*TILE&&nx<20.6*TILE&&ny>6.5*TILE&&ny<8.4*TILE){chicken.x=nx;chicken.y=ny;}
     else chicken.t=0;
   }
+  /* 猫咪 AI：跟随 > 漫游(走/坐/睡) */
+  if(game.scene==='world'){
+    cat.animT+=dt;
+    if(cat.animT>0.18){cat.animT=0;cat.frame=(cat.frame+1)%4;}
+    if(cat.followT>0){
+      cat.followT-=dt;
+      const dx=player.x-cat.x, dy=player.y+4-cat.y, d=Math.hypot(dx,dy);
+      if(d>26){ cat.x+=dx/d*46*dt; cat.y+=dy/d*46*dt; cat.flip=dx<0; cat.state='walk'; }
+      else cat.state='sit';
+    }else{
+      cat.t-=dt;
+      if(cat.state==='walk'){
+        const dx=cat.tx-cat.x, dy=cat.ty-cat.y, d=Math.hypot(dx,dy);
+        if(d<3||cat.t<=0) cat.state=Math.random()<.5?'sit':'sleep', cat.t=3+Math.random()*4;
+        else { cat.x+=dx/d*24*dt; cat.y+=dy/d*24*dt; cat.flip=dx<0; }
+      }else if(cat.t<=0){
+        cat.state='walk'; cat.t=6;
+        cat.tx=cat.homeX+(Math.random()*3-1.5)*TILE;
+        cat.ty=cat.homeY+(Math.random()*1.6-0.6)*TILE;   // 沿街角小范围溜达,不钻建筑后面
+      }
+    }
+  }
   partner.bob+=dt;
   updateCam();
   updateArrow();
@@ -432,15 +522,27 @@ function drawTiles(){
         x1=Math.min(s.w-1,(cam.x+VW)/TILE+1|0),y1=Math.min(s.h-1,(cam.y+VH)/TILE+1|0);
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
     const t=g[ty][tx],px=tx*TILE-cam.x|0,py=ty*TILE-cam.y|0,h=hash(tx,ty);
-    if(t==='W'){ // 内墙
-      ctx.fillStyle='#7a5a40';ctx.fillRect(px,py,TILE,TILE);
-      ctx.fillStyle='#8d6b4e';ctx.fillRect(px,py,TILE,3);
-      ctx.fillStyle='#5e4530';ctx.fillRect(px,py+13,TILE,3);
+    if(t==='W'){ // 内墙：距地面3行内的墙体画墙纸立面，其余画砖色
+      const wp=img(game.scene==='museum'?'wallMuseum':'wallHall');
+      let below=0; while(g[ty+below+1]&&g[ty+below+1][tx]==='W') below++;
+      const faceRow = below<=2 && g[ty+below+1] && g[ty+below+1][tx]!=='W';
+      if(wp && faceRow && game.scene!=='world'){
+        const slice=Math.max(0,2-below);     // 墙纸切片: 0顶 1中 2底
+        ctx.drawImage(wp,0,slice*16,16,16,px,py,16,16);
+      }else{
+        ctx.fillStyle='#7a5a40';ctx.fillRect(px,py,TILE,TILE);
+        ctx.fillStyle='#8d6b4e';ctx.fillRect(px,py,TILE,3);
+        ctx.fillStyle='#5e4530';ctx.fillRect(px,py+13,TILE,3);
+      }
       continue;
     }
-    if(t==='w'||t==='c'||t==='S'){ // 木地板基底
-      ctx.fillStyle=(tx+ty)%2?'#c89858':'#bf9050';ctx.fillRect(px,py,TILE,TILE);
-      ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(px,py+15,TILE,1);
+    if(t==='w'||t==='c'||t==='S'){ // 木地板基底（素材地板优先）
+      const fl=img(game.scene==='museum'?'floorMuseum':'floorHall');
+      if(fl) ctx.drawImage(fl,(tx%2)*16,(ty%2)*16,16,16,px,py,16,16);
+      else{
+        ctx.fillStyle=(tx+ty)%2?'#c89858':'#bf9050';ctx.fillRect(px,py,TILE,TILE);
+        ctx.fillStyle='rgba(0,0,0,.08)';ctx.fillRect(px,py+15,TILE,1);
+      }
       if(t==='c'){ ctx.fillStyle='#c0392b';ctx.fillRect(px,py,TILE,TILE);
         ctx.fillStyle='#a82e22';ctx.fillRect(px,py,TILE,2);
         ctx.fillStyle='#e8b04a';if(tx%2===0)ctx.fillRect(px,py+7,2,2);
@@ -488,11 +590,36 @@ function drawTiles(){
       ctx.fillStyle='#8c5a2b';for(let i=0;i<4;i++)ctx.fillRect(px+1,py+i*4,14,1);
       ctx.fillStyle='#6e4218';ctx.fillRect(px+1,py,2,TILE);ctx.fillRect(px+13,py,2,TILE);
     }
+    else if(t==='u'){ // 小灌木(装饰,可穿过)
+      const im=img(h%2?'bushSm1':'bushSm2');
+      if(im)ctx.drawImage(im,px,py-16);
+      else{ctx.fillStyle='#3f8a3c';ctx.fillRect(px+3,py+3,10,10);}
+    }
+    else if(t==='G'){ // 觅食灌木(谷粒)
+      const im=img('bushFl');
+      const ready=!forageT[tx+','+ty]||game.time-forageT[tx+','+ty]>40;
+      if(im)ctx.drawImage(im,px-8,py-16);
+      else{ctx.fillStyle='#3f8a3c';ctx.fillRect(px,py,16,14);}
+      if(ready&&(game.time*2|0)%2){ctx.fillStyle='#ffd84d';ctx.fillRect(px+11,py-12,3,3);ctx.fillRect(px+2,py-6,2,2);}
+    }
     else if(t==='F'){
-      const colors=['#ff7daa','#ffd84d','#a06ee0','#ff8a5c','#fff'];
-      ctx.fillStyle='#3f8a3c';ctx.fillRect(px+7,py+8,2,6);
-      ctx.fillStyle=colors[h%colors.length];ctx.fillRect(px+5,py+4,6,6);
-      ctx.fillStyle='#ffe9a8';ctx.fillRect(px+7,py+6,2,2);
+      const picked=pickedF[tx+','+ty]&&game.time-pickedF[tx+','+ty]<60;
+      const fim=img(['flowerA','flowerB','flowerC'][h%3]);
+      if(fim){ /* 星露谷花卉（作物终阶帧）；被采后显示幼苗 */
+        if(picked){
+          const sp=img('flowerSprout');
+          if(sp)ctx.drawImage(sp,px+(16-sp.width)/2|0,py+9);
+        }else{
+          ctx.drawImage(fim,px+((16-fim.width)/2|0),py+14-fim.height);
+        }
+      }else{
+        const colors=['#ff7daa','#ffd84d','#a06ee0','#ff8a5c','#fff'];
+        ctx.fillStyle='#3f8a3c';ctx.fillRect(px+7,py+8,2,6);
+        if(!picked){
+          ctx.fillStyle=colors[h%colors.length];ctx.fillRect(px+5,py+4,6,6);
+          ctx.fillStyle='#ffe9a8';ctx.fillRect(px+7,py+6,2,2);
+        }
+      }
     }
     else if(t==='f'){ // 连体栅栏
       const lf=g[ty][tx-1]==='f',rt=g[ty][tx+1]==='f',up=g[ty-1]&&g[ty-1][tx]==='f',dn=g[ty+1]&&g[ty+1][tx]==='f';
@@ -546,6 +673,31 @@ function drawBuilding(b){
     if(im){
       const dw=80,dh=72;
       ctx.drawImage(im,0,0,160,144, px+((w-dw)/2|0), py+h-dh, dw,dh);
+      return;
+    }
+  }
+  /* 星露谷镇区立面（原寸不规则透明边缘，底边对齐地基） */
+  if(b.img){
+    const im=img(b.img);
+    if(im){
+      const ix=bldImgX(b,im)-cam.x|0, iy=py+h-im.height;
+      ctx.drawImage(im, ix, iy);
+      /* 中文木牌招牌挂在立面上部 */
+      if(b.label){
+        const lw=b.label.length*14+10;
+        const lx=px+w/2-lw/2, ly=iy+(b.key==='shop'?40:52);
+        ctx.fillStyle='#5b2c0e';ctx.fillRect(lx-2,ly-2,lw+4,17);
+        ctx.fillStyle='#b3661f';ctx.fillRect(lx,ly,lw,13);
+        ctx.fillStyle='#ffefc9';ctx.font='11px "Fusion Pixel 12px Proportional SC",monospace';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(b.label,px+w/2,ly+7);
+      }
+      if(b.key==='hall'){ /* 彩旗+爱心保持喜庆 */
+        const fc=['#ff7daa','#ffd84d','#7dc4ff','#a06ee0'];
+        for(let i=0;i<9;i++){ctx.fillStyle=fc[i%4];ctx.fillRect(ix+12+i*(im.width-30)/8,iy+34+(i%2)*4,5,7);}
+        ctx.fillStyle='#e0457b';
+        const hx=px+w/2;ctx.fillRect(hx-3,iy-8,3,3);ctx.fillRect(hx+1,iy-8,3,3);ctx.fillRect(hx-3,iy-5,7,3);ctx.fillRect(hx-1,iy-2,3,2);
+      }
       return;
     }
   }
@@ -634,8 +786,17 @@ function drawCat(){
   const px=cat.x-cam.x|0,py=cat.y-cam.y|0;
   ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(px,py+10,14,2);
   const im=img('cat');
-  if(im){ ctx.drawImage(im,0,0,32,32, px-8, py-18+((game.time*1.2|0)%2), 32,32); return; }
-  blit(ctx,CAT,px,py-((game.time*1.2|0)%2===0?0:1),false);
+  if(im){
+    let sx=0, sy=CAT_F.sitY;
+    if(cat.state==='walk'){ sy=CAT_F.walkRow*32; sx=(cat.frame%4)*32; }
+    else if(cat.state==='sleep'){ sy=CAT_F.sleepY; sx=((game.time/1.2|0)%2)*32; }
+    drawSprite(ctx,im,sx,sy,32,32, px-8, py-18, cat.flip);
+    if(cat.followT>0&&(game.time*2|0)%2){ /* 跟随时头顶小爱心 */
+      ctx.fillStyle='#e0457b';ctx.fillRect(px+4,py-24,2,2);ctx.fillRect(px+8,py-24,2,2);ctx.fillRect(px+4,py-22,6,2);ctx.fillRect(px+6,py-20,2,1);
+    }
+    return;
+  }
+  blit(ctx,CAT,px,py-((game.time*1.2|0)%2===0?0:1),cat.flip);
 }
 function drawChickenE(){
   const px=chicken.x-cam.x|0,py=chicken.y-cam.y|0;
@@ -669,7 +830,8 @@ function drawChar(c,role,npc){
   }
 }
 function drawTree(px,py,h){
-  const im=img('tree');
+  /* 三种树按位置哈希混栽：橡树/枫树/松树 */
+  const im=img(['tree','tree2','tree3'][h%3])||img('tree');
   if(im){ ctx.drawImage(im, px-16, py-80); return; }   // 48x96, 树干底对齐地块
   ctx.fillStyle='#6e4218';ctx.fillRect(px+6,py+2,4,12);
   ctx.fillStyle=h%3?'#3a7a2c':'#2f6b24';ctx.fillRect(px-2,py-12,20,12);
@@ -678,48 +840,91 @@ function drawTree(px,py,h){
   if(h%5===0){ctx.fillStyle='#ff7daa';ctx.fillRect(px+4,py-14,2,2);ctx.fillRect(px+11,py-9,2,2);}
 }
 
-/* —— 博物馆内景陈设 —— */
+/* —— 博物馆内景陈设：矿物大展架 + 4油画(上墙) + 8圆桌展台(中央) + 家具 —— */
 function drawMuseumInt(ents){
-  RT.museum.forEach((ex,i)=>{
-    if(i<8){
-      const[tx,ty]=EX_WALL[i],px=tx*TILE-cam.x|0,py=(ty-1)*TILE-cam.y+4|0;
-      ents.push({y:-999,draw(){ // 挂画直接贴墙(先画)
-        ctx.fillStyle='#6e4218';ctx.fillRect(px-2,py-2,24,20);
-        ctx.fillStyle='#ffd84d';ctx.fillRect(px-1,py-1,22,18);
-        ctx.fillStyle='#fdf3dc';ctx.fillRect(px+1,py+1,18,14);
-        ctx.fillStyle=['#ff9eb5','#7dc4ff','#a06ee0','#7ec850','#ffd84d','#ff8a5c','#e0457b','#5a6fb0'][i];
-        ctx.fillRect(px+3,py+3,14,8);
-        ctx.fillStyle='#5b2c0e';ctx.fillRect(px+3,py+12,10,2);
-      }});
-    }else if(i<12){
-      const[tx,ty]=EX_PED[i-8],px=tx*TILE-cam.x|0,py=ty*TILE-cam.y|0;
-      ents.push({y:ty*TILE+14,draw(){
-        ctx.fillStyle='#d9bd85';ctx.fillRect(px+1,py,14,14);
-        ctx.fillStyle='#bfa06a';ctx.fillRect(px+1,py+11,14,3);
-        ctx.fillStyle='#ffd84d';ctx.fillRect(px+5,py-6,6,7);
-        if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+11,py-8,2,2);}
-      }});
-    }
+  /* 上墙正中：矿物大展架(128宽, 底边落在墙脚) */
+  ents.push({y:-997,draw(){
+    const im=img('shelfBig'); if(!im)return;
+    ctx.drawImage(im,(26*TILE-im.width)/2-cam.x|0, 50-im.height-cam.y|0);
+  }});
+  /* 金柱一对立在大展架两侧的地面上(不贴墙) */
+  ents.push({y:3.9*TILE,draw(){
+    const im=img('pillar'); if(!im)return;
+    const cx_=(26*TILE)/2;
+    ctx.drawImage(im,cx_-64-16-6-cam.x|0,(3.9*TILE-im.height)-cam.y|0);
+    ctx.drawImage(im,cx_+64+6-cam.x|0,(3.9*TILE-im.height)-cam.y|0);
+  }});
+  /* 油画展位 1-4（上墙, 矿架两侧） */
+  EX_WALL_PX.forEach(([ex_,ey_],i)=>{
+    const px=ex_-cam.x|0, py=ey_-cam.y|0;
+    const pk=img(MUSEUM_PAINTS[i]), has=!!RT.museum[i];
+    ents.push({y:-996,draw(){
+      if(pk){ ctx.drawImage(pk,px,py); }
+      else{
+        ctx.fillStyle='#6e4218';ctx.fillRect(px-2,py-2,30,26);
+        ctx.fillStyle='#fdf3dc';ctx.fillRect(px,py,26,22);
+        ctx.fillStyle=['#ff9eb5','#7dc4ff','#ffd84d','#5a6fb0'][i];
+        ctx.fillRect(px+3,py+3,20,14);
+      }
+      if(has&&(game.time*2|0)%2){ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(px+2,py-4,2,2);}
+    }});
   });
-  /* 横幅 */
-  ents.push({y:-998,draw(){
-    const px=5*TILE-cam.x|0,py=0-cam.y+6|0;
-    ctx.fillStyle='#e0457b';ctx.fillRect(px,py,160,14);
-    ctx.fillStyle='#fff';ctx.font='10px "Fusion Pixel 12px Proportional SC",monospace';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('我 们 的 回 忆 博 物 馆',px+80,py+8);
+  /* 中央两排圆木桌展台 5-12：已布展的桌上摆放展品并闪光 */
+  EX_TBL.forEach(([tx,ty],i)=>{
+    const px=tx*TILE-cam.x|0,py=ty*TILE-cam.y|0;
+    const tb=img('tableRound'), has=!!RT.museum[4+i];
+    ents.push({y:ty*TILE+32,draw(){
+      if(tb)ctx.drawImage(tb,px,py-4);
+      else{
+        ctx.fillStyle='#a8743c';ctx.fillRect(px+2,py,40,22);
+        ctx.fillStyle='#8c5a2b';ctx.fillRect(px+6,py+22,6,8);ctx.fillRect(px+32,py+22,6,8);
+      }
+      if(has){ /* 桌上展品：金色小物 + 闪光 */
+        ctx.fillStyle='#b3661f';ctx.fillRect(px+17,py+2,10,3);
+        ctx.fillStyle='#ffd84d';ctx.fillRect(px+19,py-4,6,6);
+        ctx.fillStyle='#fff';ctx.fillRect(px+21,py-2,2,2);
+        if(((game.time*2|0)+i)%2===0){ctx.fillStyle='#fff';ctx.fillRect(px+30,py-8,2,2);}
+      }
+    }});
+  });
+  /* 家具：书架/海兽骨架/盆栽（贴地摆放） */
+  for(const k in MOBJ){
+    const o=MOBJ[k], im=img(o.img);
+    ents.push({y:o.y+o.h,draw(){
+      if(im)ctx.drawImage(im, o.x-cam.x|0, (o.y+o.h-im.height)-cam.y|0);
+    }});
+  }
+  /* 中央走道椭圆地毯 */
+  ents.push({y:-994,draw(){
+    const im=img('rugOval'); if(!im)return;
+    ctx.drawImage(im,(26*TILE-im.width)/2-cam.x|0,7.8*TILE-cam.y|0);
   }});
 }
 /* —— 殿堂内景陈设 —— */
 function drawHallInt(ents){
   /* 舞台拱门 */
-  ents.push({y:4*TILE,draw(){
-    const px=11*TILE-cam.x|0,py=1*TILE-cam.y|0;
+  ents.push({y:6*TILE,draw(){
+    const px=11*TILE-cam.x|0,py=3*TILE-cam.y|0;
     ctx.fillStyle='#e8d5a8';ctx.fillRect(px,py,6,46);ctx.fillRect(px+58,py,6,46);
     ctx.fillStyle='#3f8a3c';ctx.fillRect(px-4,py-8,72,8);ctx.fillRect(px+2,py-13,60,6);
     const fc=['#ff7daa','#ffd84d','#fff','#ff5c8a'];
     for(let i=0;i<9;i++){ctx.fillStyle=fc[i%4];ctx.fillRect(px+i*8,py-10+(i%2)*4,4,4);}
   }});
+  /* 自助宴会长桌 / 五月柱（节日素材） */
+  for(const k of ['buffetL','buffetR','poleL','poleR']){
+    const o=HOBJ[k], im=img(o.img);
+    ents.push({y:o.y+o.h,draw(){
+      if(im)ctx.drawImage(im, o.x-cam.x|0, (o.y+o.h-im.height)-cam.y|0);
+      else{ctx.fillStyle='#c0392b';ctx.fillRect(o.x-cam.x|0,o.y-cam.y|0,o.w,o.h);}
+    }});
+  }
+  /* 粉树/花箱装饰（无碰撞） */
+  HDECOR.forEach(d=>{
+    const im=img(d.img);
+    ents.push({y:d.y+14,draw(){
+      if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+14-im.height)-cam.y|0);
+    }});
+  });
   /* 钢琴 */
   ents.push({y:HOBJ.piano.y+26,draw(){
     const o=HOBJ.piano,px=o.x-cam.x|0,py=o.y-cam.y|0;
@@ -787,14 +992,27 @@ function drawWorld(){
     const x0=Math.max(0,cam.x/TILE|0),y0=Math.max(0,cam.y/TILE|0),
           x1=Math.min(s.w-1,(cam.x+VW)/TILE+1|0),y1=Math.min(s.h-1,(cam.y+VH)/TILE+2|0);
     const sdvTree=!!img('tree');
-    for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++)
-      if(s.g[ty][tx]==='T'){
+    for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
+      const tch=s.g[ty][tx];
+      if(tch==='T'){
         /* 大树素材较宽：边界树墙隔一棵画一棵(碰撞不变)，避免过密 */
         const border=tx===0||ty===0||tx===s.w-1||ty===s.h-1;
         if(sdvTree&&border&&(tx+ty)%2)continue;
         ents.push({y:ty*TILE+TILE,draw:((a,b,c)=>()=>drawTree(a,b,c))(tx*TILE-cam.x|0,ty*TILE-cam.y|0,hash(tx,ty))});
       }
+      else if(tch==='B'){ /* 开花灌木(可跳越) */
+        ents.push({y:ty*TILE+TILE,draw:((a,b)=>()=>{
+          const im=img('bushFl');
+          if(im)ctx.drawImage(im,a-8,b-14);
+          else{ctx.fillStyle='#3f8a3c';ctx.fillRect(a,b,16,14);ctx.fillStyle='#ff9eb5';ctx.fillRect(a+4,b+3,3,3);ctx.fillRect(a+10,b+6,3,3);}
+        })(tx*TILE-cam.x|0,ty*TILE-cam.y|0)});
+      }
+    }
     BUILDINGS.forEach(b=>ents.push({y:(b.y+b.h)*TILE,draw:()=>drawBuilding(b)}));
+    WDECOR.forEach(d=>ents.push({y:d.y+d.h,draw:()=>{
+      const im=img(d.img);
+      if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+d.h-im.height)-cam.y|0);
+    }}));
     ents.push({y:WOBJ.well.y+28,draw:drawWell});
     ents.push({y:WOBJ.mailbox.y+12,draw:drawMailbox});
     ents.push({y:WOBJ.chest.y+10,draw:drawChest});
@@ -817,11 +1035,15 @@ function drawWorld(){
 function questTarget(){
   switch(game.quest){
     case 0: return {scene:'world', x:partner.x+6, y:partner.y-14};
-    case 1: return {scene:'world', x:11.5*TILE, y:7*TILE};
-    case 2: return {scene:'world', x:29.5*TILE, y:7*TILE};
+    case 1:
+      if(!game.hasCan) return {scene:'world', x:WOBJ.well.x+15, y:WOBJ.well.y-16};
+      return {scene:'world', x:11.5*TILE, y:7*TILE};
+    case 2:
+      if(!game.rod||game.bait<=0) return {scene:'world', x:15*TILE, y:20*TILE};   // 先去杂货店购置
+      return {scene:'world', x:29.5*TILE, y:7*TILE};
     case 3: return {scene:'world', x:WOBJ.mailbox.x+4, y:WOBJ.mailbox.y-20};
-    case 4: return {scene:'museum', x:10*TILE, y:5*TILE};
-    case 5: return {scene:'hall', x:12.5*TILE, y:4.5*TILE};
+    case 4: return {scene:'museum', x:13*TILE, y:5*TILE};
+    case 5: return {scene:'hall', x:12.5*TILE, y:6*TILE};
     default: return null;
   }
 }
@@ -1089,9 +1311,13 @@ function updateItemBar(){
   const bar=document.getElementById('itemBar');
   const chips=[`💰${game.coins}`];
   if(game.seeds)chips.push(`🌱${game.seeds}`);
-  chips.push(`💧${game.water}/3`);
-  if(game.fert)chips.push(`💜肥${game.fert}`);
-  if(game.quest===1||game.fruits)chips.push(`⭐${game.fruits}/3`);
+  if(game.hasCan)chips.push(`💧${game.water}/3`);
+  if(game.fert)chips.push(`💜${game.fert}`);
+  if(game.feed)chips.push(`🌾${game.feed}`);
+  if(game.eggs)chips.push(`🥚${game.eggs}`);
+  if(game.flowers)chips.push(`🌼${game.flowers}`);
+  if(game.bait)chips.push(`🪱${game.bait}`);
+  if(game.quest===1||game.fruits)chips.push(`🌻${Math.min(game.fruits,3)}/3${game.fruits>3?'+'+(game.fruits-3):''}`);
   if(game.fishN)chips.push(`🐟${game.fishN}`);
   if(game.fishQ)chips.push(`💞鱼`);
   bar.innerHTML=chips.map(c=>`<span class="chip">${c}</span>`).join('');
@@ -1105,7 +1331,7 @@ function maybeFrag(prob,after){
   sfx('quest');
   showOverlay(
     `<h3>💫 收获了一片记忆碎片</h3>
-     ${f.img?`<img class="exhibit-img" src="${esc(f.img)}" onerror="this.style.display='none'">`:''}
+     ${f.img?`<img class="exhibit-img" src="${esc(resolveImg(f.img))}" onerror="this.style.display='none'">`:''}
      <div class="frag-card">${esc(f.text)}</div>
      <div class="center" style="margin-top:8px;font-size:12px;color:#8a5a2b">已收集 ${game.fragGot.length} / ${RT.frags.length} · 在 📜 里可回看</div>`,
     after,'收下 ♥');
@@ -1116,8 +1342,8 @@ function maybeFrag(prob,after){
  * ============================================================ */
 const QUEST_TEXTS=[
   ()=>`找 ${nameFor(partnerRole())} 聊聊（东南花田，跟着箭头走）`,
-  ()=>`农务时间：种 3 颗星之种子 → 水井/湖边接水 → 浇水 → 收获`,
-  ()=>`去湖边木栈道尽头，钓一条「同心鱼」（按住 A 控制绿区）`,
+  ()=>game.hasCan?`种 3 颗向日葵 → 浇水 → 收获（喂猫可得天然肥料加速）`:`先去水井边找回水壶，再种向日葵`,
+  ()=>(game.rod&&game.bait>0)?`去湖边木栈道尽头钓「同心鱼」（按住 A 控制绿区）`:`去杂货店购置鱼竿(12金)和鱼饵(2金)，卖蛋/卖花能凑钱`,
   ()=>`红色邮箱有一封信，去查收`,
   ()=>`去镇上的「博物馆」逛逛我们的回忆`,
   ()=>`前往南边「婚礼殿堂」，走上舞台举行仪式！`,
@@ -1151,57 +1377,89 @@ function interact(){
   if(game.scene==='world'){
     if(partner.scene==='world'&&near(partner,22))return talkPartner();
     if(near(chicken,18))return talkChicken();
-    if(near(cat,18))return talkCat();
+    if(near(cat,20))return talkCat();
     if(inRect(fx,fy,WOBJ.mailbox,8)||inRect(player.x+6,player.y+12,WOBJ.mailbox,10))return openMailbox();
     if(inRect(fx,fy,WOBJ.chest,8))return openChest();
     if(inRect(fx,fy,WOBJ.well,8))return useWell();
     if(inRect(fx,fy,WOBJ.bush,6))return pokeBush();
     /* 建筑门 */
     for(const b of BUILDINGS){
-      const door={x:b.door.x*TILE-6,y:(b.y+b.h)*TILE-18,w:b.door.w*TILE+12,h:26};
+      const door=bldDoorRect(b);
       if(inRect(fx,fy,door,4)||inRect(player.x+6,player.y+12,door,6))return doorAction(b);
     }
+    /* 觅食灌木(谷粒) / 野花采摘 */
+    const t=tileAt(fx,fy), tx=fx/TILE|0, ty=fy/TILE|0;
+    if(t==='G')return forageBush(tx,ty);
+    if(t==='F')return pickFlower(tx,ty);
     /* 湖边/栈道 */
-    const t=tileAt(fx,fy);
     if(t==='~'){
       if(tileAt(player.x+6,player.y+12)==='='&&player.dir==='up')return tryFish();
       return fillCan('湖');
     }
     /* 耕地 */
-    const tx=fx/TILE|0,ty=fy/TILE|0,key=tx+','+ty;
+    const key=tx+','+ty;
     const myKey=((player.x+6)/TILE|0)+','+((player.y+12)/TILE|0);
     const k=plots[key]?key:(plots[myKey]?myKey:null);
     if(k)return farmAction(k);
   }
   else if(game.scene==='museum'){
     if(partner.scene==='museum'&&near(partner,24))return talkPartner();
-    /* 展品：取面前点最近的一件（墙画需在上半区，台座需贴近） */
-    let idx=-1,best=18;
-    EX_WALL.forEach(([ex],i)=>{
-      if(fy>3.8*TILE)return;
-      const d=Math.abs(fx-(ex*TILE+8));
+    /* 展品：上墙油画(1-4) / 圆桌展台(5-12) 取面前点最近 */
+    let idx=-1,best=26;
+    EX_WALL_PX.forEach(([ex,ey],i)=>{
+      if(fy>4.2*TILE)return;
+      const d=Math.abs(fx-(ex+14));
       if(d<best){best=d;idx=i;}
     });
-    EX_PED.forEach(([ex,ey],i)=>{
-      const d=Math.hypot(fx-(ex*TILE+8),fy-(ey*TILE+8));
-      if(d<22&&d<best){best=d;idx=8+i;}
+    EX_TBL.forEach(([ex,ey],i)=>{
+      const d=Math.hypot(fx-(ex*TILE+22),fy-(ey*TILE+16));
+      if(d<30&&d<best){best=d;idx=4+i;}
     });
-    if(idx>=0&&RT.museum[idx])return showExhibit(idx);
+    if(idx>=0){
+      if(RT.museum[idx])return showExhibit(idx);
+      return startDialog([{who:'me',text:'这张展台还空着，等待布展。（DEBUG 模式可以添加展品）'}]);
+    }
+    /* 家具小互动 */
+    if(inRect(fx,fy,MOBJ.skel,6))return startDialog([{who:'me',text:'「远古海兽骨架」——据说是从矿井深处挖出来的。婚礼也要有镇馆之宝！'}]);
+    if(inRect(fx,fy,MOBJ.bookL,6)||inRect(fx,fy,MOBJ.bookR,6))return startDialog([{who:'me',text:'书架上摆着我们读过的书。有一本的折角，停在第一次见面那天。'}]);
   }
   else if(game.scene==='hall'){
     if(partner.scene==='hall'&&near(partner,26))return talkPartner();
     if(inRect(fx,fy,HOBJ.piano,8))return playPiano();
     if(inRect(fx,fy,HOBJ.tower,8))return champagne();
     if(inRect(fx,fy,HOBJ.cake,8))return cakeBite();
+    if(inRect(fx,fy,HOBJ.buffetL,6)||inRect(fx,fy,HOBJ.buffetR,6))return startDialog([{who:'me',text:'自助宴会桌摆满了喜宴菜——烤火鸡、果冻、还有星之果实甜点！'}]);
+    if(inRect(fx,fy,HOBJ.poleL,6)||inRect(fx,fy,HOBJ.poleR,6)){sfx('quest');flyHearts(innerWidth/2,innerHeight/2,4);return toast('🎏 五月柱的彩带随风转了一圈');}
     if(inRect(fx,fy,HOBJ.popperL,8)||inRect(fx,fy,HOBJ.popperR,8))return popper();
     /* 桌子 */
     for(let i=0;i<TABLE_POS.length;i++){
-      const[tx,ty]=TABLE_POS[i];
-      if(inRect(fx,fy,{x:tx*TILE,y:ty*TILE,w:32,h:30},4))return tableInfo(i);
+      const[tx2,ty2]=TABLE_POS[i];
+      if(inRect(fx,fy,{x:tx2*TILE,y:ty2*TILE,w:32,h:30},4))return tableInfo(i);
     }
     /* 舞台 */
     if(tileAt(fx,fy)==='S'||tileAt(player.x+6,player.y+12)==='S')return tryCeremony();
   }
+}
+/* —— 觅食灌木：采谷粒喂鸡 —— */
+function forageBush(tx,ty){
+  const key=tx+','+ty;
+  if(forageT[key]&&game.time-forageT[key]<40)
+    return startDialog([{who:'me',text:'这丛灌木刚被薅过，过一会儿再来吧。'}]);
+  if(game.feed>=5)return toast('谷粒袋满了（5/5），先去喂鸡吧');
+  forageT[key]=game.time;
+  game.feed++;sfx('plant');updateItemBar();
+  toast(`🌾 在灌木丛里翻到一把谷粒（${game.feed}/5）· 可以去喂鸡`);
+}
+/* —— 野花采摘：可卖钱 —— */
+function pickFlower(tx,ty){
+  const key=tx+','+ty;
+  if(pickedF[key]&&game.time-pickedF[key]<60)
+    return toast('这一株刚被摘过，等它再开');
+  if(game.flowers>=9)return toast('野花已经抱不下了（9/9），去杂货店卖掉些吧');
+  pickedF[key]=game.time;
+  game.flowers++;sfx('plant');updateItemBar();
+  flyHearts(innerWidth/2,innerHeight/2,1);
+  toast(`🌼 摘下一朵野花（${game.flowers}/9）· 杂货店收购 2金/朵`);
 }
 
 /* —— 各互动实现 —— */
@@ -1212,11 +1470,20 @@ function doorAction(b){
     case 'shop':     return openShop();
     case 'enterMuseum': return gotoScene('museum',9.7*TILE,11.5*TILE);
     case 'enterHall':
-      if(game.quest<5){startDialog([{who:'me',text:'殿堂的大门还没开。先把别的事办完吧（看顶部任务提示）。'}]);return;}
+      if(game.quest<5&&!DEBUG){startDialog([{who:'me',text:'殿堂的大门还没开。先把别的事办完吧（看顶部任务提示）。'}]);return;}
       return gotoScene('hall',12*TILE,16.5*TILE);
   }
 }
 function useWell(){
+  /* 任务获取水壶：TA 把水壶忘在了井边 */
+  if(!game.hasCan){
+    if(game.quest<1)return startDialog([{who:'me',text:'井边挂着一只旧水壶…是 TA 的。先去花田找 TA 吧。'}]);
+    game.hasCan=true;game.water=3;sfx('harvest');updateItemBar();
+    return startDialog([{who:'me',text:'井边果然挂着 TA 说的那只旧水壶！壶身上还刻着我们俩的名字缩写。'}],()=>{
+      toast('🏆 获得 <b style="color:#7dc4ff">刻字水壶</b>（已接满 3 格水）');
+      setQuest(1);
+    });
+  }
   if(game.water>=3){
     game.wellWish++;
     if(game.wellWish===3){
@@ -1229,12 +1496,15 @@ function useWell(){
   toast('💧 水壶已接满（3 次浇水）');
 }
 function fillCan(src){
+  if(!game.hasCan)return startDialog([{who:'me',text:'湖水清澈见底…可我没有水壶。听说水井边挂着一只。'}]);
   if(game.water>=3)return toast('水壶已经满了');
   game.water=3;sfx('water');updateItemBar();
   toast(`💧 在${src}边接满了水壶`);
 }
 function tryFish(){
-  if(!game.rod)return startDialog([{who:'me',text:'水里有鱼影…但我还没有鱼竿。（剧情推进后会拿到）'}]);
+  if(!game.rod)return startDialog([{who:'me',text:'水里有鱼影…但我还没有鱼竿。杂货店有卖（12 金币），卖鸡蛋野花能凑钱。'}]);
+  if(game.bait<=0)return startDialog([{who:'me',text:'没有鱼饵了，空钩可钓不上「同心鱼」。杂货店 2 金币一份。'}]);
+  game.bait--;updateItemBar();
   startFishing();
 }
 function pokeBush(){
@@ -1252,24 +1522,74 @@ function checkBushJump(){
   }
 }
 function talkCat(){
-  if(!game.catTalk){
-    game.catTalk=true;
-    sfx('blip');
-    startDialog([{who:'cat',text:'喵～（它蹭了蹭你的裤脚，把一片亮晶晶的东西拍到你脚边)'}],()=>{
-      toast('🏆 隐藏彩蛋：博物馆后巷的小猫');
-      maybeFrag(1);
-    });
-  }else startDialog([{who:'cat',text:'喵喵～（它困了，蜷成了一个毛团）'}]);
+  /* 摸头 / 喂蛋 / 喂鱼（喂食→天然肥料 + 跟随） */
+  const opts=[['「摸摸头」']];
+  if(game.eggs>0)opts.push([`「喂它一颗鸡蛋」(🥚${game.eggs})`]);
+  if(game.fishN>0)opts.push([`「喂它一条小鱼」(🐟${game.fishN})`]);
+  opts.push(['「算了，不打扰它」']);
+  startDialog([
+    {who:'cat',text:cat.state==='sleep'?'呼噜…呼噜…（它睡得正香，耳朵抖了一下）':'喵？（它抬起头看你，尾巴卷成一个问号）',
+     choices:opts,
+     onPick:i=>{
+       const label=opts[i][0];
+       if(label.startsWith('「摸摸头')){
+         dlg.queue.splice(dlg.idx+1,0,{who:'cat',text:'呼噜噜～（它眯起眼睛蹭你的手心，毛茸茸的）'});
+         if(!game.catTalk){
+           game.catTalk=true;
+           dlg.queue.splice(dlg.idx+2,0,{who:'cat',text:'（它把一片亮晶晶的东西拍到你脚边）'});
+           dlg.onDoneExtra=()=>{toast('🏆 隐藏彩蛋：博物馆后巷的小猫');maybeFrag(1);};
+         }else flyHearts(innerWidth/2,innerHeight/2,2);
+       }else if(label.startsWith('「喂它一颗鸡蛋')||label.startsWith('「喂它一条小鱼')){
+         const isFish=label.includes('小鱼');
+         if(isFish)game.fishN--;else game.eggs--;
+         game.catFed++;cat.followT=isFish?40:25;
+         updateItemBar();
+         dlg.queue.splice(dlg.idx+1,0,
+           {who:'cat',text:isFish?'喵呜——！（它两口吞掉小鱼，幸福地打了个滚，决定跟着你走）':'咔嚓咔嚓…（它优雅地吃完鸡蛋，舔了舔爪子，决定跟着你走一段）'});
+         dlg.onDoneExtra=()=>{
+           setTimeout(()=>{
+             game.fert++;updateItemBar();sfx('coin');
+             toast('💩→💜 猫猫在角落留下了一份「谢礼」…获得天然肥料 ×1');
+           },2500);
+           if(game.catFed===3)setTimeout(()=>toast('🏆 隐藏成就：猫粮赞助商'),4000);
+         };
+       }
+     }},
+  ],()=>{ const cb=dlg.onDoneExtra;dlg.onDoneExtra=null;cb&&cb(); });
 }
 function talkChicken(){
-  game.chickenTalk++;
   sfx('blip');
-  if(game.chickenTalk<3)startDialog([{who:'chicken',text:['咯咯哒？','咯咯…咯咯哒！','（小鸡歪着头看你）'][game.chickenTalk%3]}]);
-  else if(game.chickenTalk===3)startDialog([{who:'chicken',text:'咯咯哒——！（它郑重地拍了拍翅膀，送上鸡生最真挚的祝福）'}],()=>{
-    toast('🏆 隐藏成就：小鸡的祝福');
-    flyHearts(innerWidth/2,innerHeight/2,4);
-  });
-  else startDialog([{who:'chicken',text:'咯咯哒~（它已经把祝福全部给你了）'}]);
+  const digesting=game.time-game.chickenFedT<10;
+  const opts=[];
+  if(game.feed>0&&!digesting)opts.push([`「喂一把谷粒」(🌾${game.feed})`]);
+  opts.push(['「咯咯哒？」(聊天)'],['「再见」']);
+  startDialog([
+    {who:'chicken',text:digesting?'咯…咯…（它吃饱了，正在专心消化）':'咯咯哒？（它期待地看着你的口袋）',
+     choices:opts,
+     onPick:i=>{
+       const label=opts[i][0];
+       if(label.startsWith('「喂一把谷粒')){
+         game.feed--;game.chickenFedT=game.time;
+         updateItemBar();
+         dlg.queue.splice(dlg.idx+1,0,
+           {who:'chicken',text:'咯咯咯咯——！（它欢快地啄食谷粒，然后神圣地蹲下…）'},
+           {who:'me',text:'它下蛋了！热乎的！'});
+         dlg.onDoneExtra=()=>{
+           game.eggs++;sfx('harvest');updateItemBar();
+           toast('🥚 获得鸡蛋 ×1（可以送TA、喂猫、或卖4金）');
+         };
+       }else if(label.startsWith('「咯咯哒？')){
+         game.chickenTalk++;
+         if(game.chickenTalk<3)
+           dlg.queue.splice(dlg.idx+1,0,{who:'chicken',text:['咯咯哒？','咯咯…咯咯哒！','（小鸡歪着头看你）'][game.chickenTalk%3]});
+         else if(game.chickenTalk===3){
+           dlg.queue.splice(dlg.idx+1,0,{who:'chicken',text:'咯咯哒——！（它郑重地拍了拍翅膀，送上鸡生最真挚的祝福）'});
+           dlg.onDoneExtra=()=>{toast('🏆 隐藏成就：小鸡的祝福');flyHearts(innerWidth/2,innerHeight/2,4);};
+         }
+         else dlg.queue.splice(dlg.idx+1,0,{who:'chicken',text:'咯咯哒~（它已经把祝福全部给你了）'});
+       }
+     }},
+  ],()=>{ const cb=dlg.onDoneExtra;dlg.onDoneExtra=null;cb&&cb(); });
 }
 function openChest(){
   if(game.chestOpened)return startDialog([{who:'me',text:'宝箱已经空了。'}]);
@@ -1288,7 +1608,7 @@ function openMailbox(){
       showOverlay(letterHTML(),()=>{
         setQuest(4);
         toast('TA 先去博物馆布展了，去镇上找 TA →');
-        partner.scene='museum';partner.x=10*TILE;partner.y=5.5*TILE;
+        partner.scene='museum';partner.x=13*TILE;partner.y=4.5*TILE;
       });
     });
   }else startDialog([{who:'me',text:'信已经收好啦。'}]);
@@ -1301,8 +1621,9 @@ function farmAction(key){
   if(p.st===0){
     if(game.seeds<=0)return startDialog([{who:'me',text:'没有种子了。杂货店有卖（3 金币一颗）。'}]);
     game.seeds--;p.st=1;p.fert=0;sfx('plant');updateItemBar();
-    toast(`🌱 种下星之种子（剩 ${game.seeds}）· 接水浇灌它吧`);
+    toast(`🌱 种下向日葵种子（剩 ${game.seeds}）· 浇灌它吧`);
   }else if(p.st===1){
+    if(!game.hasCan)return startDialog([{who:'me',text:'还没有水壶。TA 说忘在水井边了，去拿吧（跟着箭头）。'}]);
     if(game.water<=0)return startDialog([{who:'me',text:'水壶空了。去水井或湖边按 A 接水。'}]);
     game.water--;p.st=2;p.t=game.time;sfx('water');updateItemBar();
     toast(`💧 浇水完毕（剩 ${game.water} 次）`);
@@ -1319,15 +1640,19 @@ function farmAction(key){
     const golden=p.fert===1;
     p.st=0;p.fert=0;game.fruits++;sfx('harvest');
     flyHearts(innerWidth/2,innerHeight/2,3);
-    toast(`⭐ 收获${golden?'「金色」':''}星之果实！（${game.fruits}/3）`);
+    toast(`🌻 收获${golden?'「金色」':''}向日葵！（${game.fruits}/3）`);
     updateItemBar();
     const after=()=>{
       if(game.fruits>=3&&game.quest===1){
-        startDialog([{who:'me',text:'集齐 3 颗星之果实了！果实在掌心拼出了一行字——'}],()=>{
+        startDialog([{who:'me',text:'集齐 3 朵向日葵了！花瓣在阳光下拼出了一行字——'}],()=>{
           showOverlay(infoHTML(),()=>{
             setQuest(2);
-            startDialog([{who:partnerRole(),text:'（TA 跑过来塞给你一根鱼竿）湖里有传说中的「同心鱼」，婚宴的压轴菜就靠你啦！栈道尽头见！'}],()=>{
-              game.rod=true;toast('🎣 获得鱼竿！去湖边栈道尽头（跟着箭头）');
+            startDialog([
+              {who:partnerRole(),text:'向日葵真漂亮！接下来…湖里有传说中的「同心鱼」，婚宴的压轴菜就靠你啦！'},
+              {who:partnerRole(),text:'鱼竿和鱼饵杂货店有卖。这是我的私房钱，拿去（塞给你 8 金币）。不够就卖点鸡蛋野花～'},
+            ],()=>{
+              game.coins+=8;updateItemBar();sfx('coin');
+              toast('💰 获得 8 金币 · 去杂货店购置渔具（跟着箭头）');
             });
           });
         });
@@ -1337,34 +1662,62 @@ function farmAction(key){
   }
 }
 
-/* —— 杂货店 —— */
+/* —— 杂货店 v3：买卖双列，渔具/种子/肥料 + 收购农副产品 —— */
+function shopRows(){
+  return `
+  <div class="body" style="text-align:center;font-size:12px;color:#8a5a2b">—— 购买 ——</div>
+  <div class="trade-row"><div class="nm">🌱 向日葵种子</div><div class="pr">3 金</div><button class="sdv-btn small" data-buy="seed">买</button></div>
+  <div class="trade-row"><div class="nm">💜 魔法肥料（催熟+金花）</div><div class="pr">5 金</div><button class="sdv-btn small" data-buy="fert">买</button></div>
+  <div class="trade-row"><div class="nm">🎣 鱼竿${game.rod?'（已拥有）':''}</div><div class="pr">12 金</div>${game.rod?'':'<button class="sdv-btn small" data-buy="rod">买</button>'}</div>
+  <div class="trade-row"><div class="nm">🪱 鱼饵（每次抛竿消耗1份）</div><div class="pr">2 金</div><button class="sdv-btn small" data-buy="bait">买</button></div>
+  <div class="body" style="text-align:center;font-size:12px;color:#8a5a2b;margin-top:6px">—— 收购 ——</div>
+  <div class="trade-row"><div class="nm">🐟 普通鱼 ×${game.fishN}</div><div class="pr">+6 金</div><button class="sdv-btn small" data-sell="fish">卖</button></div>
+  <div class="trade-row"><div class="nm">🥚 鸡蛋 ×${game.eggs}</div><div class="pr">+4 金</div><button class="sdv-btn small" data-sell="egg">卖</button></div>
+  <div class="trade-row"><div class="nm">🌼 野花 ×${game.flowers}</div><div class="pr">+2 金</div><button class="sdv-btn small" data-sell="flower">卖</button></div>
+  <div class="trade-row"><div class="nm">🌻 多余向日葵 ×${Math.max(0,game.fruits-3)}</div><div class="pr">+5 金</div><button class="sdv-btn small" data-sell="sun">卖</button></div>
+  <div class="trade-row"><div class="nm">💰 当前金币</div><div class="pr" id="shopCoins">${game.coins}</div></div>`;
+}
 function openShop(){
   sfx('coin');
   game.mode='ui';
-  const html=`<h3>🏪 杂货店</h3>
-  <div class="body" style="text-align:center;font-size:12px;color:#8a5a2b">老板去喝喜酒了，自助购买，诚信经营～</div>
-  <div class="trade-row"><div class="nm">🌱 星之种子</div><div class="pr">3 金币</div><button class="sdv-btn small" data-buy="seed">买</button></div>
-  <div class="trade-row"><div class="nm">💜 魔法肥料（加速+金果）</div><div class="pr">5 金币</div><button class="sdv-btn small" data-buy="fert">买</button></div>
-  <div class="trade-row"><div class="nm">🐟 卖出普通鱼 ×1</div><div class="pr">+6 金币</div><button class="sdv-btn small" data-sell="fish">卖</button></div>
-  <div class="trade-row"><div class="nm">💰 当前金币</div><div class="pr" id="shopCoins">${game.coins}</div></div>`;
-  showOverlay(html,null,'离开 ▶');
+  showOverlay(`<h3>🏪 杂货店</h3>
+  <div class="body" style="text-align:center;font-size:12px;color:#8a5a2b">老板去喝喜酒了，自助交易，诚信经营～</div>
+  <div id="shopBody">${shopRows()}</div>`,null,'离开 ▶');
 }
 /* 商店按钮：全局事件委托（只绑一次，避免重复触发） */
 overlayInner.addEventListener('click',e=>{
   const b=e.target.closest('button[data-buy],button[data-sell]');
   if(!b)return;
-  if(b.dataset.buy==='seed'){
-    if(game.coins<3)return toast('金币不够…去钓鱼卖钱吧');
-    game.coins-=3;game.seeds++;sfx('coin');toast('购买成功：星之种子 +1');
-  }else if(b.dataset.buy==='fert'){
-    if(game.coins<5)return toast('金币不够…去钓鱼卖钱吧');
+  const buy=b.dataset.buy, sell=b.dataset.sell;
+  if(buy==='seed'){
+    if(game.coins<3)return toast('金币不够…卖点鸡蛋/野花/鱼吧');
+    game.coins-=3;game.seeds++;sfx('coin');toast('购买成功：向日葵种子 +1');
+  }else if(buy==='fert'){
+    if(game.coins<5)return toast('金币不够…卖点鸡蛋/野花/鱼吧');
     game.coins-=5;game.fert++;sfx('coin');toast('购买成功：魔法肥料 +1');
-  }else if(b.dataset.sell==='fish'){
+  }else if(buy==='rod'){
+    if(game.rod)return toast('已经有鱼竿了');
+    if(game.coins<12)return toast(`还差 ${12-game.coins} 金币…喂鸡下蛋、采野花都能换钱`);
+    game.coins-=12;game.rod=true;sfx('quest');toast('🎣 购得鱼竿！再备点鱼饵就能开钓');
+  }else if(buy==='bait'){
+    if(game.coins<2)return toast('金币不够…卖点东西吧');
+    game.coins-=2;game.bait++;sfx('coin');toast('购买成功：鱼饵 +1');
+  }else if(sell==='fish'){
     if(game.fishN<=0)return toast('背包里没有鱼。去湖边钓一条吧！');
     game.fishN--;game.coins+=6;sfx('coin');toast('卖出一条鱼 +6 金币');
+  }else if(sell==='egg'){
+    if(game.eggs<=0)return toast('没有鸡蛋。给母鸡喂谷粒它就下蛋');
+    game.eggs--;game.coins+=4;sfx('coin');toast('卖出一颗鸡蛋 +4 金币');
+  }else if(sell==='flower'){
+    if(game.flowers<=0)return toast('没有野花。花田里按 A 采摘');
+    game.flowers--;game.coins+=2;sfx('coin');toast('卖出一朵野花 +2 金币');
+  }else if(sell==='sun'){
+    if(game.fruits<=3)return toast('任务要留 3 朵，多余的才能卖');
+    game.fruits--;game.coins+=5;sfx('coin');toast('卖出一朵向日葵 +5 金币');
   }
-  const sc_=document.getElementById('shopCoins');if(sc_)sc_.textContent=game.coins;
+  const body=document.getElementById('shopBody');if(body)body.innerHTML=shopRows();
   updateItemBar();
+  if(game.quest===2)setQuest(2);   // 刷新任务文案(购齐渔具后指向湖边)
 });
 
 /* —— 博物馆 —— */
@@ -1374,7 +1727,7 @@ function showExhibit(i){
   sfx('choice');
   showOverlay(
     `<h3>🖼 ${esc(ex.title||('展品 '+(i+1)))}</h3>
-     ${ex.img?`<img class="exhibit-img" src="${esc(ex.img)}" onerror="this.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片加载失败）</div>'">`:''}
+     ${ex.img?`<img class="exhibit-img" src="${esc(resolveImg(ex.img))}" onerror="this.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片加载失败：assets/imgs/ 下没找到）</div>'">`:''}
      <div class="frag-card">${esc(ex.text||'')}</div>`,
     ()=>{ if(game.quest===4)museumQuestCheck(); },'看完了 ▶');
 }
@@ -1385,7 +1738,7 @@ function museumQuestCheck(){
       {who:partnerRole(),text:'这里每一件展品，都是我们一步步走来的证据。'},
       {who:partnerRole(),text:'最后一站——婚礼殿堂。我先去把彩旗挂好，你随后就来！'},
     ],()=>{
-      partner.scene='hall';partner.x=12.5*TILE;partner.y=3*TILE;partner.dir='down';
+      partner.scene='hall';partner.x=12.5*TILE;partner.y=4.5*TILE;partner.dir='down';
       setQuest(5);
       toast('🏰 前往南边的婚礼殿堂！');
     });
@@ -1445,6 +1798,7 @@ function achHTML(){
     [game.chestOpened,'美人鱼吊坠'],[game.chickenTalk>=3,'小鸡的祝福'],
     [game.wellWish>=3,'井底的愿望'],[game.bushJump>=3,'草丛萤火虫'],
     [game.catTalk,'后巷小猫'],[game.bootCaught,'旧靴子纸条'],
+    [game.catFed>=3,'猫粮赞助商'],
   ].filter(a=>a[0]).map(a=>'🏆 '+a[1]);
   return list.length?`<br>${list.join(' · ')}`:'';
 }
@@ -1483,7 +1837,7 @@ document.getElementById('bookBtn').addEventListener('click',()=>{
   document.getElementById('revealAll').onclick=()=>{game.vowIdx=game.vowIdx||0;finalSummary();};
   overlayInner.querySelectorAll('[data-frag]').forEach(el=>el.onclick=()=>{
     const f=RT.frags[+el.dataset.frag];
-    showOverlay(`<h3>💫 记忆碎片</h3>${f.img?`<img class="exhibit-img" src="${esc(f.img)}">`:''}<div class="frag-card">${esc(f.text)}</div>`,null,'返回 ▶');
+    showOverlay(`<h3>💫 记忆碎片</h3>${f.img?`<img class="exhibit-img" src="${esc(resolveImg(f.img))}">`:''}<div class="frag-card">${esc(f.text)}</div>`,null,'返回 ▶');
   });
 });
 
@@ -1492,6 +1846,32 @@ document.getElementById('bookBtn').addEventListener('click',()=>{
  * ============================================================ */
 function talkPartner(){
   const other=partnerRole();
+  /* 送鸡蛋（任意阶段，1-5 章可触发；奖励交替：鱼饵→金币） */
+  if(game.quest>=1&&game.quest<6&&game.eggs>0&&game.scene==='world'){
+    const opts=[['「聊聊进展」'],[`「送TA一颗鸡蛋」(🥚${game.eggs})`]];
+    startDialog([
+      {who:other,text:'怎么啦？是来看我，还是有好东西要分享？',
+       choices:opts,
+       onPick:i=>{
+         if(i===1){
+           game.eggs--;game.giftN++;updateItemBar();
+           const reward=game.giftN%2===1?'bait':'coin';
+           dlg.queue.splice(dlg.idx+1,0,
+             {who:other,text:'给我的？还热乎着！（TA 小心地把鸡蛋收进篮子）'},
+             {who:other,text:reward==='bait'?'拿这个回礼——两份鱼饵，钓鱼时用得上！':'那我也不能小气——给你 3 金币零花！'});
+           dlg.onDoneExtra=()=>{
+             if(reward==='bait'){game.bait+=2;toast('🪱 获得鱼饵 ×2');}
+             else{game.coins+=3;toast('💰 获得 3 金币');}
+             sfx('coin');updateItemBar();
+             flyHearts(innerWidth/2,innerHeight/2,4);
+           };
+         }else{
+           dlg.queue.splice(dlg.idx+1,0,{who:other,text:partnerHint(other)});
+         }
+       }},
+    ],()=>{ const cb=dlg.onDoneExtra;dlg.onDoneExtra=null;cb&&cb(); });
+    return;
+  }
   if(game.quest===0){
     startDialog([
       {who:other,text:'你来啦！我就知道你会先来找我。今天的云，像极了棉花糖。'},
@@ -1499,28 +1879,36 @@ function talkPartner(){
       {who:other,text:'嘿嘿。考你一下——还记得我们第一次见面吗？',
         choices:CONFIG.meetChoices.map(c=>[c[0]]),
         onPick:i=>{game.meetReplyIdx=i;dlg.queue.splice(dlg.idx+1,0,{who:other,text:CONFIG.meetChoices[i][1]});}},
-      {who:other,text:'对了！长老说，种出 3 颗「星之果实」，婚礼就会得到星星的祝福。'},
-      {who:other,text:'种子和水壶都给你（其实早就备好啦）。农田在房子旁边，水不够就去水井或湖边接！'},
+      {who:other,text:'对了！长老说，亲手种出 3 朵「向日葵」，婚礼就会得到太阳的祝福。这是种子！'},
+      {who:other,text:'呀，水壶忘在水井边了…就在你家旁边，顺路拿一下吧！'},
     ],()=>{
-      game.seeds=3;game.water=3;
-      toast('获得 <b style="color:#ffd84d">星之种子×3</b> 和 <b style="color:#7dc4ff">水壶(满)</b>');
+      game.seeds=3;
+      toast('获得 <b style="color:#ffd84d">向日葵种子×3</b> · 水壶在水井边');
       showOverlay(coupleHTML(),()=>setQuest(1));
       drawOverlayPortraits();
     });
-  }else if(game.quest===1){
-    const planted=Object.values(plots).some(p=>p.st>0);
-    startDialog([{who:other,text:planted?'浇过水颜色会变深；杂货店的魔法肥料能加速，还可能结出金果哦。':'去篱笆围着的农田，靠近土地按 A 就能种下。水壶空了就去井边接水。'}]);
-  }else if(game.quest===2){
-    startDialog([{who:other,text:'鱼竿拿好！站上湖边栈道的尽头，面朝湖水按 A。按住 A 绿区上浮、松开下沉，罩住小鱼攒满进度！'}]);
-  }else if(game.quest===3){
-    startDialog([{who:other,text:'刚才邮递员来过！快回家看看那个红色邮箱。'}]);
-  }else if(game.quest===4){
-    if(!game.exhibitSeen)startDialog([{who:other,text:'欢迎来到「我们的回忆博物馆」！每件展品都值得一看——走近按 A。'}]);
-    else museumQuestCheck();
-  }else if(game.quest===5){
-    startDialog([{who:other,text:'就等你啦。走上舞台来——仪式马上开始！'}]);
+  }else if(game.quest===4&&game.exhibitSeen){
+    museumQuestCheck();
   }else{
-    startDialog([{who:other,text:'婚礼达成 ♥ 桌上的香槟塔、钢琴、礼花筒都可以玩玩！'}]);
+    startDialog([{who:other,text:partnerHint(other)}]);
+  }
+}
+/* 各阶段提示语 */
+function partnerHint(other){
+  switch(game.quest){
+    case 1:
+      if(!game.hasCan)return '水壶就挂在水井边上！拿到后去农田种向日葵（靠近土地按 A）。';
+      return Object.values(plots).some(p=>p.st>0)
+        ?'浇过水颜色会变深；喂猫咪能得到天然肥料，杂货店也有卖，催熟还会开金花！'
+        :'去篱笆围着的农田按 A 种下种子。对了，灌木丛里能翻到喂鸡的谷粒哦。';
+    case 2:
+      return (game.rod&&game.bait>0)
+        ?'站上栈道尽头朝湖按 A！按住 A 绿区上浮、松开下沉，罩住小鱼攒满进度！'
+        :'渔具去杂货店买：鱼竿 12 金、鱼饵 2 金。钱不够就卖鸡蛋(4金)、野花(2金)～';
+    case 3: return '刚才邮递员来过！快回家看看那个红色邮箱。';
+    case 4: return '欢迎来到「我们的回忆博物馆」！墙上的画、玻璃柜里的展品，走近按 A 都能看。';
+    case 5: return '就等你啦。走上舞台来——仪式马上开始！';
+    default: return '婚礼达成 ♥ 香槟塔、钢琴、五月柱、礼花筒都可以玩玩！';
   }
 }
 
@@ -1537,6 +1925,11 @@ function openSettings(){
       <button class="sdv-btn small" id="edFrags">💫 记忆碎片配置</button>
       <button class="sdv-btn small" id="edExport">⬇ 导出配置 JSON</button>
       <button class="sdv-btn small danger" id="edClear">清除本地配置</button>
+    </div>
+    <div class="body" style="font-size:12px;color:#8a5a2b;text-align:center;margin-top:6px">— 任务直达（自动补齐所需道具）—</div>
+    <div class="ed-btns" id="dbgJump">
+      ${[0,1,2,3,4,5].map(q=>`<button class="sdv-btn small" data-jq="${q}">Q${q}</button>`).join('')}
+      <button class="sdv-btn small" data-jq="6">礼成</button>
     </div>`:'';
   showOverlay(
     `<h3>⚙ 设置</h3>
@@ -1590,7 +1983,28 @@ function openSettings(){
       RT.museum=CONFIG.museum;RT.seats=CONFIG.seats;RT.frags=CONFIG.frags;
       toast('已恢复默认配置');openSettings();
     };
+    document.querySelectorAll('#dbgJump [data-jq]').forEach(b=>b.onclick=()=>debugJump(+b.dataset.jq));
   }
+}
+/* DEBUG：任务直达（补齐道具与 NPC 位置，并传送到对应场景） */
+function debugJump(q){
+  overlay.style.display='none';game.mode='play';
+  game.seeds=Math.max(game.seeds,3);
+  if(q>=1){game.hasCan=true;game.water=3;}
+  if(q>=2){game.fruits=Math.max(game.fruits,3);game.rod=true;game.bait=Math.max(game.bait,3);game.coins+=8;}
+  if(q>=3){game.fishQ=true;}
+  partner.scene='world';partner.x=30*TILE;partner.y=27*TILE;
+  if(q>=4){partner.scene='museum';partner.x=13*TILE;partner.y=4.5*TILE;}
+  if(q>=5){partner.scene='hall';partner.x=12.5*TILE;partner.y=4.5*TILE;}
+  ceremonyDone=false;
+  game.scene='world';
+  const spots={0:[28,27],1:[11,8],2:[15,21],3:[9,7],4:[20,22],5:[17.5,38],6:[17.5,38]};
+  const [sx,sy]=spots[q]||spots[0];
+  player.x=sx*TILE;player.y=sy*TILE;
+  if(q>=6){setQuest(6);ceremonyDone=true;}
+  else setQuest(q);
+  updateCam();
+  toast(`🛠 已跳转到任务 Q${q}`);
 }
 document.getElementById('setBtn').addEventListener('click',openSettings);
 
@@ -1604,14 +2018,14 @@ function openListEditor(kind){
         <button class="ed-del" data-del="${i}">✕</button>
         ${isMu?`<label>标题</label><input type="text" data-f="title" data-i="${i}" value="${esc(it.title||'')}">`:''}
         <label>文字内容</label><textarea data-f="text" data-i="${i}">${esc(it.text||'')}</textarea>
-        <label>图片（可填 URL，或选择本地图片转存）</label>
+        <label>图片：填 assets/imgs/ 下的<b>文件名</b>（如 合照.jpg），或完整URL，或上传转存</label>
         <input type="text" data-f="img" data-i="${i}" value="${(it.img||'').startsWith('data:')?'(已存入本地图片)':esc(it.img||'')}" placeholder="https://... 或留空">
         <input type="file" accept="image/*" data-file="${i}" style="font-size:11px;margin-top:4px">
-        ${it.img?`<img class="ed-thumb" src="${esc(it.img)}">`:''}
+        ${it.img?`<img class="ed-thumb" src="${esc(resolveImg(it.img))}" onerror="this.style.opacity=.25">`:''}
       </div>`).join('');
     showOverlay(
       `<h3>${isMu?'🖼 博物馆展品配置':'💫 记忆碎片配置'} <span style="font-size:11px;color:#8a5a2b">(${items.length}${isMu?'/12':''})</span></h3>
-       <div class="body" style="font-size:12px;color:#8a5a2b;text-align:center">${isMu?'前 8 件挂墙上，9-12 件放展台':'农作/钓鱼/彩蛋时随机掉落'}</div>
+       <div class="body" style="font-size:12px;color:#8a5a2b;text-align:center">${isMu?'1-4 = 上墙挂画区 · 5-12 = 中央圆桌展台':'农作/钓鱼/彩蛋时随机掉落'}</div>
        ${rows}
        <div class="ed-btns">
          <button class="sdv-btn small" id="edAdd">＋ 添加一项</button>
@@ -1757,9 +2171,10 @@ if(_q.get('at')){const[ax,ay]=_q.get('at').split(',').map(Number);setTimeout(()=
 if(_q.get('scene'))setTimeout(()=>{game.scene=_q.get('scene');updateCam();},340);
 if(_q.get('q'))setTimeout(()=>{
   const q=+_q.get('q');
-  if(q>=2){game.rod=true;game.fruits=3;}
-  if(q>=4){partner.scene='museum';partner.x=10*TILE;partner.y=5.5*TILE;}
-  if(q>=5){partner.scene='hall';partner.x=12.5*TILE;partner.y=3*TILE;}
+  if(q>=1){game.seeds=3;game.hasCan=true;game.water=3;}
+  if(q>=2){game.fruits=3;game.rod=true;game.bait=3;}
+  if(q>=4){partner.scene='museum';partner.x=13*TILE;partner.y=4.5*TILE;}
+  if(q>=5){partner.scene='hall';partner.x=12.5*TILE;partner.y=4.5*TILE;}
   setQuest(q);
 },400);
 if(_q.get('show'))setTimeout(()=>{

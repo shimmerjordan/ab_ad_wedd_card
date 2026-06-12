@@ -71,12 +71,40 @@ function hash(x,y){ return ((x*73856093)^(y*19349663))>>>0; }
  * ============================================================ */
 const IMGS = {};
 const ASSET_MANIFEST = {
-  charGroom:'assets/char_groom.png',  charBride:'assets/char_bride.png',
-  portGroom:'assets/port_groom.png',  portBride:'assets/port_bride.png',
-  chicken:'assets/chicken.png',       cat:'assets/cat.png',
-  tree:'assets/tree.png',             sunflower:'assets/sunflower.png',
-  well:'assets/well.png',             house1:'assets/house1.png', house2:'assets/house2.png',
+  charGroom:'assets/elem/char_groom.png',  charBride:'assets/elem/char_bride.png',
+  portGroom:'assets/elem/port_groom.png',  portBride:'assets/elem/port_bride.png',
+  chicken:'assets/elem/chicken.png',       cat:'assets/elem/cat.png',
+  tree:'assets/elem/tree.png',             sunflower:'assets/elem/sunflower.png',
+  well:'assets/elem/well.png',             house1:'assets/elem/house1.png', house2:'assets/elem/house2.png',
+  /* 建筑立面 */
+  shopB:'assets/elem/shopB.png', museumB:'assets/elem/museumB.png', hallB:'assets/elem/hallB.png',
+  /* 博物馆内饰 */
+  shelfBig:'assets/elem/shelfBig.png', tableRound:'assets/elem/tableRound.png',
+  skeleton:'assets/elem/skeleton.png', skeleton2:'assets/elem/skeleton2.png',
+  bookshelf:'assets/elem/bookshelf.png', pillar:'assets/elem/pillar.png',
+  plantA:'assets/elem/plantA.png', plantB:'assets/elem/plantB.png', rugOval:'assets/elem/rugOval.png',
+  paintJelly:'assets/elem/paintJelly.png', paintGreen:'assets/elem/paintGreen.png',
+  paintCity:'assets/elem/paintCity.png',   paintBoat:'assets/elem/paintBoat.png',
+  paintBeach:'assets/elem/paintBeach.png', paintHills:'assets/elem/paintHills.png',
+  paintSunset:'assets/elem/paintSunset.png', paintNight:'assets/elem/paintNight.png',
+  /* 节日/殿堂装饰 */
+  maypole:'assets/elem/maypole.png',
+  tableRedA:'assets/elem/tableRedA.png', tableRedB:'assets/elem/tableRedB.png',
+  /* 室内地板墙纸 */
+  floorMuseum:'assets/elem/floorMuseum.png', floorHall:'assets/elem/floorHall.png',
+  wallMuseum:'assets/elem/wallMuseum.png',   wallHall:'assets/elem/wallHall.png',
+  /* 植被 */
+  bushFl:'assets/elem/bushFl.png', bushSm1:'assets/elem/bushSm1.png', bushSm2:'assets/elem/bushSm2.png',
+  tree2:'assets/elem/tree2.png', tree3:'assets/elem/tree3.png',
+  /* 花田花卉(作物终阶) + 盆栽 */
+  flowerA:'assets/elem/flowerA.png', flowerB:'assets/elem/flowerB.png',
+  flowerC:'assets/elem/flowerC.png', flowerSprout:'assets/elem/flowerSprout.png',
+  potA:'assets/elem/potA.png', potB:'assets/elem/potB.png', potC:'assets/elem/potC.png',
 };
+/* 8 幅挂壁油画键名（博物馆展位 1-8） */
+const PAINT_KEYS=['paintJelly','paintGreen','paintCity','paintBoat','paintBeach','paintHills','paintSunset','paintNight'];
+/* 猫全图 32x32/帧 4列: 行1=向右走 行7=蜷睡 行0=坐姿 */
+const CAT_F={ walkRow:1, sleepY:224, sitY:0 };
 for(const k in ASSET_MANIFEST){
   const im=new Image();
   im.onload=()=>{im._ok=true;};
@@ -127,4 +155,11 @@ function titleCardInto(canvas, role){
   const im=charImgFor(role);
   if(im){ c.drawImage(im,0,0,16,32,0,0,16,32); return; }
   blit(c, SPRITES[role].down.A, 2, 16, false);
+}
+
+/* 个人照片解析：纯文件名 → assets/imgs/<名>；URL/dataURL 原样 */
+function resolveImg(v){
+  if(!v) return '';
+  if(/^(https?:|data:|\.{0,2}\/)/.test(v)) return v;
+  return 'assets/imgs/'+v;
 }
