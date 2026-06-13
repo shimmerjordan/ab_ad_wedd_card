@@ -169,9 +169,9 @@ const WDECOR = [
   {img:'potC', x:16.2*TILE, y:36.4*TILE, w:14, h:10, solid:1},
   {img:'potC', x:19.4*TILE, y:36.4*TILE, w:14, h:10, solid:1},
   {img:'potA', x:20.4*TILE, y:36.4*TILE, w:14, h:10, solid:1},
-  /* 博物馆门前(door≈x24) */
-  {img:'potB', x:22.3*TILE, y:20.5*TILE, w:14, h:10, solid:1},
-  {img:'potB', x:25.4*TILE, y:20.5*TILE, w:14, h:10, solid:1},
+  /* 博物馆门前：圣诞树装饰(去掉盆栽; 立于门两侧, 小碰撞盒) */
+  {img:'xmasTree', x:21.4*TILE, y:21.2*TILE, w:16, h:10, solid:1},
+  {img:'xmasTree', x:25.6*TILE, y:21.2*TILE, w:16, h:10, solid:1},
   /* 杂货店门前(door≈x7) */
   {img:'potC', x:5.4*TILE,  y:20.5*TILE, w:14, h:10, solid:1},
   {img:'potA', x:8.4*TILE,  y:20.5*TILE, w:14, h:10, solid:1},
@@ -1093,14 +1093,21 @@ function drawHallInt(ents){
     }});
   });
   /* 烛灯：海滩灯笼真素材(暖光), 红毯两侧对称排开 */
-  HCANDLE.forEach(([lxT,lyT])=>{
+  HCANDLE.forEach(([lxT,lyT],ci)=>{
     ents.push({y:lyT*TILE+10,draw(){
-      const la=img('lantern'); const px=lxT*TILE-cam.x|0,py=lyT*TILE-cam.y|0;
-      if(la){
-        if((game.time*3|0)%2){ctx.fillStyle='rgba(255,228,140,.45)';ctx.fillRect(px-2,py-la.height-2,la.width+4,la.height+4);}
-        ctx.drawImage(la, px, py-la.height);
-        ctx.fillStyle='#6e4218';ctx.fillRect(px+(la.width/2|0)-1,py-2,3,6); // 小支架
-      }else{ctx.fillStyle='#6e4218';ctx.fillRect(px+4,py-18,3,20);ctx.fillStyle='#ffd84d';ctx.fillRect(px+2,py-22,7,6);}
+      const ca=img('candle'); const px=lxT*TILE-cam.x|0,py=lyT*TILE-cam.y|0;
+      const g=0.30+0.20*Math.sin(game.time*2.6+ci*1.7);   // 烛光渐淡呼吸(平滑, 非闪烁)
+      if(ca){
+        const fy=py-ca.height, cxf=px+(ca.width/2|0);
+        ctx.save();
+        ctx.globalAlpha=g;        ctx.fillStyle='#ffe48c';ctx.beginPath();ctx.ellipse(cxf,fy+4,8,8,0,0,7);ctx.fill();
+        ctx.globalAlpha=g*0.45;   ctx.fillStyle='#ffefb0';ctx.beginPath();ctx.ellipse(cxf,fy+4,14,13,0,0,7);ctx.fill();
+        ctx.restore();
+        ctx.drawImage(ca, px, fy);
+      }else{
+        ctx.save();ctx.globalAlpha=g;ctx.fillStyle='#ffe48c';ctx.fillRect(px,py-24,10,8);ctx.restore();
+        ctx.fillStyle='#f6f0e2';ctx.fillRect(px+3,py-18,4,16);ctx.fillStyle='#ffb84a';ctx.fillRect(px+3,py-22,4,5);
+      }
     }});
   });
   /* ⑤ 三角钢琴（黑漆琴身+掀盖+琴凳） */
@@ -1125,19 +1132,17 @@ function drawHallInt(ents){
     for(let r=0;r<4;r++)for(let i=0;i<=r;i++)ctx.fillRect(px+13-r*4+i*8,py+16-r*5,4,5);
     ctx.fillStyle='#ffd84d';if((game.time*3|0)%2){ctx.fillRect(px+13,py-2,2,2);ctx.fillRect(px+6,py+4,2,2);}
   }});
-  /* ⑦ 婚礼蛋糕（真素材粉色蛋糕, 紧贴红圆桌桌面, 不再悬空） */
-  ents.push({y:HOBJ.cake.y+32,draw(){
+  /* ⑦ 多层婚礼蛋糕（真素材, 落地摆放放大, 不放桌上） */
+  ents.push({y:HOBJ.cake.y+30,draw(){
     const o=HOBJ.cake,px=o.x-cam.x|0,py=o.y-cam.y|0;
-    const tb=img('tblRed'), ck=img('cakePink');
-    const tbH=tb?tb.height:30, tableTop=py+32-tbH;        // 桌子绘制顶端
-    if(tb)ctx.drawImage(tb, px, tableTop);
-    else{ctx.fillStyle='#c0392b';ctx.fillRect(px,py+18,34,14);}
-    if(ck){ const s=2, cw=ck.width*s, chh=ck.height*s;
-      ctx.imageSmoothingEnabled=false;
-      const surfY=tableTop+8;                              // 桌面高度
-      ctx.drawImage(ck,0,0,ck.width,ck.height, px+((tb?tb.width:34)-cw)/2|0, surfY-chh+2, cw, chh);
-    }
-    if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+6,py-6,1,1);ctx.fillRect(px+27,py-1,1,1);}
+    const ck=img('cakeTier'), cxf=px+17;
+    ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(cxf,py+28,17,5,0,0,7);ctx.fill();
+    if(ck){ const s=3, cw=ck.width*s, chh=ck.height*s; ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(ck,0,0,ck.width,ck.height, cxf-(cw/2|0), py+30-chh|0, cw, chh);
+    }else{ctx.fillStyle='#7a4a2a';for(let t=0;t<3;t++)ctx.fillRect(px+6+t*3,py+8+t*7,22-t*6,7);}
+    /* 顶部新人小人 + 闪光 */
+    ctx.fillStyle='#ff5c8a';ctx.fillRect(cxf-2,py-22,2,3);ctx.fillStyle='#7dc4ff';ctx.fillRect(cxf+1,py-22,2,3);
+    if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(cxf-8,py-18,1,1);ctx.fillRect(cxf+9,py-12,1,1);}
   }});
   /* ⑧ 礼花筒 */
   for(const k of ['popperL','popperR']) ents.push({y:HOBJ[k].y+16,draw(){
@@ -1155,9 +1160,11 @@ function drawHallInt(ents){
       if(tb)ctx.drawImage(tb, px, py+28-tb.height);
       else{ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(cx,py+22,17,5,0,0,7);ctx.fill();
         ctx.fillStyle='#c0392b';ctx.beginPath();ctx.ellipse(cx,cy,17,10,0,0,7);ctx.fill();}
-      /* 桌面小花艺点缀 */
-      ctx.fillStyle='#3f8a3c';ctx.fillRect(cx-2,cy-2,4,3);
-      ctx.fillStyle='#ff5c8a';ctx.fillRect(cx-2,cy-5,2,3);ctx.fillStyle='#ffd84d';ctx.fillRect(cx,cy-4,2,2);
+      /* 桌上喜宴菜品(真素材, 每桌两道, 按桌号变化) */
+      const d1=img('food'+(1+i%6)), d2=img('food'+(1+(i+3)%6));
+      if(d1)ctx.drawImage(d1, cx-d1.width-1, cy-d1.height/2|0);
+      if(d2)ctx.drawImage(d2, cx+1, cy-d2.height/2|0);
+      if(!d1){ctx.fillStyle='#3f8a3c';ctx.fillRect(cx-2,cy-2,4,3);ctx.fillStyle='#ff5c8a';ctx.fillRect(cx-2,cy-5,2,3);}
     }});
   });
 }
@@ -1199,7 +1206,7 @@ function drawWorld(){
       ents.push({y:(b.y+b.h)*TILE, occ, draw:()=>drawBuilding(b)});
     });
     WDECOR.forEach(d=>{
-      const tall=d.img==='palm';
+      const tall=d.img==='palm'||d.img==='xmasTree';
       ents.push({y:d.y+(d.h||14), occ: tall?{x:d.x-8,y:d.y-44,w:56,h:60}:null, draw:()=>{
         const im=img(d.img);
         if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+(d.h||im.height)-im.height)-cam.y|0);
