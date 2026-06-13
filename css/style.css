@@ -133,6 +133,20 @@ canvas{image-rendering:pixelated;display:block}
   background:rgba(255,230,176,.85);border:3px solid var(--wood-dark);
   left:50%;top:50%;transform:translate(-50%,-50%);
 }
+/* 摇杆位置提示：静止时显示一个虚线圆环+提示文字, 首次拖动后淡出 */
+#padHint{position:fixed;left:42px;bottom:64px;z-index:14;display:none;
+  flex-direction:column;align-items:center;pointer-events:none;
+  opacity:.92;transition:opacity .5s;animation:padPulse 1.8s ease-in-out infinite}
+#padHint.gone{opacity:0}
+#padRing{width:74px;height:74px;border-radius:50%;
+  border:3px dashed rgba(255,230,176,.75);background:rgba(91,44,14,.28);
+  display:flex;align-items:center;justify-content:center}
+#padDot{width:30px;height:30px;border-radius:50%;
+  background:rgba(255,230,176,.7);border:3px solid var(--wood-dark)}
+#padHintTxt{margin-top:7px;font-size:12px;color:#fff;
+  text-shadow:0 1px 2px #000,0 0 4px #000;background:rgba(91,44,14,.55);
+  padding:2px 8px;border-radius:8px;white-space:nowrap}
+@keyframes padPulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 #btns{position:fixed;right:14px;bottom:26px;z-index:15;display:none;gap:14px;align-items:flex-end;
   padding-bottom:env(safe-area-inset-bottom);}
 .act-btn{

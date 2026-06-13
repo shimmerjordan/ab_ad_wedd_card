@@ -49,10 +49,10 @@ function rect(g,x0,y0,x1,y1,ch){ for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++) 
 function hline(g,x0,x1,y,ch){ rect(g,x0,y,x1,y,ch); }
 function vline(g,x,y0,y1,ch){ rect(g,x,y0,x,y1,ch); }
 
-/* —— 户外大世界 36x46（镇区建筑改用高大真立面，整体南移） ——
+/* —— 户外大世界 44x46（镇区拓宽, 三栋建筑拉开间距） ——
  *  新增地块: B 开花灌木(可跳过) u 小灌木(装饰) G 觅食灌木(采谷粒) */
 function buildWorld(){
-  const W=36,H=46,g=grid(W,H,'.');
+  const W=44,H=46,g=grid(W,H,'.');
   /* 湖（椭圆 + 沙边） */
   const cx=29.2,cy=5.6,rx=5.6,ry=4.1;
   for(let y=1;y<12;y++)for(let x=22;x<35;x++){
@@ -74,29 +74,29 @@ function buildWorld(){
   for(let y=25;y<=30;y++)for(let x=26;x<=33;x++) if(hash(x,y)%3<2) g[y][x]='F';
   /* 西边小树林 + 神秘草丛(蛋) */
   for(const [tx,ty] of [[2,20],[4,21],[2,24],[5,25],[3,27],[2,31],[5,30],[3,34],[6,33],[2,38],[5,38],[3,42]]) g[ty][tx]='T';
-  /* 路网：家→主路→各门口→殿堂门前广场 */
+  /* 路网：家→主路（横贯镇区门前）→各门口→殿堂门前广场 */
   vline(g,5,6,22,':');                        // 家门口往南
-  hline(g,5,30,22,':');                       // 主路（镇区门前）
-  vline(g,12,21,22,':');                      // 杂货店门口
-  vline(g,20,21,22,':');                      // 博物馆门口
-  vline(g,27,21,22,':');                      // 邻居门口
-  vline(g,29,11,14,':'); hline(g,29,30,14,':'); vline(g,30,14,21,':'); // 湖→主路
+  hline(g,5,40,22,':');                       // 主路
+  vline(g,7,21,22,':');                       // 杂货店门口(footprint x4-14)
+  vline(g,24,21,22,':');                      // 博物馆门口(footprint x19-27)
+  vline(g,33,21,22,':');                      // 邻居门口(footprint x31-37)
+  vline(g,30,11,14,':'); hline(g,30,31,14,':'); vline(g,31,14,21,':'); // 湖→主路
   vline(g,18,22,30,':');                      // 主路往南
   hline(g,18,26,30,':');                      // 往花田
   vline(g,24,30,40,':');                      // 绕殿堂东侧
   hline(g,17,24,40,':');                      // 殿堂门前横路
   rect(g,15,37,20,39,':');                    // ★ 殿堂门前广场（直达大门）
   vline(g,17,36,37,':'); vline(g,18,36,37,':');
-  /* 开花灌木(B, 可跳)与小灌木(u, 装饰) */
-  for(const [bx,by] of [[7,12],[16,12],[22,15],[31,16],[7,24],[14,24],[25,23],[34,22],[12,31],[26,33],[33,33],[10,38],[26,41],[31,38]]) if(g[by][bx]==='.') g[by][bx]='B';
-  for(const [ux,uy] of [[4,12],[10,12],[19,15],[24,12],[33,12],[8,20],[15,20],[23,20],[31,20],[6,27],[13,27],[21,28],[34,27],[9,34],[21,34],[30,35],[14,42],[22,43],[28,43]]) if(g[uy][ux]==='.') g[uy][ux]='u';
+  /* 开花灌木(B, 可跳)与小灌木(u, 装饰)：建筑间隙也补绿植 */
+  for(const [bx,by] of [[16,18],[29,18],[7,24],[14,24],[25,23],[38,19],[12,31],[26,33],[33,33],[10,38],[26,41],[31,38],[40,24],[41,32]]) if(g[by][bx]==='.') g[by][bx]='B';
+  for(const [ux,uy] of [[17,19],[28,19],[30,19],[39,18],[8,20],[41,22],[6,27],[13,27],[21,28],[40,30],[9,34],[21,34],[30,35],[14,42],[22,43],[28,43],[38,40],[42,18]]) if(g[uy][ux]==='.') g[uy][ux]='u';
   /* 觅食灌木(G: 鸡饲料谷粒) */
-  for(const [gx,gy] of [[4,18],[24,16],[34,30],[26,31],[6,40]]) g[gy][gx]='G';
+  for(const [gx,gy] of [[16,17],[40,20],[42,32],[26,31],[6,40]]) if(g[gy][gx]==='.') g[gy][gx]='G';
   /* 草丛点缀 */
   for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++) if(g[y][x]==='.'&&hash(x,y)%13===0) g[y][x]=',';
   /* 树木点缀（避开空地建筑） */
   const forb=(x,y)=> (x>=1&&x<=10&&y>=1&&y<=10)||(x>=7&&x<=16&&y>=5&&y<=11)||(x>=17&&x<=22&&y>=5&&y<=10)||
-    (x>=20&&x<=35&&y>=0&&y<=14)||(x>=3&&x<=33&&y>=11&&y<=23)||(x>=24&&x<=35&&y>=24&&y<=31)||
+    (x>=20&&x<=35&&y>=0&&y<=14)||(x>=3&&x<=40&&y>=11&&y<=23)||(x>=24&&x<=35&&y>=24&&y<=31)||
     (x>=11&&x<=25&&y>=30&&y<=45)||(x>=15&&x<=20&&y>=22&&y<=45);
   for(let y=2;y<H-2;y++)for(let x=2;x<W-2;x++)
     if(g[y][x]==='.'&&!forb(x,y)&&hash(x*3,y*7)%15===0) g[y][x]='T';
@@ -114,14 +114,14 @@ function buildMuseum(){
   g[H-1][12]='w'; g[H-1][13]='w';             // 门口
   return {w:W,h:H,g};
 }
-/* —— 婚礼殿堂内景 30x26：墙面3行+舞台+中央红毯+15 圆桌宴会区 —— */
+/* —— 婚礼殿堂内景 27x23：墙面3行+舞台+中央红毯+15 圆桌宴会区(5列3排, 收紧) —— */
 function buildHall(){
-  const W=30,H=26,g=grid(W,H,'w');
+  const W=27,H=23,g=grid(W,H,'w');
   rect(g,0,0,W-1,2,'W');
   hline(g,0,W-1,H-1,'W');
   vline(g,0,0,H-1,'W'); vline(g,W-1,0,H-1,'W');
-  rect(g,9,3,20,6,'S');                        // 舞台
-  rect(g,14,7,15,H-1,'c');                     // 中央红毯主道(直达门口)
+  rect(g,11,3,20,6,'S');                        // 舞台
+  rect(g,15,7,16,H-1,'c');                      // 中央红毯主道(直达门口)
   return {w:W,h:H,g};
 }
 
@@ -129,16 +129,17 @@ function buildHall(){
 const BUILDINGS = [
   {key:'home',   x:2, y:2, w:6, h:4, wall:'#e8d5a8', roof:'#b04a3a', label:'',
    door:{x:5.5,w:1,  act:'homeDoor'}},
-  {key:'shop',   x:7, y:17,w:11,h:4, wall:'#f0e0b8', roof:'#3f8a3c', label:'杂货店',
-   img:'shopB', doorOff:62, doorW:40,
-   door:{x:11.5,w:1.6,act:'shop'}},
-  {key:'museum', x:17,y:17,w:8, h:4, wall:'#e8e0d0', roof:'#5a6fb0', label:'博物馆',
+  {key:'shop',   x:4, y:17,w:10,h:4, wall:'#f0e0b8', roof:'#b04a3a', label:'杂货店',
+   img:'shopB', doorOff:30, doorW:40,
+   door:{x:7,   w:1.6,act:'shop'}},
+  {key:'museum', x:19,y:17,w:8, h:4, wall:'#e8e0d0', roof:'#5a6fb0', label:'博物馆',
    img:'museumB', doorOff:64, doorW:32,
-   door:{x:20.6,w:1.6,act:'enterMuseum'}},
-  {key:'nb1',    x:26,y:17,w:5, h:4, wall:'#e8d5a8', roof:'#c9772e', label:'',
-   door:{x:28, w:1,  act:'nbDoor'}},
+   door:{x:24,  w:1.6,act:'enterMuseum'}},
+  {key:'nb1',    x:31,y:17,w:6, h:4, wall:'#e8d5a8', roof:'#c9772e', label:'',
+   img:'house1', doorOff:40, doorW:30,
+   door:{x:33,  w:1,  act:'nbDoor'}},
   {key:'hall',   x:13,y:33,w:10,h:4, wall:'#f5ead0', roof:'#c0392b', label:'婚礼殿堂',
-   img:'hallB', doorOff:75, doorW:48,
+   img:'hallB', doorOff:66, doorW:48,
    door:{x:17,  w:2,  act:'enterHall'}},
 ];
 /* 立面图左缘的世界 X（图按地基宽度水平居中） */
@@ -169,32 +170,31 @@ const WDECOR = [
   {img:'potC', x:11*TILE,   y:20.5*TILE, w:14, h:10, solid:1},
   {img:'potA', x:13.6*TILE, y:20.5*TILE, w:14, h:10, solid:1},
 ];
-/* 殿堂内对象：15 圆桌(4-4-4-3) + 互动点 + 自助宴会桌/装饰 */
+/* 殿堂内对象：15 圆桌(5列×3排, 收紧) + 互动点 + 自助宴会桌/装饰 */
 const TABLE_POS=[
-  [4,10],[9,10],[20,10],[25,10],
-  [4,14],[9,14],[20,14],[25,14],
-  [4,18],[9,18],[20,18],[25,18],
-  [4,22],[9,22],[25,22],
+  [2,11],[7,11],[12,11],[18,11],[23,11],
+  [2,15],[7,15],[12,15],[18,15],[23,15],
+  [2,19],[7,19],[12,19],[18,19],[23,19],
 ];
 const HOBJ = {
-  piano:  {x:5*TILE,  y:3.8*TILE, w:38, h:26},
-  tower:  {x:24*TILE, y:3.6*TILE, w:30, h:30},
-  cake:   {x:11*TILE,  y:8.2*TILE, w:30, h:24},
-  buffetL:{x:1*TILE+4, y:8.4*TILE, w:44, h:58, img:'tableRedA'},
-  buffetR:{x:27*TILE+2,y:8.4*TILE, w:44, h:58, img:'tableRedB'},
-  poleL:  {x:1*TILE+2,y:20.6*TILE, w:24, h:18, img:'maypole'},
-  poleR:  {x:27.4*TILE,y:20.6*TILE,w:24, h:18, img:'maypole'},
-  popperL:{x:9*TILE,  y:3.2*TILE, w:12, h:16},
-  popperR:{x:20*TILE, y:3.2*TILE, w:12, h:16},
+  piano:  {x:4*TILE,   y:3.6*TILE, w:46, h:30},
+  tower:  {x:22.4*TILE,y:3.6*TILE, w:30, h:30},
+  cake:   {x:4.2*TILE, y:8.6*TILE, w:34, h:30},
+  buffetL:{x:1*TILE+2, y:8.6*TILE, w:44, h:58, img:'tableRedA'},
+  buffetR:{x:24*TILE+2,y:8.6*TILE, w:44, h:58, img:'tableRedB'},
+  poleL:  {x:1*TILE,  y:19.6*TILE, w:24, h:18, img:'maypole'},
+  poleR:  {x:24.6*TILE,y:19.6*TILE,w:24, h:18, img:'maypole'},
+  popperL:{x:10*TILE, y:3.0*TILE, w:12, h:16},
+  popperR:{x:20*TILE, y:3.0*TILE, w:12, h:16},
 };
-/* 殿堂内装饰（无碰撞）：盆栽列于舞台两侧 + 红毯夹道 */
+/* 殿堂内装饰（无碰撞）：盆栽列于舞台两侧 + 红毯夹道花柱 */
 const HDECOR = [
-  {img:'potB', x:11*TILE,  y:6.4*TILE},
-  {img:'potB', x:18*TILE,  y:6.4*TILE},
-  {img:'potC', x:12.6*TILE,y:9.4*TILE},
-  {img:'potC', x:16.6*TILE,y:9.4*TILE},
-  {img:'potA', x:12.6*TILE,y:24.2*TILE},
-  {img:'potA', x:16.6*TILE,y:24.2*TILE},
+  {img:'potB', x:11.2*TILE,y:6.4*TILE},
+  {img:'potB', x:19.0*TILE,y:6.4*TILE},
+  {img:'potC', x:13.4*TILE,y:7.6*TILE},
+  {img:'potC', x:17.4*TILE,y:7.6*TILE},
+  {img:'potA', x:13.4*TILE,y:21.6*TILE},
+  {img:'potA', x:17.4*TILE,y:21.6*TILE},
 ];
 /* 博物馆展位：
  *  1-4 → 上墙油画(矿架两侧各2幅, 像素坐标)
@@ -202,11 +202,12 @@ const HDECOR = [
 const EX_WALL_PX=[[26,8],[74,8],[296,8],[344,8]];
 const EX_TBL=[[3,5],[9,5],[15,5],[21,5],[3,10],[9,10],[15,10],[21,10]];
 const MUSEUM_PAINTS=['paintBoat','paintHills','paintSunset','paintNight'];
-/* 博物馆家具(贴地摆放, 带碰撞) */
+/* 博物馆家具(贴地摆放, 带碰撞)；书架/留言台为程序化绘制(切图始终完整) */
 const MOBJ = {
-  bookL:{x:5*TILE,   y:15*TILE,   w:36, h:26, img:'bookshelf'},
-  bookR:{x:18*TILE+8,y:15*TILE,   w:36, h:26, img:'bookshelf'},
+  bookL:{x:4.6*TILE, y:15*TILE,   w:38, h:40, proc:'bookcase'},
+  bookR:{x:19*TILE,  y:15*TILE,   w:38, h:40, proc:'bookcase'},
   skel: {x:11.4*TILE,y:7.6*TILE,  w:50, h:22, img:'skeleton'},
+  guest:{x:16*TILE,  y:15*TILE,   w:26, h:26, proc:'guestbook'},
   plantA:{x:1*TILE+6, y:3.6*TILE, w:28, h:16, img:'plantA'},
   plantB:{x:21.6*TILE,y:3.6*TILE, w:36, h:16, img:'plantB'},
   plantC:{x:1*TILE+6, y:14.6*TILE,w:28, h:16, img:'plantA'},
@@ -220,8 +221,8 @@ const SCENES = {
 };
 /* 场景间寻路（指引箭头用） */
 function routeDoor(from,to){
-  if(from==='world') return to==='museum' ? {x:21.3*TILE,y:21*TILE} : {x:18*TILE,y:37*TILE};
-  return {x:14.5*TILE, y:(SCENES[from].h-1)*TILE};
+  if(from==='world') return to==='museum' ? {x:24.5*TILE,y:21*TILE} : {x:18*TILE,y:37*TILE};
+  return {x:15.5*TILE, y:(SCENES[from].h-1)*TILE};
 }
 
 /* ============================================================
@@ -247,8 +248,8 @@ const player  = {x:5.5*TILE, y:6.5*TILE, dir:'down', flip:false, moving:false, a
 const partner = {x:30*TILE, y:27*TILE, scene:'world', dir:'down', flip:false, role:'bride', bob:0};
 const chicken = {x:19*TILE, y:8*TILE, dir:1, t:0, pause:false};
 /* 猫：状态机漫游(博物馆与邻居家之间的街角) + 喂食后跟随 */
-const cat = {x:24*TILE, y:21.6*TILE, homeX:24*TILE, homeY:21.6*TILE,
-             tx:24*TILE, ty:21.6*TILE, state:'sit', t:2, flip:false, followT:0, animT:0, frame:0};
+const cat = {x:29*TILE, y:21.6*TILE, homeX:29*TILE, homeY:21.6*TILE,
+             tx:29*TILE, ty:21.6*TILE, state:'sit', t:2, flip:false, followT:0, animT:0, frame:0};
 const plots = {};               // "x,y"->{st:0空/1种/2浇, fert:0/1, t}
 {
   const wg=SCENES.world.g;
@@ -301,6 +302,8 @@ addEventListener('keyup',e=>{
 });
 const padL=document.getElementById('padL'),base=document.getElementById('stickBase'),nub=document.getElementById('stickNub');
 padL.addEventListener('pointerdown',e=>{
+  const ph=document.getElementById('padHint');
+  if(ph&&!ph.classList.contains('gone')){ph.classList.add('gone');setTimeout(()=>ph.style.display='none',600);}
   stick.on=true;stick.id=e.pointerId;stick.ox=e.clientX;stick.oy=e.clientY;stick.dx=stick.dy=0;
   base.style.display='block';base.style.left=e.clientX+'px';base.style.top=e.clientY+'px';
   nub.style.transform='translate(-50%,-50%)';
@@ -843,6 +846,48 @@ function drawTree(px,py,h){
   if(h%5===0){ctx.fillStyle='#ff7daa';ctx.fillRect(px+4,py-14,2,2);ctx.fillRect(px+11,py-9,2,2);}
 }
 
+/* 程序化书架（始终完整, 木框+三层彩色书脊+顶部小物） */
+function drawBookcase(px,py){
+  const W=38,H=40, x=px, y=py;
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(x+2,y+H,W-4,3);
+  ctx.fillStyle='#6e4218';ctx.fillRect(x,y,W,H);                 // 外框
+  ctx.fillStyle='#5a3413';ctx.fillRect(x,y,W,3);ctx.fillRect(x,y+H-4,W,4);
+  ctx.fillStyle='#3c2410';ctx.fillRect(x+3,y+4,W-6,H-8);         // 内背板
+  const cols=['#c0392b','#2e6fb0','#3f8a3c','#e8943a','#7a4a9a','#d8a72e','#2f8f8a','#b04a6a'];
+  for(let s=0;s<3;s++){                                          // 三层书
+    const sy=y+5+s*11;
+    ctx.fillStyle='#6e4218';ctx.fillRect(x+3,sy+9,W-6,2);        // 隔板
+    let bx=x+5;
+    let i=s*3;
+    while(bx<x+W-6){
+      const bw=2+ (hash(bx,sy)%3), bh=7+ (hash(bx*3,sy)%3);
+      ctx.fillStyle=cols[(i++)%cols.length];
+      ctx.fillRect(bx, sy+9-bh, bw, bh);
+      ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(bx,sy+9-bh,1,bh);
+      bx+=bw+1;
+    }
+  }
+  /* 顶层摆件：一只小地球仪/花瓶 */
+  ctx.fillStyle='#2e6fb0';ctx.fillRect(x+W-13,y+1,8,5);
+  ctx.fillStyle='#3f8a3c';ctx.fillRect(x+W-12,y+2,2,2);ctx.fillRect(x+W-9,y+3,2,1);
+  ctx.fillStyle='#8c5a2b';ctx.fillRect(x+W-11,y+6,4,1);
+}
+/* 程序化留言台（木质斜面讲台 + 翻开的签到簿 + 羽毛笔） */
+function drawGuestbook(px,py){
+  const x=px,y=py;
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(x+3,y+26,20,3);
+  ctx.fillStyle='#6e4218';ctx.fillRect(x+6,y+12,14,14);          // 立柱
+  ctx.fillStyle='#5a3413';ctx.fillRect(x+4,y+24,18,3);
+  /* 斜面台板 */
+  ctx.fillStyle='#8c5a2b';ctx.fillRect(x+2,y+6,22,9);
+  ctx.fillStyle='#a8743c';ctx.fillRect(x+2,y+6,22,2);
+  /* 翻开的书页 */
+  ctx.fillStyle='#fdf3dc';ctx.fillRect(x+5,y+4,16,8);
+  ctx.fillStyle='#e6d8b8';ctx.fillRect(x+12,y+4,2,8);            // 书脊中缝
+  ctx.fillStyle='#b9a98a';for(let i=0;i<3;i++){ctx.fillRect(x+6,y+6+i*2,5,1);ctx.fillRect(x+15,y+6+i*2,5,1);}
+  /* 羽毛笔 */
+  ctx.fillStyle='#e0457b';ctx.fillRect(x+18,y+1,1,5);ctx.fillStyle='#fff';ctx.fillRect(x+17,y+2,1,3);
+}
 /* —— 博物馆内景陈设：矿物大展架 + 4油画(上墙) + 8玻璃展柜(中央) + 家具 —— */
 function drawMuseumInt(ents){
   /* 上墙正中：矿物大展架(128宽, 底边落在墙脚) */
@@ -914,11 +959,14 @@ function drawMuseumInt(ents){
       if(has&&((game.time*2|0)+i)%2===0){ctx.fillStyle='#fff';ctx.fillRect(gx+gw-6,gy-7,2,2);ctx.fillRect(gx+3,gy-5,2,2);}
     }});
   });
-  /* 家具：书架/海兽骨架/盆栽（贴地摆放） */
+  /* 家具：书架(程序化)/留言台(程序化)/海兽骨架/盆栽（贴地摆放） */
   for(const k in MOBJ){
     const o=MOBJ[k], im=img(o.img);
     ents.push({y:o.y+o.h,draw(){
-      if(im)ctx.drawImage(im, o.x-cam.x|0, (o.y+o.h-im.height)-cam.y|0);
+      const px=o.x-cam.x|0, py=o.y-cam.y|0;
+      if(o.proc==='bookcase')      drawBookcase(px,py);
+      else if(o.proc==='guestbook')drawGuestbook(px,py);
+      else if(im)ctx.drawImage(im, px, (o.y+o.h-im.height)-cam.y|0);
     }});
   }
   /* 中央走道椭圆地毯 */
@@ -929,26 +977,59 @@ function drawMuseumInt(ents){
 }
 /* —— 殿堂内景陈设 —— */
 function drawHallInt(ents){
-  /* 舞台「玫瑰花拱门」：白色立柱 + 玫瑰花环顶（与米色舞台明显区分） */
-  ents.push({y:6*TILE,draw(){
-    const lx=12.5*TILE-cam.x|0, rx=18*TILE-cam.x|0, ty=3*TILE-cam.y|0, bot=(6.4*TILE-cam.y)|0;
-    for(const x of [lx,rx]){                       // 白色大理石立柱
+  const HW=27;
+  /* ① 上墙三角彩旗(贯穿整面背墙, 最底层) */
+  ents.push({y:-1000,draw(){
+    const cols=['#ff7daa','#ffd84d','#7dc4ff','#a06ee0','#7ec850'];
+    const wy=2*TILE-cam.y;
+    ctx.strokeStyle='#e8d6a8';ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let wx=8;wx<HW*TILE-8;wx+=4){const sx=wx-cam.x, sy=wy-6+Math.sin(wx*0.06)*3;wx===8?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);}
+    ctx.stroke();
+    for(let i=0,wx=10;wx<HW*TILE-12;wx+=15,i++){
+      const sx=(wx-cam.x)|0, sy=(wy-5+Math.sin(wx*0.06)*3)|0;
+      ctx.fillStyle=cols[i%cols.length];
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+11,sy);ctx.lineTo(sx+5,sy+10);ctx.closePath();ctx.fill();
+    }
+  }});
+  /* ② 舞台背景幔布(粉白竖条帷幕 + 顶部缦帐) */
+  ents.push({y:-999,draw(){
+    const x0=11*TILE-cam.x|0, x1=20*TILE-cam.x|0, y0=3*TILE-cam.y-2|0, y1=6*TILE-cam.y|0;
+    for(let x=x0;x<x1;x+=8){
+      ctx.fillStyle=((x-x0)/8|0)%2?'#f6dbe6':'#ffffff';
+      ctx.fillRect(x,y0,8,y1-y0);
+    }
+    ctx.fillStyle='#e0457b';ctx.fillRect(x0,y0-3,x1-x0,4);          // 帐顶横杆
+    for(let x=x0;x<x1;x+=14){ctx.fillStyle='#d63b6e';               // 缦帐波浪
+      ctx.beginPath();ctx.moveTo(x,y0+1);ctx.lineTo(x+14,y0+1);ctx.lineTo(x+7,y0+8);ctx.closePath();ctx.fill();}
+  }});
+  /* ③ 舞台「玫瑰花拱门」：白柱 + 玫瑰花环（位于舞台前沿中央 x13.5~17.5） */
+  ents.push({y:6*TILE+2,draw(){
+    const lx=13.5*TILE-cam.x|0, rx=17.5*TILE-cam.x|0, ty=3.2*TILE-cam.y|0, bot=(6.2*TILE-cam.y)|0;
+    for(const x of [lx,rx]){
       ctx.fillStyle='#efe7d6';ctx.fillRect(x,ty,8,bot-ty);
       ctx.fillStyle='#fffaf0';ctx.fillRect(x,ty,3,bot-ty);
       ctx.fillStyle='#c9bda4';ctx.fillRect(x+6,ty,2,bot-ty);
       ctx.fillStyle='#d8ccae';ctx.fillRect(x-1,ty,10,3);ctx.fillRect(x-1,bot-3,10,3);
+      ctx.fillStyle='#3f9a44';for(let yy=ty+6;yy<bot-4;yy+=8){ctx.fillRect(x-1,yy,3,4);ctx.fillStyle='#ff7daa';ctx.fillRect(x-2,yy+1,2,2);ctx.fillStyle='#3f9a44';} // 缠柱藤蔓
     }
-    const ax=lx-2, aw=(rx+8)-(lx-2);
-    ctx.fillStyle='#2f7a34';ctx.fillRect(ax,ty-11,aw,9);     // 花环绿底
-    ctx.fillStyle='#3f9a44';ctx.fillRect(ax+2,ty-13,aw-4,6);
+    const ax=lx-3, aw=(rx+8)-(lx-3);
+    ctx.fillStyle='#2f7a34';ctx.beginPath();ctx.ellipse(ax+aw/2,ty-4,aw/2,9,0,Math.PI,0);ctx.fill(); // 拱形花环
+    ctx.fillStyle='#3f9a44';ctx.fillRect(ax,ty-6,aw,5);
     const rose=['#e0457b','#ff7daa','#ffffff','#ff5c8a','#ffd84d'];
-    const n=Math.floor(aw/7);
-    for(let i=0;i<n;i++){                            // 玫瑰花团
-      ctx.fillStyle=rose[i%rose.length];
-      const fx=ax+3+i*7, fy=ty-13+(i%2?2:0);
+    for(let i=0,fx=ax+1;fx<ax+aw-2;fx+=6,i++){
+      ctx.fillStyle=rose[i%rose.length];const fy=ty-13+Math.abs(((fx-ax)/aw-0.5))*10|0;
       ctx.fillRect(fx,fy,4,4);ctx.fillStyle='#2f6b24';ctx.fillRect(fx+3,fy+3,2,2);
     }
-    ctx.fillStyle='#e0457b';ctx.fillRect(lx+2,ty-2,3,8);ctx.fillRect(rx+3,ty-2,3,8); // 缎带
+    ctx.fillStyle='#e0457b';ctx.fillRect(lx+2,ty-1,3,9);ctx.fillRect(rx+3,ty-1,3,9);
+  }});
+  /* ④ 红毯花瓣 + 入口花柱(无碰撞, 贴地装饰) */
+  ents.push({y:-993,draw(){
+    for(let ty=8;ty<22;ty++)for(const tx of [15,16]){
+      const h=hash(tx*7,ty*3);if(h%2)continue;
+      const px=tx*TILE-cam.x+ (h%12)|0, py=ty*TILE-cam.y+((h>>3)%14)|0;
+      ctx.fillStyle=['#ff9eb5','#ffd1dc','#ffffff'][h%3];ctx.fillRect(px,py,2,2);
+    }
   }});
   /* 自助宴会长桌 / 五月柱（节日素材） */
   for(const k of ['buffetL','buffetR','poleL','poleR']){
@@ -958,67 +1039,92 @@ function drawHallInt(ents){
       else{ctx.fillStyle='#c0392b';ctx.fillRect(o.x-cam.x|0,o.y-cam.y|0,o.w,o.h);}
     }});
   }
-  /* 粉树/花箱装饰（无碰撞） */
+  /* 盆栽装饰 + 入口花柱(罗马柱顶花球) */
   HDECOR.forEach(d=>{
     const im=img(d.img);
     ents.push({y:d.y+14,draw(){
       if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+14-im.height)-cam.y|0);
     }});
   });
-  /* 钢琴 */
-  ents.push({y:HOBJ.piano.y+26,draw(){
-    const o=HOBJ.piano,px=o.x-cam.x|0,py=o.y-cam.y|0;
-    ctx.fillStyle='#2b2b34';ctx.fillRect(px,py,38,22);
-    ctx.fillStyle='#1b1b22';ctx.fillRect(px,py,38,5);
-    ctx.fillStyle='#fff';for(let i=0;i<9;i++)ctx.fillRect(px+2+i*4,py+14,3,7);
-    ctx.fillStyle='#2b2b34';for(let i=0;i<8;i++)ctx.fillRect(px+4+i*4,py+14,2,4);
+  for(const fx of [13.6,17.4]) ents.push({y:20.6*TILE,draw(){     // 红毯入口一对花柱
+    const px=fx*TILE-cam.x|0,py=18*TILE-cam.y|0;
+    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(px,py+40,12,3);
+    ctx.fillStyle='#efe7d6';ctx.fillRect(px+2,py+6,8,36);ctx.fillStyle='#fffaf0';ctx.fillRect(px+2,py+6,3,36);
+    ctx.fillStyle='#d8ccae';ctx.fillRect(px,py+4,12,3);ctx.fillRect(px,py+40,12,3);
+    ctx.fillStyle='#3f9a44';ctx.beginPath();ctx.ellipse(px+6,py+2,9,7,0,0,7);ctx.fill(); // 花球
+    const rs=['#e0457b','#ff7daa','#fff','#ffd84d'];
+    for(let i=0;i<6;i++){ctx.fillStyle=rs[i%4];ctx.fillRect(px+1+(i*3)%11,py-3+(i%2)*4,3,3);}
   }});
-  /* 香槟塔 */
+  /* ⑤ 三角钢琴（黑漆琴身+掀盖+琴凳） */
+  ents.push({y:HOBJ.piano.y+30,draw(){
+    const o=HOBJ.piano,px=o.x-cam.x|0,py=o.y-cam.y|0;
+    ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(px+2,py+30,44,4);
+    ctx.fillStyle='#17171c';ctx.beginPath();ctx.moveTo(px+2,py+26);ctx.lineTo(px+2,py+12);ctx.lineTo(px+30,py+8);ctx.lineTo(px+44,py+14);ctx.lineTo(px+44,py+26);ctx.closePath();ctx.fill(); // 琴身
+    ctx.fillStyle='#2b2b34';ctx.beginPath();ctx.moveTo(px+4,py+11);ctx.lineTo(px+30,py+2);ctx.lineTo(px+30,py+8);ctx.lineTo(px+4,py+13);ctx.closePath();ctx.fill(); // 掀起的盖
+    ctx.fillStyle='#3a3a44';ctx.fillRect(px+5,py+9,24,2);
+    ctx.fillStyle='#f6f0e2';ctx.fillRect(px+4,py+24,40,5);                 // 白键
+    ctx.fillStyle='#17171c';for(let i=0;i<13;i++)ctx.fillRect(px+6+i*3,py+24,1,3);
+    ctx.fillStyle='#1b1b22';ctx.fillRect(px+12,py+34,4,8);ctx.fillRect(px+34,py+34,4,8); // 琴腿
+    ctx.fillStyle='#6e4218';ctx.fillRect(px+18,py+33,12,6);ctx.fillStyle='#8c5a2b';ctx.fillRect(px+19,py+34,10,2); // 琴凳
+  }});
+  /* ⑥ 香槟塔 */
   ents.push({y:HOBJ.tower.y+30,draw(){
     const o=HOBJ.tower,px=o.x-cam.x|0,py=o.y-cam.y|0;
+    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(px,py+30,30,3);
     ctx.fillStyle='#fdf3dc';ctx.fillRect(px,py+22,30,8);
     ctx.fillStyle='#d9bd85';ctx.fillRect(px,py+27,30,3);
-    ctx.fillStyle='rgba(180,220,255,.85)';
+    ctx.fillStyle='rgba(190,225,255,.9)';
     for(let r=0;r<4;r++)for(let i=0;i<=r;i++)ctx.fillRect(px+13-r*4+i*8,py+16-r*5,4,5);
-    if((game.time*3|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+13,py-2,2,2);}
+    ctx.fillStyle='#ffd84d';if((game.time*3|0)%2){ctx.fillRect(px+13,py-2,2,2);ctx.fillRect(px+6,py+4,2,2);}
   }});
-  /* 蛋糕 */
-  ents.push({y:HOBJ.cake.y+24,draw(){
+  /* ⑦ 三层婚礼蛋糕（白胚+粉边+花顶+新人小人） */
+  ents.push({y:HOBJ.cake.y+30,draw(){
     const o=HOBJ.cake,px=o.x-cam.x|0,py=o.y-cam.y|0;
-    ctx.fillStyle='#fdf3dc';ctx.fillRect(px,py+16,30,8);
-    ctx.fillStyle='#fff';ctx.fillRect(px+4,py+8,22,8);ctx.fillRect(px+8,py+2,14,7);
-    ctx.fillStyle='#ff9eb5';ctx.fillRect(px+4,py+8,22,3);ctx.fillRect(px+8,py+2,14,2);
-    ctx.fillStyle='#e0457b';ctx.fillRect(px+13,py-4,2,4);ctx.fillRect(px+16,py-4,2,4);
+    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(px+1,py+30,32,3);
+    ctx.fillStyle='#caa86a';ctx.fillRect(px,py+27,34,5);ctx.fillStyle='#b08d52';ctx.fillRect(px,py+31,34,2); // 桌
+    const tiers=[[2,18,30,9],[6,11,22,8],[10,5,14,7]];                  // 三层
+    tiers.forEach(([dx,dy,w,h],t)=>{
+      ctx.fillStyle='#ffffff';ctx.fillRect(px+dx,py+dy,w,h);
+      ctx.fillStyle='#ff9eb5';ctx.fillRect(px+dx,py+dy,w,2);             // 粉色奶油边
+      ctx.fillStyle='#ffd1dc';for(let i=0;i<w-2;i+=4)ctx.fillRect(px+dx+1+i,py+dy+h-2,2,2); // 裙边珠点
+      ctx.fillStyle='#e0457b';for(let i=0;i<w-2;i+=6)ctx.fillRect(px+dx+2+i,py+dy+3,1,1);
+    });
+    ctx.fillStyle='#3f8a3c';ctx.fillRect(px+15,py+1,4,4);                // 顶部花/小人
+    ctx.fillStyle='#ff5c8a';ctx.fillRect(px+15,py,2,2);ctx.fillStyle='#7dc4ff';ctx.fillRect(px+17,py,2,2);
+    if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+12,py-2,1,1);ctx.fillRect(px+21,py+2,1,1);}
   }});
-  /* 礼花筒 */
+  /* ⑧ 礼花筒 */
   for(const k of ['popperL','popperR']) ents.push({y:HOBJ[k].y+16,draw(){
     const o=HOBJ[k],px=o.x-cam.x|0,py=o.y-cam.y|0;
     ctx.fillStyle='#e8943a';ctx.fillRect(px+2,py+4,8,12);
     ctx.fillStyle='#c0392b';ctx.fillRect(px,py,12,6);
     if((game.time*2|0)%2){ctx.fillStyle='#ffd84d';ctx.fillRect(px+4,py-4,3,3);}
   }});
-  /* 15 张圆桌 + 桌号 + 宾客高亮 */
+  /* ⑨ 15 张圆桌（金边桌布 + 餐盘 + 花艺中心 + 椅子 + 桌号；宾客桌金色高亮） */
   TABLE_POS.forEach(([tx,ty],i)=>{
-    ents.push({y:ty*TILE+30,draw(){
+    ents.push({y:ty*TILE+28,draw(){
       const px=tx*TILE-cam.x|0,py=ty*TILE-cam.y|0;
       const mine=GUEST&&String(i+1)===String(GUEST.table);
-      const cxr=px+18,cyr=py+13;
-      ctx.fillStyle='#8c5a2b';                      // 四把椅子
-      ctx.fillRect(px+1,py+8,5,9);ctx.fillRect(px+31,py+8,5,9);
-      ctx.fillRect(px+13,py-2,10,4);ctx.fillRect(px+13,py+23,10,4);
-      ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(cxr,py+22,17,5,0,0,7);ctx.fill();
-      ctx.fillStyle=mine?'#ffe9a0':'#fdfdff';ctx.beginPath();ctx.ellipse(cxr,cyr+2,18,11,0,0,7);ctx.fill();  // 圆桌布
-      ctx.fillStyle=mine?'#ffd84d':'#e3d6ef';ctx.beginPath();ctx.ellipse(cxr,cyr+4,18,7,0,0,7);ctx.fill();   // 桌裙阴影
-      ctx.fillStyle=mine?'#fff7df':'#ffffff';ctx.beginPath();ctx.ellipse(cxr,cyr,15,8,0,0,7);ctx.fill();      // 桌面
-      ctx.fillStyle='#d6c0e6';                      // 四套餐盘
-      for(const [dx,dy] of [[-10,0],[8,0],[-3,5],[3,5]])ctx.fillRect(cxr+dx,cyr+dy,3,2);
-      ctx.fillStyle='#fff';ctx.fillRect(cxr-5,cyr-4,10,8);   // 桌号牌
+      const cxr=px+18,cyr=py+12;
+      ctx.fillStyle='#7a4a28';                          // 四把椅子(靠背+坐垫)
+      for(const [chx,chy,cw,ch] of [[1,7,5,9],[30,7,5,9],[12,-2,11,4],[12,22,11,4]])ctx.fillRect(px+chx,py+chy,cw,ch);
+      ctx.fillStyle='#9a6238';for(const [chx,chy] of [[2,8],[31,8]])ctx.fillRect(px+chx,py+chy,3,3);
+      ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(cxr,py+21,17,5,0,0,7);ctx.fill();
+      ctx.fillStyle=mine?'#ffe9a0':'#fbf8ff';ctx.beginPath();ctx.ellipse(cxr,cyr+2,18,11,0,0,7);ctx.fill();   // 桌布
+      ctx.fillStyle=mine?'#e0a92e':'#c9b6dd';ctx.beginPath();ctx.ellipse(cxr,cyr+4,18,7,0,0,7);ctx.fill();    // 桌裙
+      ctx.fillStyle=mine?'#fff7df':'#ffffff';ctx.beginPath();ctx.ellipse(cxr,cyr,15,8,0,0,7);ctx.fill();       // 桌面
+      ctx.strokeStyle=mine?'#e0457b':'#d8c7ea';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(cxr,cyr,15,8,0,0,7);ctx.stroke(); // 金/紫边
+      ctx.fillStyle='#cdbbe0';                          // 餐盘
+      for(const [dx,dy] of [[-11,-1],[9,-1],[-5,5],[5,5]]){ctx.fillRect(cxr+dx,cyr+dy,4,3);ctx.fillStyle='#fff';ctx.fillRect(cxr+dx+1,cyr+dy+1,2,1);ctx.fillStyle='#cdbbe0';}
+      ctx.fillStyle='#3f8a3c';ctx.fillRect(cxr-2,cyr-3,4,3);            // 花艺中心
+      ctx.fillStyle='#ff5c8a';ctx.fillRect(cxr-2,cyr-6,2,3);ctx.fillStyle='#ffd84d';ctx.fillRect(cxr,cyr-5,2,2);ctx.fillStyle='#fff';ctx.fillRect(cxr+1,cyr-7,2,2);
+      ctx.fillStyle='#fff';ctx.fillRect(cxr-5,cyr+2,10,7);             // 桌号牌
       ctx.fillStyle='#5b2c0e';ctx.font='8px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(String(i+1),cxr,cyr);
+      ctx.fillText(String(i+1),cxr,cyr+5);
       if(mine){
-        const byy=py-11+Math.sin(game.time*4)*2;
+        const byy=py-12+Math.sin(game.time*4)*2;
         ctx.fillStyle='#ffd84d';ctx.fillRect(cxr-3,byy|0,6,6);ctx.fillRect(cxr-1,byy+6|0,2,3);
-        ctx.strokeStyle='rgba(255,216,77,.9)';ctx.lineWidth=2;
+        ctx.strokeStyle='rgba(255,216,77,.95)';ctx.lineWidth=2;
         ctx.beginPath();ctx.ellipse(cxr,cyr+2,21,13,0,0,7);ctx.stroke();
       }
     }});
@@ -1085,11 +1191,11 @@ function questTarget(){
       if(!game.hasCan) return {scene:'world', x:WOBJ.well.x+15, y:WOBJ.well.y-16};
       return {scene:'world', x:11.5*TILE, y:7*TILE};
     case 2:
-      if(!game.rod||game.bait<=0) return {scene:'world', x:15*TILE, y:20*TILE};   // 先去杂货店购置
+      if(!game.rod||game.bait<=0) return {scene:'world', x:7*TILE, y:20*TILE};   // 先去杂货店购置
       return {scene:'world', x:29.5*TILE, y:7*TILE};
     case 3: return {scene:'world', x:WOBJ.mailbox.x+4, y:WOBJ.mailbox.y-20};
     case 4: return {scene:'museum', x:13*TILE, y:5*TILE};
-    case 5: return {scene:'hall', x:14.5*TILE, y:6*TILE};
+    case 5: return {scene:'hall', x:15.5*TILE, y:6*TILE};
     default: return null;
   }
 }
@@ -1467,7 +1573,15 @@ function interact(){
     }
     /* 家具小互动 */
     if(inRect(fx,fy,MOBJ.skel,6))return startDialog([{who:'me',text:'「远古海兽骨架」——据说是从矿井深处挖出来的。婚礼也要有镇馆之宝！'}]);
-    if(inRect(fx,fy,MOBJ.bookL,6)||inRect(fx,fy,MOBJ.bookR,6))return startDialog([{who:'me',text:'书架上摆着我们读过的书。有一本的折角，停在第一次见面那天。'}]);
+    if(inRect(fx,fy,MOBJ.bookL,8)||inRect(fx,fy,MOBJ.bookR,8))return startDialog([{who:'me',text:'书架上摆着我们读过的书。有一本的折角，停在第一次见面那天。'}]);
+    if(inRect(fx,fy,MOBJ.guest,8)){
+      sfx('choice');flyHearts(innerWidth/2,innerHeight/2,2);
+      return startDialog([{who:'me',text:'「宾客留言簿」——翻开第一页，是 TA 写的：「谢谢你来，往后的故事一起写。」'},{who:'me',text:'（我也提笔，在下一行画了一颗小爱心。）'}]);
+    }
+    for(const k of ['plantA','plantB','plantC','plantD'])
+      if(inRect(fx,fy,MOBJ[k],6))return startDialog([{who:'me',text:'盆栽被照顾得很好，叶子绿油油的。展厅里有了生气。'}]);
+    /* 上墙矿物大展架 */
+    if(fy<3.2*TILE && Math.abs(fx-13*TILE)<70)return startDialog([{who:'me',text:'「矿物与宝石标本架」——紫水晶、海蓝宝、黄水晶…像把我们去过的海和山都收进了柜子里。'}]);
   }
   else if(game.scene==='hall'){
     if(partner.scene==='hall'&&near(partner,26))return talkPartner();
@@ -1517,7 +1631,7 @@ function doorAction(b){
     case 'enterMuseum': return gotoScene('museum',9.7*TILE,11.5*TILE);
     case 'enterHall':
       if(game.quest<5&&!DEBUG){startDialog([{who:'me',text:'殿堂的大门还没开。先把别的事办完吧（看顶部任务提示）。'}]);return;}
-      return gotoScene('hall',14.5*TILE,23*TILE);
+      return gotoScene('hall',15.5*TILE,20*TILE);
   }
 }
 function useWell(){
@@ -1784,7 +1898,7 @@ function museumQuestCheck(){
       {who:partnerRole(),text:'这里每一件展品，都是我们一步步走来的证据。'},
       {who:partnerRole(),text:'最后一站——婚礼殿堂。我先去把彩旗挂好，你随后就来！'},
     ],()=>{
-      partner.scene='hall';partner.x=14.5*TILE;partner.y=4.5*TILE;partner.dir='down';
+      partner.scene='hall';partner.x=15.5*TILE;partner.y=4.6*TILE;partner.dir='down';
       setQuest(5);
       toast('🏰 前往南边的婚礼殿堂！');
     });
@@ -2041,10 +2155,10 @@ function debugJump(q){
   if(q>=3){game.fishQ=true;}
   partner.scene='world';partner.x=30*TILE;partner.y=27*TILE;
   if(q>=4){partner.scene='museum';partner.x=13*TILE;partner.y=4.5*TILE;}
-  if(q>=5){partner.scene='hall';partner.x=14.5*TILE;partner.y=4.5*TILE;}
+  if(q>=5){partner.scene='hall';partner.x=15.5*TILE;partner.y=4.6*TILE;}
   ceremonyDone=false;
   game.scene='world';
-  const spots={0:[28,27],1:[11,8],2:[15,21],3:[9,7],4:[20,22],5:[17.5,38],6:[17.5,38]};
+  const spots={0:[28,27],1:[11,8],2:[7,23],3:[9,7],4:[24,23],5:[17.5,38],6:[17.5,38]};
   const [sx,sy]=spots[q]||spots[0];
   player.x=sx*TILE;player.y=sy*TILE;
   if(q>=6){setQuest(6);ceremonyDone=true;}
@@ -2190,6 +2304,10 @@ function startGame(role){
   if(matchMedia('(pointer:coarse)').matches){
     document.getElementById('padL').style.display='block';
     document.getElementById('btns').style.display='flex';
+    const ph=document.getElementById('padHint');
+    ph.style.display='flex';
+    setTimeout(()=>toast('👈 屏幕左下角拖动 = 移动 · 右下 A 互动 / B 跳'),900);
+    setTimeout(()=>{ if(!ph.classList.contains('gone')){ph.classList.add('gone');setTimeout(()=>ph.style.display='none',600);} },9000);
   }
   game.mode='play';
   setQuest(0);updateCam();
@@ -2220,7 +2338,7 @@ if(_q.get('q'))setTimeout(()=>{
   if(q>=1){game.seeds=3;game.hasCan=true;game.water=3;}
   if(q>=2){game.fruits=3;game.rod=true;game.bait=3;}
   if(q>=4){partner.scene='museum';partner.x=13*TILE;partner.y=4.5*TILE;}
-  if(q>=5){partner.scene='hall';partner.x=14.5*TILE;partner.y=4.5*TILE;}
+  if(q>=5){partner.scene='hall';partner.x=15.5*TILE;partner.y=4.6*TILE;}
   setQuest(q);
 },400);
 if(_q.get('show'))setTimeout(()=>{

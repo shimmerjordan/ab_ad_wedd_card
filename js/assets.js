@@ -81,7 +81,7 @@ const ASSET_MANIFEST = {
   /* 博物馆内饰 */
   shelfBig:'assets/elem/shelfBig.png',
   skeleton:'assets/elem/skeleton.png', skeleton2:'assets/elem/skeleton2.png',
-  bookshelf:'assets/elem/bookshelf.png', pillar:'assets/elem/pillar.png',
+  pillar:'assets/elem/pillar.png',
   plantA:'assets/elem/plantA.png', plantB:'assets/elem/plantB.png', rugOval:'assets/elem/rugOval.png',
   paintJelly:'assets/elem/paintJelly.png', paintGreen:'assets/elem/paintGreen.png',
   paintCity:'assets/elem/paintCity.png',   paintBoat:'assets/elem/paintBoat.png',
