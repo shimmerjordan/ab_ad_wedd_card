@@ -90,9 +90,14 @@ const ASSET_MANIFEST = {
   /* 节日/殿堂装饰 */
   maypole:'assets/elem/maypole.png',
   tableRedA:'assets/elem/tableRedA.png', tableRedB:'assets/elem/tableRedB.png',
+  /* 殿堂真素材：红圆桌/婚礼蛋糕/红毯舞台地毯/落地烛灯 */
+  tblRed:'assets/elem/tblRed.png', cakePink:'assets/elem/cakePink.png',
+  rugStage:'assets/elem/rugStage.png', lampPost:'assets/elem/lampPost.png',
   /* 室内地板墙纸 */
   floorMuseum:'assets/elem/floorMuseum.png', floorHall:'assets/elem/floorHall.png',
   wallMuseum:'assets/elem/wallMuseum.png',   wallHall:'assets/elem/wallHall.png',
+  /* 栅栏(秋季户外图集真素材) */
+  fenceH:'assets/elem/fenceH.png', fenceV:'assets/elem/fenceV.png',
   /* 植被 */
   bushFl:'assets/elem/bushFl.png', bushSm1:'assets/elem/bushSm1.png', bushSm2:'assets/elem/bushSm2.png',
   tree2:'assets/elem/tree2.png', tree3:'assets/elem/tree3.png',

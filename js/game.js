@@ -628,14 +628,20 @@ function drawTiles(){
         }
       }
     }
-    else if(t==='f'){ // 连体栅栏
+    else if(t==='f'){ // 连体栅栏（秋季图集木栅真素材, 底边对齐地块, 栏柱向上伸出）
       const lf=g[ty][tx-1]==='f',rt=g[ty][tx+1]==='f',up=g[ty-1]&&g[ty-1][tx]==='f',dn=g[ty+1]&&g[ty+1][tx]==='f';
-      ctx.fillStyle='#9a6433';
-      if(lf||rt){ctx.fillRect(lf?px:px+6,py+6,lf&&rt?TILE:10,3);ctx.fillRect(lf?px:px+6,py+11,lf&&rt?TILE:10,2);}
-      if(up||dn)ctx.fillRect(px+6,up?py:py+4,3,up&&dn?TILE:12);
-      ctx.fillStyle='#8c5a2b';ctx.fillRect(px+5,py+3,5,11);
-      ctx.fillStyle='#6e4218';ctx.fillRect(px+5,py+3,5,2);
-      ctx.fillStyle='#a8743c';ctx.fillRect(px+6,py+5,2,8);
+      const fh=img('fenceH'), fv=img('fenceV');
+      if(fh&&(lf||rt))      ctx.drawImage(fh, px, py+TILE-fh.height);
+      else if(fv&&(up||dn)) ctx.drawImage(fv, px+((TILE-fv.width)/2|0), py+TILE-fv.height);
+      else if(fh)           ctx.drawImage(fh, px, py+TILE-fh.height);
+      else{
+        ctx.fillStyle='#9a6433';
+        if(lf||rt){ctx.fillRect(lf?px:px+6,py+6,lf&&rt?TILE:10,3);ctx.fillRect(lf?px:px+6,py+11,lf&&rt?TILE:10,2);}
+        if(up||dn)ctx.fillRect(px+6,up?py:py+4,3,up&&dn?TILE:12);
+        ctx.fillStyle='#8c5a2b';ctx.fillRect(px+5,py+3,5,11);
+        ctx.fillStyle='#6e4218';ctx.fillRect(px+5,py+3,5,2);
+        ctx.fillStyle='#a8743c';ctx.fillRect(px+6,py+5,2,8);
+      }
     }
     else if(t==='P'){
       const key=tx+','+ty,pl=plots[key];
@@ -1003,25 +1009,27 @@ function drawHallInt(ents){
     for(let x=x0;x<x1;x+=14){ctx.fillStyle='#d63b6e';               // 缦帐波浪
       ctx.beginPath();ctx.moveTo(x,y0+1);ctx.lineTo(x+14,y0+1);ctx.lineTo(x+7,y0+8);ctx.closePath();ctx.fill();}
   }});
-  /* ③ 舞台「玫瑰花拱门」：白柱 + 玫瑰花环（位于舞台前沿中央 x13.5~17.5） */
+  /* ②b 舞台红毯地毯(真素材, 铺在舞台地面) */
+  ents.push({y:-998,draw(){
+    const rg=img('rugStage'); if(!rg)return;
+    const sx=15.5*TILE-rg.width/2-cam.x|0, sy=4.2*TILE-cam.y|0;
+    ctx.drawImage(rg,sx,sy);
+  }});
+  /* ③ 舞台「花拱门」：真实金柱 + 开花灌木花环（素材拼合, 非手绘） */
   ents.push({y:6*TILE+2,draw(){
-    const lx=13.5*TILE-cam.x|0, rx=17.5*TILE-cam.x|0, ty=3.2*TILE-cam.y|0, bot=(6.2*TILE-cam.y)|0;
-    for(const x of [lx,rx]){
-      ctx.fillStyle='#efe7d6';ctx.fillRect(x,ty,8,bot-ty);
-      ctx.fillStyle='#fffaf0';ctx.fillRect(x,ty,3,bot-ty);
-      ctx.fillStyle='#c9bda4';ctx.fillRect(x+6,ty,2,bot-ty);
-      ctx.fillStyle='#d8ccae';ctx.fillRect(x-1,ty,10,3);ctx.fillRect(x-1,bot-3,10,3);
-      ctx.fillStyle='#3f9a44';for(let yy=ty+6;yy<bot-4;yy+=8){ctx.fillRect(x-1,yy,3,4);ctx.fillStyle='#ff7daa';ctx.fillRect(x-2,yy+1,2,2);ctx.fillStyle='#3f9a44';} // 缠柱藤蔓
+    const pil=img('pillar'), bush=img('bushFl');
+    const lx=13.0*TILE-cam.x|0, rx=17.8*TILE-cam.x|0, base=6.3*TILE-cam.y|0;
+    const ph=pil?pil.height:48;
+    if(pil){ ctx.drawImage(pil,lx,base-ph); ctx.drawImage(pil,rx,base-ph); }
+    else{ ctx.fillStyle='#e0b44a';ctx.fillRect(lx,base-ph,8,ph);ctx.fillRect(rx,base-ph,8,ph); }
+    /* 顶部开花灌木花环横铺 */
+    const top=base-ph+6, span=(rx+(pil?pil.width:8))-lx;
+    if(bush){
+      const step=bush.width-6;
+      for(let x=lx-6;x<lx+span;x+=step) ctx.drawImage(bush,x|0,(top-bush.height+8)|0);
     }
-    const ax=lx-3, aw=(rx+8)-(lx-3);
-    ctx.fillStyle='#2f7a34';ctx.beginPath();ctx.ellipse(ax+aw/2,ty-4,aw/2,9,0,Math.PI,0);ctx.fill(); // 拱形花环
-    ctx.fillStyle='#3f9a44';ctx.fillRect(ax,ty-6,aw,5);
-    const rose=['#e0457b','#ff7daa','#ffffff','#ff5c8a','#ffd84d'];
-    for(let i=0,fx=ax+1;fx<ax+aw-2;fx+=6,i++){
-      ctx.fillStyle=rose[i%rose.length];const fy=ty-13+Math.abs(((fx-ax)/aw-0.5))*10|0;
-      ctx.fillRect(fx,fy,4,4);ctx.fillStyle='#2f6b24';ctx.fillRect(fx+3,fy+3,2,2);
-    }
-    ctx.fillStyle='#e0457b';ctx.fillRect(lx+2,ty-1,3,9);ctx.fillRect(rx+3,ty-1,3,9);
+    /* 两侧垂下的缎带 */
+    ctx.fillStyle='#e0457b';ctx.fillRect(lx+3,top+2,3,12);ctx.fillRect(rx+4,top+2,3,12);
   }});
   /* ④ 红毯花瓣 + 入口花柱(无碰撞, 贴地装饰) */
   ents.push({y:-993,draw(){
@@ -1046,15 +1054,14 @@ function drawHallInt(ents){
       if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+14-im.height)-cam.y|0);
     }});
   });
-  for(const fx of [13.6,17.4]) ents.push({y:20.6*TILE,draw(){     // 红毯入口一对花柱
-    const px=fx*TILE-cam.x|0,py=18*TILE-cam.y|0;
-    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(px,py+40,12,3);
-    ctx.fillStyle='#efe7d6';ctx.fillRect(px+2,py+6,8,36);ctx.fillStyle='#fffaf0';ctx.fillRect(px+2,py+6,3,36);
-    ctx.fillStyle='#d8ccae';ctx.fillRect(px,py+4,12,3);ctx.fillRect(px,py+40,12,3);
-    ctx.fillStyle='#3f9a44';ctx.beginPath();ctx.ellipse(px+6,py+2,9,7,0,0,7);ctx.fill(); // 花球
-    const rs=['#e0457b','#ff7daa','#fff','#ffd84d'];
-    for(let i=0;i<6;i++){ctx.fillStyle=rs[i%4];ctx.fillRect(px+1+(i*3)%11,py-3+(i%2)*4,3,3);}
-  }});
+  /* 烛灯：真实落地烛灯(发光), 立于舞台两侧 + 红毯沿途, 暖光闪烁 */
+  for(const [lxT,lyT] of [[12.3,6.0],[18.5,6.0],[13.0,12.0],[18.0,12.0],[13.0,18.0],[18.0,18.0]])
+    ents.push({y:lyT*TILE+8,draw(){
+      const lp=img('lampPost'); const px=lxT*TILE-cam.x|0,py=lyT*TILE-cam.y|0;
+      if(lp){ ctx.drawImage(lp, px, py+8-lp.height);
+        if((game.time*3|0)%2){ctx.fillStyle='rgba(255,228,140,.5)';ctx.fillRect(px-1,py-2-lp.height+12,lp.width+2,6);}
+      }else{ ctx.fillStyle='#6e4218';ctx.fillRect(px+4,py-20,3,28);ctx.fillStyle='#ffd84d';ctx.fillRect(px+2,py-24,7,6);}
+    }});
   /* ⑤ 三角钢琴（黑漆琴身+掀盖+琴凳） */
   ents.push({y:HOBJ.piano.y+30,draw(){
     const o=HOBJ.piano,px=o.x-cam.x|0,py=o.y-cam.y|0;
@@ -1077,21 +1084,16 @@ function drawHallInt(ents){
     for(let r=0;r<4;r++)for(let i=0;i<=r;i++)ctx.fillRect(px+13-r*4+i*8,py+16-r*5,4,5);
     ctx.fillStyle='#ffd84d';if((game.time*3|0)%2){ctx.fillRect(px+13,py-2,2,2);ctx.fillRect(px+6,py+4,2,2);}
   }});
-  /* ⑦ 三层婚礼蛋糕（白胚+粉边+花顶+新人小人） */
-  ents.push({y:HOBJ.cake.y+30,draw(){
+  /* ⑦ 婚礼蛋糕（真素材粉色蛋糕, 放大置于红圆桌台上） */
+  ents.push({y:HOBJ.cake.y+32,draw(){
     const o=HOBJ.cake,px=o.x-cam.x|0,py=o.y-cam.y|0;
-    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(px+1,py+30,32,3);
-    ctx.fillStyle='#caa86a';ctx.fillRect(px,py+27,34,5);ctx.fillStyle='#b08d52';ctx.fillRect(px,py+31,34,2); // 桌
-    const tiers=[[2,18,30,9],[6,11,22,8],[10,5,14,7]];                  // 三层
-    tiers.forEach(([dx,dy,w,h],t)=>{
-      ctx.fillStyle='#ffffff';ctx.fillRect(px+dx,py+dy,w,h);
-      ctx.fillStyle='#ff9eb5';ctx.fillRect(px+dx,py+dy,w,2);             // 粉色奶油边
-      ctx.fillStyle='#ffd1dc';for(let i=0;i<w-2;i+=4)ctx.fillRect(px+dx+1+i,py+dy+h-2,2,2); // 裙边珠点
-      ctx.fillStyle='#e0457b';for(let i=0;i<w-2;i+=6)ctx.fillRect(px+dx+2+i,py+dy+3,1,1);
-    });
-    ctx.fillStyle='#3f8a3c';ctx.fillRect(px+15,py+1,4,4);                // 顶部花/小人
-    ctx.fillStyle='#ff5c8a';ctx.fillRect(px+15,py,2,2);ctx.fillStyle='#7dc4ff';ctx.fillRect(px+17,py,2,2);
-    if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+12,py-2,1,1);ctx.fillRect(px+21,py+2,1,1);}
+    const tb=img('tblRed'), ck=img('cakePink');
+    if(tb)ctx.drawImage(tb, px, py+32-tb.height);
+    else{ctx.fillStyle='#c0392b';ctx.fillRect(px,py+18,34,14);}
+    if(ck){ const s=2; ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(ck,0,0,ck.width,ck.height, px+(34-ck.width*s)/2|0, py+12-ck.height*s|0, ck.width*s, ck.height*s);
+    }
+    if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+6,py-4,1,1);ctx.fillRect(px+27,py+1,1,1);}
   }});
   /* ⑧ 礼花筒 */
   for(const k of ['popperL','popperR']) ents.push({y:HOBJ[k].y+16,draw(){
@@ -1100,32 +1102,24 @@ function drawHallInt(ents){
     ctx.fillStyle='#c0392b';ctx.fillRect(px,py,12,6);
     if((game.time*2|0)%2){ctx.fillStyle='#ffd84d';ctx.fillRect(px+4,py-4,3,3);}
   }});
-  /* ⑨ 15 张圆桌（金边桌布 + 餐盘 + 花艺中心 + 椅子 + 桌号；宾客桌金色高亮） */
+  /* ⑨ 15 张红圆桌（真素材；桌号牌 + 宾客桌金色高亮） */
   TABLE_POS.forEach(([tx,ty],i)=>{
     ents.push({y:ty*TILE+28,draw(){
       const px=tx*TILE-cam.x|0,py=ty*TILE-cam.y|0;
       const mine=GUEST&&String(i+1)===String(GUEST.table);
-      const cxr=px+18,cyr=py+12;
-      ctx.fillStyle='#7a4a28';                          // 四把椅子(靠背+坐垫)
-      for(const [chx,chy,cw,ch] of [[1,7,5,9],[30,7,5,9],[12,-2,11,4],[12,22,11,4]])ctx.fillRect(px+chx,py+chy,cw,ch);
-      ctx.fillStyle='#9a6238';for(const [chx,chy] of [[2,8],[31,8]])ctx.fillRect(px+chx,py+chy,3,3);
-      ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(cxr,py+21,17,5,0,0,7);ctx.fill();
-      ctx.fillStyle=mine?'#ffe9a0':'#fbf8ff';ctx.beginPath();ctx.ellipse(cxr,cyr+2,18,11,0,0,7);ctx.fill();   // 桌布
-      ctx.fillStyle=mine?'#e0a92e':'#c9b6dd';ctx.beginPath();ctx.ellipse(cxr,cyr+4,18,7,0,0,7);ctx.fill();    // 桌裙
-      ctx.fillStyle=mine?'#fff7df':'#ffffff';ctx.beginPath();ctx.ellipse(cxr,cyr,15,8,0,0,7);ctx.fill();       // 桌面
-      ctx.strokeStyle=mine?'#e0457b':'#d8c7ea';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(cxr,cyr,15,8,0,0,7);ctx.stroke(); // 金/紫边
-      ctx.fillStyle='#cdbbe0';                          // 餐盘
-      for(const [dx,dy] of [[-11,-1],[9,-1],[-5,5],[5,5]]){ctx.fillRect(cxr+dx,cyr+dy,4,3);ctx.fillStyle='#fff';ctx.fillRect(cxr+dx+1,cyr+dy+1,2,1);ctx.fillStyle='#cdbbe0';}
-      ctx.fillStyle='#3f8a3c';ctx.fillRect(cxr-2,cyr-3,4,3);            // 花艺中心
-      ctx.fillStyle='#ff5c8a';ctx.fillRect(cxr-2,cyr-6,2,3);ctx.fillStyle='#ffd84d';ctx.fillRect(cxr,cyr-5,2,2);ctx.fillStyle='#fff';ctx.fillRect(cxr+1,cyr-7,2,2);
-      ctx.fillStyle='#fff';ctx.fillRect(cxr-5,cyr+2,10,7);             // 桌号牌
+      const tb=img('tblRed');
+      const cx=px+(tb?(tb.width/2|0):17), cy=py+13;
+      if(tb)ctx.drawImage(tb, px, py+28-tb.height);
+      else{ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(cx,py+22,17,5,0,0,7);ctx.fill();
+        ctx.fillStyle='#c0392b';ctx.beginPath();ctx.ellipse(cx,cy,17,10,0,0,7);ctx.fill();}
+      ctx.fillStyle='#fff';ctx.fillRect(cx-5,cy-3,10,8);              // 桌号牌
       ctx.fillStyle='#5b2c0e';ctx.font='8px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(String(i+1),cxr,cyr+5);
+      ctx.fillText(String(i+1),cx,cy+1);
       if(mine){
-        const byy=py-12+Math.sin(game.time*4)*2;
-        ctx.fillStyle='#ffd84d';ctx.fillRect(cxr-3,byy|0,6,6);ctx.fillRect(cxr-1,byy+6|0,2,3);
+        const byy=py-14+Math.sin(game.time*4)*2;
+        ctx.fillStyle='#ffd84d';ctx.fillRect(cx-3,byy|0,6,6);ctx.fillRect(cx-1,byy+6|0,2,3);
         ctx.strokeStyle='rgba(255,216,77,.95)';ctx.lineWidth=2;
-        ctx.beginPath();ctx.ellipse(cxr,cyr+2,21,13,0,0,7);ctx.stroke();
+        ctx.beginPath();ctx.ellipse(cx,cy+2,21,13,0,0,7);ctx.stroke();
       }
     }});
   });
@@ -1962,16 +1956,19 @@ function achHTML(){
   ].filter(a=>a[0]).map(a=>'🏆 '+a[1]);
   return list.length?`<br>${list.join(' · ')}`:'';
 }
-function finalSummary(){
+function finalSummary(opt){
+  opt=opt||{};
+  const back = opt.back ? `<div class="center" style="margin-top:10px"><button class="sdv-btn ghost" style="color:#8a5a2b;border-color:#8a5a2b" id="finBack">‹ 返回上一页</button></div>` : '';
   showOverlay(
     coupleHTML()+'<hr>'+infoHTML()+seatHTML()+'<hr>'+letterHTML()+'<hr>'+scheduleHTML()+
     `<div class="body center" style="text-align:center;margin-top:14px;font-size:13px;color:#8a5a2b">
       你的誓言：「${CONFIG.vowChoices[game.vowIdx][0].replace(/[「」]/g,'')}」
       ${achHTML()}
       <br>💫 记忆碎片 ${game.fragGot.length}/${RT.frags.length}
-    </div>`,
-    null,'回到游戏 ▶');
+    </div>`+back,
+    opt.onClose||null, opt.btnText||'回到游戏 ▶');
   drawOverlayPortraits();
+  if(opt.back){const b=document.getElementById('finBack'); if(b)b.onclick=opt.back;}
 }
 /* 📜 进度/重看 */
 document.getElementById('bookBtn').addEventListener('click',()=>{
@@ -2319,11 +2316,18 @@ function startGame(role){
 document.getElementById('pickGroom').addEventListener('click',()=>startGame('groom'));
 document.getElementById('pickBride').addEventListener('click',()=>startGame('bride'));
 document.getElementById('skipBtn').addEventListener('click',()=>{
+  /* 直接查看请帖：看完关闭→以新郎身份正式开始游戏；另设「返回」回到角色选择 */
+  game.vowIdx=game.vowIdx||0;
   document.getElementById('title').style.display='none';
-  document.getElementById('hud').style.display='block';
-  game.mode='play';ceremonyDone=true;
-  setQuest(6);
-  finalSummary();
+  finalSummary({
+    btnText:'看完啦，开始游戏（扮演新郎）▶',
+    onClose:()=>startGame('groom'),
+    back:()=>{
+      overlay.style.display='none'; overlayOnClose=null;
+      document.getElementById('title').style.display='flex';
+      game.mode='title';
+    },
+  });
 });
 document.addEventListener('pointerdown',e=>{
   if(game.mode==='title')flyHearts(e.clientX,e.clientY,2);
