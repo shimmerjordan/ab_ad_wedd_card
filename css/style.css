@@ -197,11 +197,27 @@ canvas{image-rendering:pixelated;display:block}
   -webkit-overflow-scrolling:touch;touch-action:pan-y;
 }
 #overlayCard .inner{padding:6px 2px;text-align:center}
-#overlayCard h3{font-size:18px;letter-spacing:3px;margin-bottom:12px;color:var(--text)}
+/* 章节标题做成星露谷木牌 */
+#overlayCard h3{
+  font-size:17px;letter-spacing:3px;margin:2px auto 14px;color:#ffefc9;
+  display:inline-block;padding:7px 18px;position:relative;
+  background:linear-gradient(180deg,#b3661f,#8c4a16);
+  border:3px solid #5b2c0e;border-radius:6px;
+  box-shadow:0 3px 0 #5b2c0e, inset 0 2px 0 rgba(255,255,255,.18);
+  text-shadow:0 2px 0 #5b2c0e;
+}
 #overlayCard .body{font-size:14px;line-height:2;text-align:left}
 #overlayCard .center{text-align:center}
 #overlayCard .ok{margin-top:16px}
-#overlayCard hr{border:none;border-top:3px dashed rgba(140,70,21,.3);margin:14px 0}
+#overlayCard hr{border:none;height:10px;margin:14px 0;
+  background:radial-gradient(circle at 50% 0,#e0457b 3px,transparent 4px) 0 0/16px 10px repeat-x;
+  opacity:.6;}
+/* 请帖大标题横幅(藤蔓+爱心) */
+.inv-banner{margin:-2px 0 10px;padding:10px 6px;border-radius:8px;
+  background:linear-gradient(180deg,#3f8a3c,#2f6b24);border:3px solid #1f4a18;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.15);}
+.inv-banner .t1{font-size:20px;letter-spacing:6px;color:#fff7df;text-shadow:0 2px 0 #1f4a18}
+.inv-banner .t2{font-size:12px;letter-spacing:2px;color:#cdeccb;margin-top:4px}
 .info-row{display:flex;align-items:center;gap:10px;padding:8px 2px;font-size:14px;line-height:1.7;text-align:left}
 .info-row + .info-row{border-top:3px dashed rgba(140,70,21,.25)}
 .info-ico{flex:none;width:30px;height:30px;border-radius:4px;background:var(--wood);

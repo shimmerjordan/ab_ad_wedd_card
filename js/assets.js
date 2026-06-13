@@ -98,6 +98,12 @@ const ASSET_MANIFEST = {
   wallMuseum:'assets/elem/wallMuseum.png',   wallHall:'assets/elem/wallHall.png',
   /* 栅栏(秋季户外图集真素材) */
   fenceH:'assets/elem/fenceH.png', fenceV:'assets/elem/fenceV.png',
+  /* 耕地/鸡舍/码头/海滩装饰(星露谷真素材) */
+  tilled:'assets/elem/tilled.png', tilledWet:'assets/elem/tilledWet.png',
+  coopB:'assets/elem/coopB.png', dock:'assets/elem/dock.png',
+  palm:'assets/elem/palm.png', lantern:'assets/elem/lantern.png',
+  gift1:'assets/elem/gift1.png', gift2:'assets/elem/gift2.png', gift3:'assets/elem/gift3.png',
+  balloon:'assets/elem/balloon.png',
   /* 植被 */
   bushFl:'assets/elem/bushFl.png', bushSm1:'assets/elem/bushSm1.png', bushSm2:'assets/elem/bushSm2.png',
   tree2:'assets/elem/tree2.png', tree3:'assets/elem/tree3.png',
