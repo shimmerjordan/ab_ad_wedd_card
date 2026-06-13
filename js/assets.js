@@ -103,6 +103,7 @@ const ASSET_MANIFEST = {
   /* 栅栏(秋季户外图集真素材) */
   fenceH:'assets/elem/fenceH.png', fenceV:'assets/elem/fenceV.png',
   /* 耕地/鸡舍/码头/海滩装饰(星露谷真素材) */
+  dockWood:'assets/elem/dockWood.png', rowboat:'assets/elem/rowboat.png',
   tilled:'assets/elem/tilled.png', tilledWet:'assets/elem/tilledWet.png',
   coopB:'assets/elem/coopB.png', dock:'assets/elem/dock.png',
   palm:'assets/elem/palm.png', lantern:'assets/elem/lantern.png',

@@ -2,13 +2,13 @@
  * 运行时配置：默认值 ⊕ wedding-config.json ⊕ localStorage(DEBUG改的)
  * 桌位分享: ?gn=姓名&gt=桌号(自包含) 或 ?g=姓名(查表)
  * ============================================================ */
-const LS = { museum:'wedd_museum', seats:'wedd_seats', frags:'wedd_frags', debug:'wedd_debug' };
+const LS = { museum:'wedd_museum', seats:'wedd_seats', frags:'wedd_frags', hallPhotos:'wedd_hallphotos', debug:'wedd_debug' };
 function lsGet(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ toast('保存失败：存储空间不足'); } }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
-const RT = { museum:CONFIG.museum, seats:CONFIG.seats, frags:CONFIG.frags };
+const RT = { museum:CONFIG.museum, seats:CONFIG.seats, frags:CONFIG.frags, hallPhotos:CONFIG.hallPhotos||[] };
 function applyLocal(){
-  for(const k of ['museum','seats','frags']){
+  for(const k of ['museum','seats','frags','hallPhotos']){
     const v=lsGet(LS[k]); if(v&&Array.isArray(v)) RT[k]=v;
   }
 }
@@ -16,7 +16,7 @@ applyLocal();
 /* 站点部署可提交 wedding-config.json 让宾客也读到配置 */
 fetch('wedding-config.json').then(r=>r.ok?r.json():null).then(j=>{
   if(!j) return;
-  for(const k of ['museum','seats','frags']) if(Array.isArray(j[k]) && !lsGet(LS[k])) RT[k]=j[k];
+  for(const k of ['museum','seats','frags','hallPhotos']) if(Array.isArray(j[k]) && !lsGet(LS[k])) RT[k]=j[k];
   refreshGuest();
 }).catch(()=>{});
 
@@ -181,39 +181,41 @@ const WDECOR = [
   {img:'palm',    x:35.5*TILE, y:3.5*TILE},
   {img:'lantern', x:27.6*TILE, y:11*TILE},
   {img:'lantern', x:31*TILE,   y:11*TILE},
+  /* 湖面小木船(浮在水面, 无碰撞) */
+  {img:'rowboat', x:24.5*TILE, y:4*TILE,  boat:1},
+  {img:'rowboat', x:32*TILE,   y:8.5*TILE,boat:1},
 ];
-/* 殿堂内对象：12 圆桌(左右对称 4列×3排, 中心 x12.5) + 互动点 */
+/* 殿堂内对象：8 圆桌(左右对称 4列×2排) + 互动点；下方留白做婚纱照展板 */
 const TABLE_POS=[
   [2,10],[7,10],[18,10],[23,10],
   [2,14],[7,14],[18,14],[23,14],
-  [2,18],[7,18],[18,18],[23,18],
 ];
 const HOBJ = {
   piano:  {x:3*TILE,   y:3.6*TILE, w:46, h:30},
   tower:  {x:21.4*TILE,y:3.6*TILE, w:30, h:30},
-  cake:   {x:24*TILE,  y:9*TILE,   w:34, h:30},
-  poleL:  {x:1*TILE,  y:19.6*TILE, w:24, h:18, img:'maypole'},
-  poleR:  {x:24.6*TILE,y:19.6*TILE,w:24, h:18, img:'maypole'},
+  poleL:  {x:1*TILE,  y:18.6*TILE, w:24, h:18, img:'maypole'},
+  poleR:  {x:24.6*TILE,y:18.6*TILE,w:24, h:18, img:'maypole'},
   popperL:{x:8*TILE,  y:3.0*TILE, w:12, h:16},
   popperR:{x:17*TILE, y:3.0*TILE, w:12, h:16},
 };
+/* 婚纱照展板(立式相框, 红毯两侧/入口处, 带碰撞; 内容取 RT.hallPhotos 按文件名) */
+const HALLPHOTO_POS=[[5,18.5],[10,18.5],[16,18.5],[21,18.5]];
 /* 殿堂内装饰（无碰撞）：盆栽对称列于舞台两侧 + 红毯夹道 */
 const HDECOR = [
   {img:'potB', x:8.2*TILE, y:6.4*TILE},
   {img:'potB', x:16.0*TILE,y:6.4*TILE},
   {img:'potC', x:10.4*TILE,y:7.6*TILE},
   {img:'potC', x:14.4*TILE,y:7.6*TILE},
-  {img:'potA', x:10.4*TILE,y:21.6*TILE},
-  {img:'potA', x:14.4*TILE,y:21.6*TILE},
 ];
-/* 殿堂烛灯(海滩灯笼真素材, 红毯两侧对称) + 节日装饰(气球/礼盒) */
-const HCANDLE=[[10.2,6],[14.4,6],[10.2,11],[14.4,11],[10.2,16],[14.4,16]];
+/* 殿堂烛灯(干净像素烛台, 红毯两侧对称) + 节日装饰(气球/礼盒, 避开桌子) */
+const HCANDLE=[[10.2,6],[14.4,6],[10.2,11],[14.4,11]];
 const HFEST=[
-  {img:'balloon',x:7.2*TILE, y:3.4*TILE},
-  {img:'balloon',x:17.4*TILE,y:3.4*TILE},
-  {img:'gift2',  x:9*TILE,   y:6.2*TILE},
-  {img:'gift3',  x:15.6*TILE,y:6.2*TILE},
-  {img:'gift1',  x:23.4*TILE,y:11.4*TILE},
+  {img:'balloon',x:6.4*TILE, y:3.2*TILE},
+  {img:'balloon',x:17.8*TILE,y:3.2*TILE},
+  {img:'gift1',  x:8.6*TILE, y:6.4*TILE},
+  {img:'gift2',  x:10.2*TILE,y:6.4*TILE},
+  {img:'gift3',  x:14.4*TILE,y:6.4*TILE},
+  {img:'gift1',  x:16.0*TILE,y:6.4*TILE},
 ];
 /* 博物馆展位：
  *  1-4 → 上墙油画(矿架两侧各2幅, 像素坐标)
@@ -361,7 +363,9 @@ function objList(){
   if(game.scene==='world') return Object.values(WOBJ)
     .concat(WDECOR.filter(d=>d.solid))
     .concat(BUILDINGS.map(b=>({x:b.x*TILE,y:b.y*TILE,w:b.w*TILE,h:b.h*TILE})));
-  if(game.scene==='hall')  return Object.values(HOBJ).concat(TABLE_POS.map(([tx,ty])=>({x:tx*TILE+2,y:ty*TILE+6,w:28,h:22})));
+  if(game.scene==='hall')  return Object.values(HOBJ)
+    .concat(TABLE_POS.map(([tx,ty])=>({x:tx*TILE+2,y:ty*TILE+6,w:28,h:22})))
+    .concat(HALLPHOTO_POS.map(([tx,ty])=>({x:tx*TILE+2,y:ty*TILE-4,w:32,h:12})));
   if(game.scene==='museum'){
     const obs=Object.values(MOBJ).slice();
     EX_TBL.forEach(([tx,ty])=>obs.push({x:tx*TILE+2,y:ty*TILE+8,w:40,h:24}));
@@ -616,15 +620,18 @@ function drawTiles(){
       if(h%23===0&&!deep){ctx.fillStyle='#3f8a3c';ctx.fillRect(px+4,py+5,7,5);ctx.fillStyle='#2f6b24';ctx.fillRect(px+8,py+5,3,2);
         if(h%46===0){ctx.fillStyle='#ff9eb5';ctx.fillRect(px+6,py+3,3,3);}}
     }
-    else if(t==='='){ // 木栈道/码头(星露谷海滩木板真素材, 平铺)
+    else if(t==='='){ // 木栈道/码头(星露谷木地板真素材平铺, 末端有支柱)
       ctx.fillStyle='#3a76b8';ctx.fillRect(px,py,TILE,TILE);
-      const dk=img('dock');
-      if(dk){ const sx=(tx*7+ty*3)%Math.max(1,dk.width-16); ctx.drawImage(dk, sx,0, 16, dk.height, px, py, 16, TILE); }
-      else{
+      const dk=img('dockWood');
+      if(dk){ ctx.drawImage(dk, px, py, TILE, TILE);
+        ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(px,py+14,TILE,2);   // 板缝阴影
+      }else{
         ctx.fillStyle='#a8743c';ctx.fillRect(px+1,py,14,TILE);
         ctx.fillStyle='#8c5a2b';for(let i=0;i<4;i++)ctx.fillRect(px+1,py+i*4,14,1);
         ctx.fillStyle='#6e4218';ctx.fillRect(px+1,py,2,TILE);ctx.fillRect(px+13,py,2,TILE);
       }
+      /* 栈道末端(最靠湖心一格)画两根入水支柱 */
+      if(g[ty-1]&&g[ty-1][tx]==='~'){ ctx.fillStyle='#5a3413';ctx.fillRect(px+1,py+TILE-3,3,5);ctx.fillRect(px+12,py+TILE-3,3,5); }
     }
     else if(t==='u'){ // 小灌木(装饰,可穿过)
       const im=img(h%2?'bushSm1':'bushSm2');
@@ -1017,6 +1024,35 @@ function drawMuseumInt(ents){
     ctx.drawImage(im,(26*TILE-im.width)/2-cam.x|0,7.8*TILE-cam.y|0);
   }});
 }
+/* 婚纱照懒加载缓存(图片在 assets/imgs/, 不在素材清单里) */
+const _photoCache={};
+function hallPhotoImg(idx){
+  const o=RT.hallPhotos&&RT.hallPhotos[idx]; if(!o||!o.img) return null;
+  const src=resolveImg(o.img);
+  let im=_photoCache[src];
+  if(!im){ im=new Image(); im._ok=false; im.onload=()=>{im._ok=true;}; im.onerror=()=>{im._ok=false;}; im.src=src; _photoCache[src]=im; }
+  return im._ok?im:null;
+}
+/* 立式婚纱照展板(木相框+画架腿; 有图显示缩略图, 无图显示爱心占位) */
+function drawPhotoBoard(px,py,idx){
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(px+18,py+10,17,4,0,0,7);ctx.fill();
+  ctx.fillStyle='#6e4218';ctx.fillRect(px+5,py-4,3,15);ctx.fillRect(px+28,py-4,3,15);ctx.fillRect(px+17,py+3,3,9); // 画架腿
+  ctx.fillStyle='#8c5a2b';ctx.fillRect(px,py-42,36,40);                 // 外框
+  ctx.fillStyle='#5b2c0e';ctx.fillRect(px,py-42,36,2);ctx.fillRect(px,py-4,36,2);
+  ctx.fillStyle='#e0b44a';ctx.fillRect(px+2,py-40,32,2);                 // 金内边
+  const im=hallPhotoImg(idx);
+  if(im){
+    ctx.imageSmoothingEnabled=false;
+    // 等比裁剪填入 30x30 相框
+    const s=Math.max(30/im.width,30/im.height), sw=30/s, sh=30/s;
+    ctx.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh, px+3,py-38,30,30);
+  }else{
+    ctx.fillStyle='#f3e8d6';ctx.fillRect(px+3,py-38,30,30);
+    ctx.fillStyle='#e0457b';                                            // 爱心占位
+    ctx.fillRect(px+13,py-28,3,3);ctx.fillRect(px+18,py-28,3,3);ctx.fillRect(px+12,py-25,11,3);ctx.fillRect(px+14,py-22,7,3);ctx.fillRect(px+16,py-19,3,3);
+    ctx.fillStyle='#b48a5a';ctx.font='7px monospace';ctx.textAlign='center';ctx.fillText('婚纱照',px+18,py-9);
+  }
+}
 /* —— 殿堂内景陈设(舞台居中 x12.5, 左右对称) —— */
 function drawHallInt(ents){
   const HW=27, CX=12.5*TILE;     // 殿堂中心
@@ -1092,6 +1128,10 @@ function drawHallInt(ents){
       if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+12-im.height)-cam.y|0);
     }});
   });
+  /* 婚纱照展板(立式相框) */
+  HALLPHOTO_POS.forEach(([tx,ty],i)=>{
+    ents.push({y:ty*TILE+11,draw(){ drawPhotoBoard(tx*TILE-cam.x|0, ty*TILE-cam.y|0, i); }});
+  });
   /* 烛灯：海滩灯笼真素材(暖光), 红毯两侧对称排开 */
   HCANDLE.forEach(([lxT,lyT],ci)=>{
     ents.push({y:lyT*TILE+10,draw(){
@@ -1132,18 +1172,6 @@ function drawHallInt(ents){
     for(let r=0;r<4;r++)for(let i=0;i<=r;i++)ctx.fillRect(px+13-r*4+i*8,py+16-r*5,4,5);
     ctx.fillStyle='#ffd84d';if((game.time*3|0)%2){ctx.fillRect(px+13,py-2,2,2);ctx.fillRect(px+6,py+4,2,2);}
   }});
-  /* ⑦ 多层婚礼蛋糕（真素材, 落地摆放放大, 不放桌上） */
-  ents.push({y:HOBJ.cake.y+30,draw(){
-    const o=HOBJ.cake,px=o.x-cam.x|0,py=o.y-cam.y|0;
-    const ck=img('cakeTier'), cxf=px+17;
-    ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(cxf,py+28,17,5,0,0,7);ctx.fill();
-    if(ck){ const s=3, cw=ck.width*s, chh=ck.height*s; ctx.imageSmoothingEnabled=false;
-      ctx.drawImage(ck,0,0,ck.width,ck.height, cxf-(cw/2|0), py+30-chh|0, cw, chh);
-    }else{ctx.fillStyle='#7a4a2a';for(let t=0;t<3;t++)ctx.fillRect(px+6+t*3,py+8+t*7,22-t*6,7);}
-    /* 顶部新人小人 + 闪光 */
-    ctx.fillStyle='#ff5c8a';ctx.fillRect(cxf-2,py-22,2,3);ctx.fillStyle='#7dc4ff';ctx.fillRect(cxf+1,py-22,2,3);
-    if((game.time*2|0)%2){ctx.fillStyle='#fff';ctx.fillRect(cxf-8,py-18,1,1);ctx.fillRect(cxf+9,py-12,1,1);}
-  }});
   /* ⑧ 礼花筒 */
   for(const k of ['popperL','popperR']) ents.push({y:HOBJ[k].y+16,draw(){
     const o=HOBJ[k],px=o.x-cam.x|0,py=o.y-cam.y|0;
@@ -1160,11 +1188,12 @@ function drawHallInt(ents){
       if(tb)ctx.drawImage(tb, px, py+28-tb.height);
       else{ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(cx,py+22,17,5,0,0,7);ctx.fill();
         ctx.fillStyle='#c0392b';ctx.beginPath();ctx.ellipse(cx,cy,17,10,0,0,7);ctx.fill();}
-      /* 桌上喜宴菜品(真素材, 每桌两道, 按桌号变化) */
+      /* 桌上喜宴菜品(真素材, 每桌两道, 居中摆在桌面正中) */
+      const fy=py+5;     // 桌面正中(原来偏下)
       const d1=img('food'+(1+i%6)), d2=img('food'+(1+(i+3)%6));
-      if(d1)ctx.drawImage(d1, cx-d1.width-1, cy-d1.height/2|0);
-      if(d2)ctx.drawImage(d2, cx+1, cy-d2.height/2|0);
-      if(!d1){ctx.fillStyle='#3f8a3c';ctx.fillRect(cx-2,cy-2,4,3);ctx.fillStyle='#ff5c8a';ctx.fillRect(cx-2,cy-5,2,3);}
+      if(d1)ctx.drawImage(d1, cx-d1.width-1, fy-(d1.height/2|0));
+      if(d2)ctx.drawImage(d2, cx+1, fy-(d2.height/2|0));
+      if(!d1){ctx.fillStyle='#3f8a3c';ctx.fillRect(cx-2,fy-2,4,3);ctx.fillStyle='#ff5c8a';ctx.fillRect(cx-2,fy-5,2,3);}
     }});
   });
 }
@@ -1209,7 +1238,9 @@ function drawWorld(){
       const tall=d.img==='palm'||d.img==='xmasTree';
       ents.push({y:d.y+(d.h||14), occ: tall?{x:d.x-8,y:d.y-44,w:56,h:60}:null, draw:()=>{
         const im=img(d.img);
-        if(im)ctx.drawImage(im, d.x-cam.x|0, (d.y+(d.h||im.height)-im.height)-cam.y|0);
+        if(!im)return;
+        const bob=d.boat?Math.round(Math.sin(game.time*1.3+d.x)*1.5):0;   // 小船随波轻晃
+        ctx.drawImage(im, d.x-cam.x|0, (d.y+(d.h||im.height)-im.height+bob)-cam.y|0);
       }});
     });
     ents.push({y:WOBJ.well.y+28,draw:drawWell});
@@ -1480,8 +1511,11 @@ function infoHTML(){
 }
 function letterHTML(){
   return `<h3>✉ 邀请函 ✉</h3>
-  <div class="letter-paper">${CONFIG.letterHTML}
-  <div class="sign">${CONFIG.groom} &amp; ${CONFIG.bride}<br>敬邀</div></div>`;
+  <div class="letter-paper">
+  <div class="letter-ico">🌻 🍓 🐟 🎁 🌷 🍰</div>
+  ${CONFIG.letterHTML}
+  <div class="sign">${CONFIG.groom} &amp; ${CONFIG.bride}<br>敬邀</div>
+  <div class="letter-ico">🌼 🥂 💍 🌙 ⭐ 🌸</div></div>`;
 }
 function scheduleHTML(){
   return `<h3>⚑ 当日流程 ⚑</h3>`+
@@ -1641,9 +1675,13 @@ function interact(){
     if(partner.scene==='hall'&&near(partner,26))return talkPartner();
     if(inRect(fx,fy,HOBJ.piano,8))return playPiano();
     if(inRect(fx,fy,HOBJ.tower,8))return champagne();
-    if(inRect(fx,fy,HOBJ.cake,8))return cakeBite();
     if(inRect(fx,fy,HOBJ.poleL,6)||inRect(fx,fy,HOBJ.poleR,6)){sfx('quest');flyHearts(innerWidth/2,innerHeight/2,4);return toast('🎏 五月柱的彩带随风转了一圈');}
     if(inRect(fx,fy,HOBJ.popperL,8)||inRect(fx,fy,HOBJ.popperR,8))return popper();
+    /* 婚纱照展板 */
+    for(let i=0;i<HALLPHOTO_POS.length;i++){
+      const[tx2,ty2]=HALLPHOTO_POS[i];
+      if(inRect(fx,fy,{x:tx2*TILE,y:ty2*TILE-40,w:36,h:50},6))return showHallPhoto(i);
+    }
     /* 桌子 */
     for(let i=0;i<TABLE_POS.length;i++){
       const[tx2,ty2]=TABLE_POS[i];
@@ -1945,6 +1983,16 @@ function showExhibit(i){
      <div class="frag-card">${esc(ex.text||'')}</div>`,
     ()=>{ if(game.quest===4)museumQuestCheck(); },'看完了 ▶');
 }
+function showHallPhoto(i){
+  const p=(RT.hallPhotos&&RT.hallPhotos[i])||{};
+  sfx('choice');flyHearts(innerWidth/2,innerHeight/2,2);
+  showOverlay(
+    `<h3>💍 ${esc(p.title||('婚纱照 '+(i+1)))}</h3>
+     ${p.img?`<img class="exhibit-img" src="${esc(resolveImg(p.img))}" onerror="this.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片未找到：把婚纱照放到 assets/imgs/ 并在 DEBUG 里填文件名）</div>'">`
+            :`<div style="font-size:13px;color:#8a5a2b">把你们的婚纱照放进 <b>assets/imgs/</b>，在 ⚙ DEBUG「婚纱照展板」里填文件名即可显示在这里。</div>`}
+     <div class="frag-card">${esc(p.text||'')}</div>`,
+    null,'看完了 ▶');
+}
 function museumQuestCheck(){
   if(game.quest!==4||!game.exhibitSeen)return;
   if(partner.scene==='museum'){
@@ -2016,7 +2064,7 @@ function finalSummary(opt){
   opt=opt||{};
   const back = opt.back ? `<div class="center" style="margin-top:10px"><button class="sdv-btn ghost" style="color:#8a5a2b;border-color:#8a5a2b" id="finBack">‹ 返回上一页</button></div>` : '';
   showOverlay(
-    `<div class="inv-banner"><div class="t1">❀ 婚礼请帖 ❀</div><div class="t2">${esc(CONFIG.groom)} &amp; ${esc(CONFIG.bride)} · WEDDING INVITATION</div></div>`+
+    `<div class="inv-banner"><div class="t1">WEDDING<br>INVITATION</div><div class="t2">❀ ${esc(CONFIG.groom)} &amp; ${esc(CONFIG.bride)} 的婚礼请帖 ❀</div></div>`+
     coupleHTML()+'<hr>'+infoHTML()+'<hr>'+letterHTML()+'<hr>'+scheduleHTML()+
     `<div class="body center" style="text-align:center;margin-top:14px;font-size:13px;color:#8a5a2b">
       你的誓言：「${CONFIG.vowChoices[game.vowIdx][0].replace(/[「」]/g,'')}」
@@ -2135,6 +2183,7 @@ function openSettings(){
   const dbgBtns=DEBUG?`
     <div class="ed-btns">
       <button class="sdv-btn small" id="edMuseum">🖼 博物馆展品配置</button>
+      <button class="sdv-btn small" id="edPhotos">💍 婚纱照展板配置</button>
       <button class="sdv-btn small" id="edSeats">🪑 婚宴桌位配置</button>
       <button class="sdv-btn small" id="edFrags">💫 记忆碎片配置</button>
       <button class="sdv-btn small" id="edExport">⬇ 导出配置 JSON</button>
@@ -2189,12 +2238,13 @@ function openSettings(){
   document.getElementById('dbgExit').onclick=()=>{setDebug(false);openSettings();};
   if(DEBUG){
     document.getElementById('edMuseum').onclick=()=>openListEditor('museum');
+    document.getElementById('edPhotos').onclick=()=>openListEditor('hallPhotos');
     document.getElementById('edSeats').onclick=()=>openSeatsEditor();
     document.getElementById('edFrags').onclick=()=>openListEditor('frags');
     document.getElementById('edExport').onclick=exportConfig;
     document.getElementById('edClear').onclick=()=>{
-      for(const k of ['museum','seats','frags'])lsDel(LS[k]);
-      RT.museum=CONFIG.museum;RT.seats=CONFIG.seats;RT.frags=CONFIG.frags;
+      for(const k of ['museum','seats','frags','hallPhotos'])lsDel(LS[k]);
+      RT.museum=CONFIG.museum;RT.seats=CONFIG.seats;RT.frags=CONFIG.frags;RT.hallPhotos=CONFIG.hallPhotos||[];
       toast('已恢复默认配置');openSettings();
     };
     document.querySelectorAll('#dbgJump [data-jq]').forEach(b=>b.onclick=()=>debugJump(+b.dataset.jq));
@@ -2224,22 +2274,24 @@ document.getElementById('setBtn').addEventListener('click',openSettings);
 
 /* —— 通用列表编辑器（博物馆/碎片）—— */
 function openListEditor(kind){
-  const isMu=kind==='museum';
+  const isMu=kind==='museum', isPhoto=kind==='hallPhotos', hasTitle=isMu||isPhoto;
   const items=JSON.parse(JSON.stringify(RT[kind]));
   function render(){
     const rows=items.map((it,i)=>`
       <div class="ed-item" data-i="${i}">
         <button class="ed-del" data-del="${i}">✕</button>
-        ${isMu?`<label>标题</label><input type="text" data-f="title" data-i="${i}" value="${esc(it.title||'')}">`:''}
+        ${hasTitle?`<label>标题</label><input type="text" data-f="title" data-i="${i}" value="${esc(it.title||'')}">`:''}
         <label>文字内容</label><textarea data-f="text" data-i="${i}">${esc(it.text||'')}</textarea>
         <label>图片：填 assets/imgs/ 下的<b>文件名</b>（如 合照.jpg），或完整URL，或上传转存</label>
         <input type="text" data-f="img" data-i="${i}" value="${(it.img||'').startsWith('data:')?'(已存入本地图片)':esc(it.img||'')}" placeholder="https://... 或留空">
         <input type="file" accept="image/*" data-file="${i}" style="font-size:11px;margin-top:4px">
         ${it.img?`<img class="ed-thumb" src="${esc(resolveImg(it.img))}" onerror="this.style.opacity=.25">`:''}
       </div>`).join('');
+    const hd=isMu?'🖼 博物馆展品配置':isPhoto?'💍 婚纱照展板配置':'💫 记忆碎片配置';
+    const tip=isMu?'1-4 = 上墙挂画区 · 5-12 = 中央玻璃展柜':isPhoto?'婚礼殿堂里的婚纱照展板(共 4 块, 把照片放进 assets/imgs/)':'农作/钓鱼/彩蛋时随机掉落';
     showOverlay(
-      `<h3>${isMu?'🖼 博物馆展品配置':'💫 记忆碎片配置'} <span style="font-size:11px;color:#8a5a2b">(${items.length}${isMu?'/12':''})</span></h3>
-       <div class="body" style="font-size:12px;color:#8a5a2b;text-align:center">${isMu?'1-4 = 上墙挂画区 · 5-12 = 中央玻璃展柜':'农作/钓鱼/彩蛋时随机掉落'}</div>
+      `<h3>${hd} <span style="font-size:11px;color:#8a5a2b">(${items.length}${isMu?'/12':isPhoto?'/4':''})</span></h3>
+       <div class="body" style="font-size:12px;color:#8a5a2b;text-align:center">${tip}</div>
        ${rows}
        <div class="ed-btns">
          <button class="sdv-btn small" id="edAdd">＋ 添加一项</button>
@@ -2268,7 +2320,8 @@ function openListEditor(kind){
     });
     document.getElementById('edAdd').onclick=()=>{
       if(isMu&&items.length>=12)return toast('博物馆最多 12 件展品');
-      items.push(isMu?{title:'',text:'',img:''}:{text:'',img:''});render();
+      if(isPhoto&&items.length>=4)return toast('婚纱照展板最多 4 块');
+      items.push(hasTitle?{title:'',text:'',img:''}:{text:'',img:''});render();
     };
     document.getElementById('edSave').onclick=()=>{
       RT[kind]=JSON.parse(JSON.stringify(items));
@@ -2315,7 +2368,7 @@ function openSeatsEditor(){
   };
 }
 function exportConfig(){
-  const json=JSON.stringify({museum:RT.museum,seats:RT.seats,frags:RT.frags},null,2);
+  const json=JSON.stringify({museum:RT.museum,seats:RT.seats,frags:RT.frags,hallPhotos:RT.hallPhotos},null,2);
   const blob=new Blob([json],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='wedding-config.json';
