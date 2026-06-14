@@ -65,11 +65,11 @@ function buildWorld(){
   vline(g,29,7,10,'=');                       // 木栈道
   /* 农田 + 篱笆（底部留门，可跳跃） */
   rect(g,9,7,14,9,'P');
-  hline(g,8,15,6,'f'); hline(g,8,10,10,'f'); hline(g,13,15,10,'f');
-  vline(g,8,7,9,'f');  vline(g,15,7,9,'f');
+  hline(g,8,15,6,'f'); hline(g,8,15,10,'f');     // 底部栅栏连成整体(中间不留缺口, 进出靠跳越)
+  vline(g,8,7,9,'f');  vline(g,15,6,12,'f');      // x15 右墙做农田/鸡舍「共用单层隔墙」(纵贯 y6-12)
   /* 鸡舍运动场（加大；鸡舍建筑在北侧, 围栏运动场内有 2 只鸡 + 宝箱, 跳进去） */
   hline(g,16,22,7,'f'); hline(g,16,22,12,'f');
-  vline(g,16,8,11,'f'); vline(g,22,8,11,'f');
+  vline(g,22,8,11,'f');                           // 左墙与农田共用 x15 隔墙(不再单独建一层)
   /* 花田（东南） */
   for(let y=25;y<=30;y++)for(let x=26;x<=33;x++) if(hash(x,y)%3<2) g[y][x]='F';
   /* 西边小树林 + 神秘草丛(蛋) */
@@ -169,9 +169,9 @@ const WDECOR = [
   {img:'potC', x:16.2*TILE, y:36.4*TILE, w:14, h:10, solid:1},
   {img:'potC', x:19.4*TILE, y:36.4*TILE, w:14, h:10, solid:1},
   {img:'potA', x:20.4*TILE, y:36.4*TILE, w:14, h:10, solid:1},
-  /* 博物馆门前：圣诞树装饰(去掉盆栽; 立于门两侧, 小碰撞盒) */
-  {img:'xmasTree', x:21.4*TILE, y:21.2*TILE, w:16, h:10, solid:1},
-  {img:'xmasTree', x:25.6*TILE, y:21.2*TILE, w:16, h:10, solid:1},
+  /* 博物馆门前：圣诞树装饰(去掉盆栽; 立于门两侧, 小碰撞盒; 缩小 1/2) */
+  {img:'xmasTree', x:21.7*TILE, y:21.2*TILE, w:16, h:10, solid:1, scale:0.5},
+  {img:'xmasTree', x:25.6*TILE, y:21.2*TILE, w:16, h:10, solid:1, scale:0.5},
   /* 杂货店门前(door≈x7) */
   {img:'potC', x:5.4*TILE,  y:20.5*TILE, w:14, h:10, solid:1},
   {img:'potA', x:8.4*TILE,  y:20.5*TILE, w:14, h:10, solid:1},
@@ -185,10 +185,11 @@ const WDECOR = [
   {img:'rowboat', x:24.5*TILE, y:4*TILE,  boat:1},
   {img:'rowboat', x:32*TILE,   y:8.5*TILE,boat:1},
 ];
-/* 殿堂内对象：8 圆桌(左右对称 4列×2排) + 互动点；下方留白做婚纱照展板 */
+/* 殿堂内对象：12 圆桌(左右各 6 桌 = 2 列×3 排, 对称) + 互动点 */
 const TABLE_POS=[
-  [2,10],[7,10],[18,10],[23,10],
-  [2,14],[7,14],[18,14],[23,14],
+  [2,9.5],[7,9.5],[18,9.5],[23,9.5],
+  [2,13],[7,13],[18,13],[23,13],
+  [2,16.5],[7,16.5],[18,16.5],[23,16.5],
 ];
 const HOBJ = {
   piano:  {x:3*TILE,   y:3.6*TILE, w:46, h:30},
@@ -199,7 +200,8 @@ const HOBJ = {
   popperR:{x:17*TILE, y:3.0*TILE, w:12, h:16},
 };
 /* 婚纱照展板(立式相框, 红毯两侧/入口处, 带碰撞; 内容取 RT.hallPhotos 按文件名) */
-const HALLPHOTO_POS=[[5,18.5],[10,18.5],[16,18.5],[21,18.5]];
+/* 婚纱照展板：靠左右两侧紧凑成对, 避开中央舞台(x8-17)与红毯过道 */
+const HALLPHOTO_POS=[[2.8,7.0],[5.5,7.0],[18.5,7.0],[21.3,7.0]];
 /* 殿堂内装饰（无碰撞）：盆栽对称列于舞台两侧 + 红毯夹道 */
 const HDECOR = [
   {img:'potB', x:8.2*TILE, y:6.4*TILE},
@@ -207,8 +209,17 @@ const HDECOR = [
   {img:'potC', x:10.4*TILE,y:7.6*TILE},
   {img:'potC', x:14.4*TILE,y:7.6*TILE},
 ];
-/* 殿堂烛灯(干净像素烛台, 红毯两侧对称) + 节日装饰(气球/礼盒, 避开桌子) */
-const HCANDLE=[[10.2,6],[14.4,6],[10.2,11],[14.4,11]];
+/* —— 殿堂「四周」装饰：仅保留落地灯, 左右侧墙等距排布(去掉棕榈/窗/气球, 简洁) —— */
+/* 落地灯(lampPost 立灯, 暖光呼吸; [x,y] tile 坐标)；左 x0.5 右 x25.6, 各 4 盏, y 等距 4 格 */
+const HLAMP = (()=>{
+  const ys=[5.5,9.5,13.5,17.5], a=[];
+  ys.forEach(y=>{ a.push([0.5,y]); a.push([25.6,y]); });
+  return a;
+})();
+/* 殿堂烛灯：沿红毯(x12-13)两侧成对排开, 共 8 盏(每侧 4 盏, 不再压在花拱门柱子上) */
+const HCANDLE=[
+  [11.3,9],[14,9],[11.3,12],[14,12],[11.3,15],[14,15],[11.3,18],[14,18],
+];
 const HFEST=[
   {img:'balloon',x:6.4*TILE, y:3.2*TILE},
   {img:'balloon',x:17.8*TILE,y:3.2*TILE},
@@ -1081,6 +1092,22 @@ function drawHallInt(ents){
     for(let x=x0;x<x1;x+=14){ctx.fillStyle='#d63b6e';               // 缦帐波浪
       ctx.beginPath();ctx.moveTo(x,y0+1);ctx.lineTo(x+14,y0+1);ctx.lineTo(x+7,y0+8);ctx.closePath();ctx.fill();}
   }});
+  /* ②a 落地灯(立灯 + 暖光呼吸光晕, 立于地面, 左右侧墙等距, 参与 y 排序) */
+  HLAMP.forEach(([lxT,lyT],si)=>{
+    const lp=img('lampPost');
+    const baseY=lyT*TILE+(lp?lp.height:30);
+    ents.push({y:baseY,draw(){
+      const px=lxT*TILE-cam.x|0, py=lyT*TILE-cam.y|0;
+      if(!lp){ctx.fillStyle='#5b4636';ctx.fillRect(px+4,py+6,3,24);return;}
+      const g=0.34+0.18*Math.sin(game.time*2.4+si*1.3);
+      const cxf=px+(lp.width/2|0), cyf=py+4;        // 灯头在顶部
+      ctx.save();
+      ctx.globalAlpha=g;      ctx.fillStyle='#ffe48c';ctx.beginPath();ctx.ellipse(cxf,cyf,10,10,0,0,7);ctx.fill();
+      ctx.globalAlpha=g*0.4;  ctx.fillStyle='#ffefb0';ctx.beginPath();ctx.ellipse(cxf,cyf,17,16,0,0,7);ctx.fill();
+      ctx.restore();
+      ctx.drawImage(lp, px, py);
+    }});
+  });
   /* ②b 舞台红毯地毯(真素材, 铺在舞台地面, 居中) */
   ents.push({y:-998,draw(){
     const rg=img('rugStage'); if(!rg)return;
@@ -1093,9 +1120,10 @@ function drawHallInt(ents){
     const ph=pil?pil.height:48;
     if(pil){ ctx.drawImage(pil,lx,base-ph); ctx.drawImage(pil,rx,base-ph); }
     else{ ctx.fillStyle='#e0b44a';ctx.fillRect(lx,base-ph,8,ph);ctx.fillRect(rx,base-ph,8,ph); }
-    const top=base-ph+6, span=(rx+(pil?pil.width:8))-lx;
-    if(bush){ const step=bush.width-6;
-      for(let x=lx-6;x<lx+span;x+=step) ctx.drawImage(bush,x|0,(top-bush.height+8)|0);
+    const top=base-ph+6;
+    if(bush){                                   // 花环：5 丛开花灌木, 以拱门中心左右对称排布
+      const cx0=(lx+rx+(pil?pil.width:8))/2, n=5, step=18, gy=(top-bush.height+8)|0;
+      for(let i=0;i<n;i++) ctx.drawImage(bush, (cx0+(i-(n-1)/2)*step-bush.width/2)|0, gy);
     }
     ctx.fillStyle='#e0457b';ctx.fillRect(lx+3,top+2,3,12);ctx.fillRect(rx+4,top+2,3,12);
   }});
@@ -1240,7 +1268,9 @@ function drawWorld(){
         const im=img(d.img);
         if(!im)return;
         const bob=d.boat?Math.round(Math.sin(game.time*1.3+d.x)*1.5):0;   // 小船随波轻晃
-        ctx.drawImage(im, d.x-cam.x|0, (d.y+(d.h||im.height)-im.height+bob)-cam.y|0);
+        const sc=d.scale||1, dw=Math.round(im.width*sc), dh=Math.round(im.height*sc);
+        const baseY=d.y+(d.h||im.height), dx=d.x+((im.width-dw)/2|0);      // 缩放后水平居中, 底边对齐
+        ctx.drawImage(im, dx-cam.x|0, (baseY-dh+bob)-cam.y|0, dw, dh);
       }});
     });
     ents.push({y:WOBJ.well.y+28,draw:drawWell});
@@ -1497,7 +1527,7 @@ function coupleHTML(){
   </div>`;
 }
 function infoHTML(){
-  return `<h3>✦ 婚礼信息 ✦</h3>
+  return `<h3>✦ ${esc(CONFIG.eventName||'婚礼')}信息 ✦</h3>
   <div class="info-row"><div class="info-ico">日</div><div>${CONFIG.dateDetail}</div></div>
   <div class="info-row"><div class="info-ico">时</div><div>${CONFIG.timeDetail}</div></div>
   <div class="info-row"><div class="info-ico">地</div><div>${CONFIG.place}</div></div>
@@ -1530,6 +1560,97 @@ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 function drawOverlayPortraits(){
   document.querySelectorAll('.pcg').forEach(c=>portraitInto(c,'groom'));
   document.querySelectorAll('.pcb').forEach(c=>portraitInto(c,'bride'));
+}
+/* —— 完整请帖·海报版 —— */
+/* 顶部：木牌大标题 + 花拱门新人合影(真素材) + 双对话气泡 */
+function posterHeroHTML(){
+  return `<div class="poster-sky">
+    <img class="sky-cloud a" src="assets/elem/svCloud.png" alt="">
+    <img class="sky-cloud b" src="assets/elem/svCloud.png" alt="">
+    <img class="poster-sign" src="assets/elem/wedSign.png" alt="WEDDING INVITATION">
+  </div>
+  <div class="poster-sub">❀ ${esc(CONFIG.groom)} &amp; ${esc(CONFIG.bride)} 的${esc(CONFIG.eventName||'婚礼')}请帖 ❀</div>
+  <div class="arch-scene">
+    <img class="arch-cloud l" src="assets/elem/svCloud.png" alt="">
+    <img class="arch-cloud r" src="assets/elem/svCloud.png" alt="">
+    <div class="arch-top"></div>
+    <img class="arch-vine l" src="assets/elem/hangVine.png" alt="">
+    <img class="arch-vine r" src="assets/elem/hangVine.png" alt="">
+    <img class="arch-sun l" src="assets/elem/sunflower.png" alt="">
+    <img class="arch-sun r" src="assets/elem/sunflower.png" alt="">
+    <div class="arch-stage">
+      <canvas class="arch-ch" data-role="groom" width="16" height="32"></canvas>
+      <span class="px-heart"></span>
+      <canvas class="arch-ch" data-role="bride" width="16" height="32"></canvas>
+      <canvas class="arch-cat" width="64" height="64"></canvas>
+    </div>
+  </div>
+  <div class="chat-wrap">
+    <div class="chat-bubble"><canvas class="chat-ava" data-port="groom" width="64" height="64"></canvas><div>${esc((CONFIG.posterLines||[])[0]||'')}</div></div>
+    <div class="chat-bubble r"><canvas class="chat-ava" data-port="bride" width="64" height="64"></canvas><div>${esc((CONFIG.posterLines||[])[1]||'')}</div></div>
+  </div>`;
+}
+/* 新人相框 + 新郎/新娘木牌标签 */
+function couplePosterHTML(){
+  return `<div class="couple-row">
+    <div><div class="frame"><canvas class="pcg" width="64" height="64"></canvas></div>
+      <div class="role-tag">新 郎</div>
+      <div class="nm">${esc(CONFIG.groom)}</div><div class="ds">${CONFIG.groomDesc}</div></div>
+    <span class="px-heart"></span>
+    <div><div class="frame"><canvas class="pcb" width="64" height="64"></canvas></div>
+      <div class="role-tag">新 娘</div>
+      <div class="nm">${esc(CONFIG.bride)}</div><div class="ds">${CONFIG.brideDesc}</div></div>
+  </div>`;
+}
+/* 海报内全部像素画布上色：相框肖像 + 拱门下新人立绘 + 小猫 + 气泡头像 */
+function drawPosterArt(){
+  drawOverlayPortraits();
+  document.querySelectorAll('.arch-ch').forEach(c=>titleCardInto(c,c.dataset.role));
+  document.querySelectorAll('.arch-cat').forEach(c=>portraitInto(c,'cat'));
+  document.querySelectorAll('.chat-ava[data-port]').forEach(c=>portraitInto(c,c.dataset.port));
+  const rb=document.getElementById('rsvpBtn'); if(rb) rb.onclick=openRsvp;
+}
+/* —— 婚礼回执 RSVP（第三方问卷平台：金数据/腾讯问卷/问卷星；来宾免登录） —— */
+function rsvpHTML(){
+  const r=CONFIG.rsvp||{};
+  const inner = r.url
+    ? `<button class="sdv-btn rsvp-btn" id="rsvpBtn">📝 填写回执 ▶</button>
+       <div class="rsvp-hint">约 30 秒 · 免登录 · 提交后我们会收到</div>`
+    : `<div class="rsvp-setup">尚未配置：在 <b>js/config.js → rsvp.url</b> 填入你的
+       金数据 / 腾讯问卷 / 问卷星 表单链接，这里就会出现「填写回执」按钮。</div>`;
+  return `<div class="rsvp-card">
+    <div class="rsvp-title">📝 ${esc(r.title||'婚礼回执 · RSVP')}</div>
+    <div class="rsvp-desc">${r.desc||'麻烦填一下：贵姓 · 来宾人数 · 祝福（选填）'}</div>
+    ${inner}
+  </div>`;
+}
+function openRsvp(){
+  const r=CONFIG.rsvp||{};
+  let url=r.url||'';
+  if(!url){ toast('💡 请先在 js/config.js 的 rsvp.url 填入问卷链接'); return; }
+  /* 带宾客参数的链接时，可把姓名预填进问卷（需在 config.rsvp.nameParam 配置字段参数名） */
+  if(GUEST&&GUEST.name&&r.nameParam){
+    url+=(url.includes('?')?'&':'?')+encodeURIComponent(r.nameParam)+'='+encodeURIComponent(GUEST.name);
+  }
+  sfx('blip');
+  if(r.embed){ showRsvpFrame(url); }
+  else{ window.open(url,'_blank','noopener'); }
+}
+function showRsvpFrame(url){
+  let m=document.getElementById('rsvpModal');
+  if(!m){
+    m=document.createElement('div'); m.id='rsvpModal';
+    m.innerHTML=`<div class="rsvp-frame-wrap">
+      <button class="rsvp-close" id="rsvpClose">✕ 关闭</button>
+      <iframe id="rsvpIframe" referrerpolicy="no-referrer" title="婚礼回执"></iframe>
+      <div class="rsvp-fallback">表单没显示？<a id="rsvpOpenNew" target="_blank" rel="noopener">点此在新窗口打开 ▶</a></div>
+    </div>`;
+    document.body.appendChild(m);
+    m.querySelector('#rsvpClose').onclick=()=>{ m.style.display='none'; m.querySelector('#rsvpIframe').src='about:blank'; };
+  }
+  m.querySelector('#rsvpIframe').src=url;
+  m.querySelector('#rsvpOpenNew').href=url;
+  m.style.display='flex';
 }
 const target=new Date(CONFIG.weddingISO).getTime();
 const pad2=n=>String(n).padStart(2,'0');
@@ -2064,15 +2185,23 @@ function finalSummary(opt){
   opt=opt||{};
   const back = opt.back ? `<div class="center" style="margin-top:10px"><button class="sdv-btn ghost" style="color:#8a5a2b;border-color:#8a5a2b" id="finBack">‹ 返回上一页</button></div>` : '';
   showOverlay(
-    `<div class="inv-banner"><div class="t1">WEDDING<br>INVITATION</div><div class="t2">❀ ${esc(CONFIG.groom)} &amp; ${esc(CONFIG.bride)} 的婚礼请帖 ❀</div></div>`+
-    coupleHTML()+'<hr>'+infoHTML()+'<hr>'+letterHTML()+'<hr>'+scheduleHTML()+
+    `<div class="poster">`+
+    posterHeroHTML()+
+    couplePosterHTML()+
+    seatHTML()+
+    '<hr>'+letterHTML()+
+    '<hr>'+infoHTML()+
+    '<hr>'+scheduleHTML()+
+    rsvpHTML()+
     `<div class="body center" style="text-align:center;margin-top:14px;font-size:13px;color:#8a5a2b">
       你的誓言：「${CONFIG.vowChoices[game.vowIdx][0].replace(/[「」]/g,'')}」
       ${achHTML()}
       <br>💫 记忆碎片 ${game.fragGot.length}/${RT.frags.length}
-    </div>`+back,
+    </div>`+
+    `<div class="poster-foot"><b>${esc(CONFIG.groom)}</b> <span class="px-heart"></span> <b>${esc(CONFIG.bride)}</b> · ${esc(CONFIG.dateText)}</div>`+
+    `</div>`+back,
     opt.onClose||null, opt.btnText||'回到游戏 ▶');
-  drawOverlayPortraits();
+  drawPosterArt();
   if(opt.back){const b=document.getElementById('finBack'); if(b)b.onclick=opt.back;}
 }
 /* 📜 进度/重看 */
