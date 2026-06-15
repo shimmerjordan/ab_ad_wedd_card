@@ -2688,6 +2688,10 @@ function startGame(role){
   ensureCtx();toggleBgm(true);
   game.playerRole=role;
   partner.role=partnerRole();
+  document.body.classList.remove('lux-bg');
+  if(typeof luxFxStop==='function')luxFxStop();
+  document.getElementById('gate').style.display='none';
+  document.getElementById('lux').style.display='none';
   document.getElementById('title').style.display='none';
   document.getElementById('hud').style.display='block';
   if(matchMedia('(pointer:coarse)').matches){
@@ -2724,8 +2728,121 @@ document.getElementById('skipBtn').addEventListener('click',()=>{
 document.addEventListener('pointerdown',e=>{
   if(game.mode==='title')flyHearts(e.clientX,e.clientY,2);
 });
+
+/* ============================================================
+ * 入口选择门 + 低调奢华·典雅请帖
+ * ============================================================ */
+const gateEl=document.getElementById('gate'), luxEl=document.getElementById('lux');
+document.getElementById('gateNames').innerHTML=`${esc(CONFIG.groom)} <span class="amp">&amp;</span> ${esc(CONFIG.bride)}`;
+document.body.classList.add('lux-bg');   // 默认先进入口页, 米色底
+/* 入口浮动金尘(与暗夜星座呼应) */
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
+  for(let i=0;i<7;i++){ const m=document.createElement('i'); m.className='gate-mote';
+    const s=2+Math.random()*4; m.style.width=m.style.height=s+'px';
+    m.style.left=(6+Math.random()*88)+'%'; m.style.bottom=(-8+Math.random()*28)+'%';
+    m.style.animationDuration=(7+Math.random()*7)+'s'; m.style.animationDelay=(-Math.random()*10)+'s';
+    gateEl.appendChild(m); }
+}
+/* 离场淡出：先把目标页(标题/请帖)显示在入口之下, 再淡出入口露出它——
+ * 全程目标页都是不透明的, 绝不会露出底层绿色画布 */
+function gateLeave(show){ show&&show(); gateEl.classList.add('fade');
+  setTimeout(()=>{ gateEl.style.display='none'; gateEl.classList.remove('fade'); },440); }
+/* 我是18岁 → 进入星露谷像素请帖(确保露出标题屏, 即使之前进过老登版被隐藏) */
+document.getElementById('gate18').onclick=()=>{ sfx&&sfx('blip'); document.body.classList.remove('lux-bg');
+  luxEl.style.display='none'; gateLeave(()=>{ document.getElementById('title').style.display='flex'; }); };
+/* 我是老登 → 进入典雅请帖 */
+document.getElementById('gateOld').onclick=()=>{ sfx&&sfx('blip'); document.getElementById('title').style.display='none'; gateLeave(openLux); };
+function openLux(){ buildLux(); luxEl.style.display='block'; luxEl.scrollTop=0; luxReveal(); luxFxStart(); }
+/* 暗夜流光：金色粒子星座背景(科技感, 低调) */
+let _luxFxRAF=null, _luxFxResize=null;
+function luxFxStart(){
+  const cv=document.getElementById('luxFx'); if(!cv)return;
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const g=cv.getContext('2d'); let W,H,parts;
+  const resize=()=>{ W=cv.width=innerWidth; H=cv.height=innerHeight; };
+  resize(); _luxFxResize=resize; addEventListener('resize',resize);
+  const N=Math.max(28, Math.min(72, Math.round(innerWidth*innerHeight/15000)));
+  parts=Array.from({length:N},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.5+.5,a:Math.random()*.5+.35}));
+  const frame=()=>{
+    g.clearRect(0,0,W,H);
+    for(const p of parts){ p.x+=p.vx;p.y+=p.vy; if(p.x<0)p.x+=W; if(p.x>W)p.x-=W; if(p.y<0)p.y+=H; if(p.y>H)p.y-=H; }
+    for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){
+      const a=parts[i],b=parts[j],dx=a.x-b.x,dy=a.y-b.y,d=dx*dx+dy*dy;
+      if(d<8500){ g.strokeStyle='rgba(216,179,106,'+(1-d/8500)*.16+')'; g.lineWidth=.6; g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke(); }
+    }
+    for(const p of parts){ g.beginPath();g.arc(p.x,p.y,p.r,0,7); g.fillStyle='rgba(243,220,160,'+p.a+')'; g.shadowColor='rgba(243,220,160,.8)'; g.shadowBlur=6; g.fill(); g.shadowBlur=0; }
+    _luxFxRAF=requestAnimationFrame(frame);
+  };
+  frame();
+}
+function luxFxStop(){ if(_luxFxRAF)cancelAnimationFrame(_luxFxRAF); _luxFxRAF=null; if(_luxFxResize){removeEventListener('resize',_luxFxResize);_luxFxResize=null;} }
+function buildLux(){
+  const c=CONFIG, R=RT.hallPhotos&&RT.hallPhotos.length?RT.hallPhotos:(c.hallPhotos||[]);
+  const gallery=R.map((p,i)=>{
+    const src=p&&p.img?esc(resolveImg(p.img)):'';
+    return `<figure class="lux-photo" ${src?`data-full="${src}"`:''}>
+      ${src?`<img src="${src}" alt="">`:`<div class="lux-photo-ph">婚纱照 ${i+1}</div>`}
+      ${p&&p.title?`<figcaption>${esc(p.title)}</figcaption>`:''}</figure>`;
+  }).join('');
+  const sched=(c.schedule||[]).map(([t,w])=>`<div class="lux-tl"><span class="lux-tl-t">${esc(t)}</span><span class="lux-tl-w">${esc(w)}</span></div>`).join('');
+  document.getElementById('luxInner').innerHTML=`
+    <header class="lux-hero">
+      <div class="lux-kicker">THE WEDDING OF</div>
+      <h1 class="lux-names">${esc(c.groom)}<span class="amp">&amp;</span>${esc(c.bride)}</h1>
+      <div class="lux-date">${esc(c.dateText)}</div>
+      <div class="lux-divider"><span>❦</span></div>
+    </header>
+    <section class="lux-sec reveal"><p class="lux-letter">${c.luxLetter||c.letterHTML}</p>
+      <div class="lux-sign">— ${esc(c.groom)} &amp; ${esc(c.bride)} 敬上</div></section>
+    ${R.length?`<section class="lux-sec reveal"><h2 class="lux-h">浮 光 剪 影</h2><div class="lux-gallery">${gallery}</div></section>`:''}
+    <section class="lux-sec reveal"><h2 class="lux-h">婚 礼 信 息</h2>
+      <div class="lux-info">
+        <div class="lux-row"><span class="lux-lab">日期</span><span class="lux-val">${c.dateDetail}</span></div>
+        <div class="lux-row"><span class="lux-lab">时间</span><span class="lux-val">${c.timeDetail}</span></div>
+        <div class="lux-row"><span class="lux-lab">地点</span><span class="lux-val">${c.place}</span></div>
+        <div class="lux-row"><span class="lux-lab">联系</span><span class="lux-val">${c.phone}</span></div>
+      </div>
+      <div class="countdown lux-cd" data-cd="1">
+        <div class="cd-cell"><b class="cdD">--</b><span>天</span></div>
+        <div class="cd-cell"><b class="cdH">--</b><span>时</span></div>
+        <div class="cd-cell"><b class="cdM">--</b><span>分</span></div>
+        <div class="cd-cell"><b class="cdS">--</b><span>秒</span></div>
+      </div>
+    </section>
+    <section class="lux-sec reveal"><h2 class="lux-h">当 日 流 程</h2><div class="lux-timeline">${sched}</div></section>
+    <section class="lux-sec reveal lux-rsvp-sec"><h2 class="lux-h">敬 请 回 复</h2>
+      <p class="lux-rsvp-desc">${(c.rsvp&&c.rsvp.desc)||'恳请拨冗莅临，赐复为盼。'}</p>
+      <button class="lux-btn" id="luxRsvp">填写回执 · RSVP</button></section>
+    <footer class="lux-foot"><div class="lux-divider"><span>❦</span></div>
+      <div class="lux-foot-names">${esc(c.groom)} &amp; ${esc(c.bride)}</div>
+      <div class="lux-foot-date">${esc(c.dateText)}</div>
+      <button class="lux-back" id="luxBack">← 返回入口</button></footer>`;
+  const rb=document.getElementById('luxRsvp'); if(rb)rb.onclick=openRsvp;
+  const bk=document.getElementById('luxBack'); if(bk)bk.onclick=()=>{ luxFxStop(); luxEl.style.display='none'; gateEl.style.display='flex'; };
+  /* 婚纱照：点击放大 + 指针 3D 倾斜(互动感) */
+  luxEl.querySelectorAll('.lux-photo').forEach(f=>{
+    if(f.dataset.full) f.onclick=()=>luxLightbox(f.dataset.full);
+    f.addEventListener('pointermove',e=>{ const r=f.getBoundingClientRect(); const px=(e.clientX-r.left)/r.width-.5, py=(e.clientY-r.top)/r.height-.5;
+      f.style.transform=`rotateY(${px*11}deg) rotateX(${-py*11}deg) translateZ(8px)`; });
+    f.addEventListener('pointerleave',()=>{ f.style.transform=''; });
+  });
+}
+let _luxObs=null;
+function luxReveal(){
+  if(_luxObs)_luxObs.disconnect();
+  if(!('IntersectionObserver' in window)){ luxEl.querySelectorAll('.reveal').forEach(el=>el.classList.add('in')); return; }
+  _luxObs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('in');_luxObs.unobserve(e.target);} }),{root:luxEl,threshold:.12});
+  luxEl.querySelectorAll('.reveal').forEach(el=>_luxObs.observe(el));
+  /* 兜底：若观察器未触发(极端情况)，2s 后强制显示所有区块, 内容永不卡在隐藏态 */
+  setTimeout(()=>luxEl.querySelectorAll('.reveal:not(.in)').forEach(el=>el.classList.add('in')),2000);
+}
+function luxLightbox(src){ const b=document.getElementById('luxBox'); document.getElementById('luxBoxImg').src=src; b.style.display='flex'; }
+document.getElementById('luxBoxClose').onclick=()=>{document.getElementById('luxBox').style.display='none';};
+document.getElementById('luxBox').onclick=e=>{ if(e.target.id==='luxBox')document.getElementById('luxBox').style.display='none'; };
+
 /* 测试钩子 */
 const _q=QS;
+if(_q.get('lux'))setTimeout(()=>{ gateEl.style.display='none'; document.getElementById('title').style.display='none'; openLux(); },200);
 if(_q.get('auto'))setTimeout(()=>startGame(_q.get('auto')==='bride'?'bride':'groom'),200);
 if(_q.get('at')){const[ax,ay]=_q.get('at').split(',').map(Number);setTimeout(()=>{player.x=ax*TILE;player.y=ay*TILE;updateCam();},350);}
 if(_q.get('scene'))setTimeout(()=>{game.scene=_q.get('scene');updateCam();},340);
@@ -2739,6 +2856,7 @@ if(_q.get('q'))setTimeout(()=>{
 },400);
 if(_q.get('show'))setTimeout(()=>{
   const s=_q.get('show');
+  gateEl.style.display='none'; document.getElementById('title').style.display='none';
   if(game.mode==='dialog'){clearInterval(dlg.timer);dlg.el.style.display='none';game.mode='play';}
   if(s==='final'){game.vowIdx=0;finalSummary();}
   else if(s==='info')showOverlay(infoHTML());
