@@ -158,6 +158,17 @@ canvas{image-rendering:pixelated;display:block}
 .act-btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--wood-dark)}
 .act-btn.b{width:52px;height:52px;font-size:13px;margin-bottom:34px;
   background:radial-gradient(circle at 35% 30%,#b8e8ff,#5aa0d8);}
+/* 装备栏(工具)：底部居中, 仅户外游玩显示 */
+#toolBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:16;
+  display:none;gap:7px;align-items:flex-end;padding-bottom:env(safe-area-inset-bottom)}
+.tool-slot{width:42px;height:42px;cursor:pointer;position:relative;opacity:.7;
+  transition:opacity .1s,transform .1s}
+.tool-slot.sel{opacity:1;transform:translateY(-5px)}
+.tool-slot canvas{width:42px;height:42px;image-rendering:pixelated;display:block;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+.tool-slot .tname{position:absolute;left:-3px;right:-3px;bottom:-2px;text-align:center;
+  font-size:9px;letter-spacing:1px;color:#fff;text-shadow:1px 1px 0 #000,0 0 2px #000;pointer-events:none}
+.tool-slot.sel .tname{color:#ffe07a}
 
 /* ============ 对话框 ============ */
 #dialog{
@@ -278,10 +289,14 @@ canvas{image-rendering:pixelated;display:block}
 .frag-list .it.lock{opacity:.55;cursor:default}
 
 /* ============ 完整请帖 · 海报版 ============ */
-.poster{margin:-2px 0 0}
-/* 顶部天空带：木牌「悬」在星露谷天空中(配真素材云朵) */
-.poster-sky{position:relative;overflow:hidden;margin:-4px -2px 2px;padding:12px 10px 8px;border-radius:8px;
-  background:linear-gradient(180deg,#8fcdee 0%,#bfe6f3 70%,#dff1f5 100%)}
+/* 整张请帖以 stardewPanorama 作背景(固定铺底, 卡片透出); 卡片本身透明只留外框 */
+#overlayCard:has(.poster){background:#bfe6f3;
+  box-shadow:inset 0 0 0 4px var(--orange), 0 6px 0 rgba(0,0,0,.25)}
+.poster{margin:-6px -2px 0;padding:8px 4px 2px;border-radius:4px;
+  background:url('../assets/elem/panorama.png') center top/cover fixed}
+/* 顶部天空带：木牌「悬」在星露谷天空中(背景直接用 panorama 天空) */
+.poster-sky{position:relative;overflow:hidden;margin:-4px -2px 6px;padding:12px 10px 8px;border-radius:8px;
+  background:transparent}
 .sky-cloud{position:absolute;image-rendering:pixelated;pointer-events:none;opacity:.9}
 .sky-cloud.a{width:96px;top:-14px;right:-10px}
 .sky-cloud.b{width:60px;bottom:-6px;left:-8px;opacity:.75}

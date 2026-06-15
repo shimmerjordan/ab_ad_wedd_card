@@ -74,7 +74,7 @@ const ASSET_MANIFEST = {
   charGroom:'assets/elem/char_groom.png',  charBride:'assets/elem/char_bride.png',
   portGroom:'assets/elem/port_groom.png',  portBride:'assets/elem/port_bride.png',
   chicken:'assets/elem/chicken.png',       cat:'assets/elem/cat.png',
-  tree:'assets/elem/tree.png',             sunflower:'assets/elem/sunflower.png',
+  tree:'assets/elem/tree.png',
   well:'assets/elem/well.png',             house1:'assets/elem/house1.png', house2:'assets/elem/house2.png',
   /* 建筑立面 */
   shopB:'assets/elem/shopB.png', museumB:'assets/elem/museumB.png', hallB:'assets/elem/hallB.png',
@@ -105,6 +105,14 @@ const ASSET_MANIFEST = {
   /* 耕地/鸡舍/码头/海滩装饰(星露谷真素材) */
   dockWood:'assets/elem/dockWood.png', rowboat:'assets/elem/rowboat.png',
   tilled:'assets/elem/tilled.png', tilledWet:'assets/elem/tilledWet.png',
+  hoeDirt:'assets/elem/hoeDirt.png', slotBox:'assets/elem/slotBox.png',
+  /* 工具图标(tools.png 真素材) + 路障(paths.png 真素材) */
+  toolPick:'assets/elem/toolPick.png', toolAxe:'assets/elem/toolAxe.png', toolHoe:'assets/elem/toolHoe.png',
+  obsRock:'assets/elem/obsRock.png', obsRock2:'assets/elem/obsRock2.png',
+  obsWeed:'assets/elem/obsWeed.png', obsWeed2:'assets/elem/obsWeed2.png', obsWeed3:'assets/elem/obsWeed3.png',
+  obsBranch:'assets/elem/obsBranch.png', obsBush:'assets/elem/obsBush.png',
+  /* 装饰：盆栽家具(furniture.png) */
+  furnPlant1:'assets/elem/furnPlant1.png', furnPlant2:'assets/elem/furnPlant2.png', furnPlant3:'assets/elem/furnPlant3.png',
   coopB:'assets/elem/coopB.png', dock:'assets/elem/dock.png',
   palm:'assets/elem/palm.png', lantern:'assets/elem/lantern.png',
   gift1:'assets/elem/gift1.png', gift2:'assets/elem/gift2.png', gift3:'assets/elem/gift3.png',

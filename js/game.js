@@ -65,7 +65,7 @@ function buildWorld(){
   vline(g,29,7,10,'=');                       // 木栈道
   /* 农田 + 篱笆（底部留门，可跳跃） */
   rect(g,9,7,14,9,'P');
-  hline(g,8,15,6,'f'); hline(g,8,15,10,'f');     // 底部栅栏连成整体(中间不留缺口, 进出靠跳越)
+  hline(g,8,15,6,'f'); hline(g,8,10,10,'f'); hline(g,13,15,10,'f');   // 底部中间留门(x11-12)可走进去耕地
   vline(g,8,7,9,'f');  vline(g,15,6,12,'f');      // x15 右墙做农田/鸡舍「共用单层隔墙」(纵贯 y6-12)
   /* 鸡舍运动场（加大；鸡舍建筑在北侧, 围栏运动场内有 2 只鸡 + 宝箱, 跳进去） */
   hline(g,16,22,7,'f'); hline(g,16,22,12,'f');
@@ -184,6 +184,10 @@ const WDECOR = [
   /* 湖面小木船(浮在水面, 无碰撞) */
   {img:'rowboat', x:24.5*TILE, y:4*TILE,  boat:1},
   {img:'rowboat', x:32*TILE,   y:8.5*TILE,boat:1},
+  /* —— 盆栽家具(furniture.png 真素材, 无碰撞)：户外点缀 —— */
+  {img:'furnPlant1', x:1.4*TILE,  y:15.4*TILE},
+  {img:'furnPlant2', x:40*TILE,   y:13.6*TILE},
+  {img:'furnPlant3', x:38.4*TILE, y:24.4*TILE},
 ];
 /* 殿堂内对象：12 圆桌(左右各 6 桌 = 2 列×3 排, 对称) + 互动点 */
 const TABLE_POS=[
@@ -192,7 +196,7 @@ const TABLE_POS=[
   [2,16.5],[7,16.5],[18,16.5],[23,16.5],
 ];
 const HOBJ = {
-  piano:  {x:3*TILE,   y:3.6*TILE, w:46, h:30},
+  piano:  {x:1.3*TILE, y:3.0*TILE, w:46, h:30},
   tower:  {x:21.4*TILE,y:3.6*TILE, w:30, h:30},
   poleL:  {x:1*TILE,  y:18.6*TILE, w:24, h:18, img:'maypole'},
   poleR:  {x:24.6*TILE,y:18.6*TILE,w:24, h:18, img:'maypole'},
@@ -208,6 +212,9 @@ const HDECOR = [
   {img:'potB', x:16.0*TILE,y:6.4*TILE},
   {img:'potC', x:10.4*TILE,y:7.6*TILE},
   {img:'potC', x:14.4*TILE,y:7.6*TILE},
+  /* 盆栽家具(furniture.png)：背墙两角, 充实四周 */
+  {img:'furnPlant1', x:0.7*TILE,  y:4.8*TILE},
+  {img:'furnPlant2', x:25.2*TILE, y:4.8*TILE},
 ];
 /* —— 殿堂「四周」装饰：仅保留落地灯, 左右侧墙等距排布(去掉棕榈/窗/气球, 简洁) —— */
 /* 落地灯(lampPost 立灯, 暖光呼吸; [x,y] tile 坐标)；左 x0.5 右 x25.6, 各 4 盏, y 等距 4 格 */
@@ -273,10 +280,23 @@ const game = {
   fragGot:[],                   // 已收集碎片下标
   exhibitSeen:false,
   playerRole:'groom', time:0,
+  tool:3,                       // 当前选中工具下标(默认锄头), 见 TOOLS
 };
+/* 装备栏工具：镐子/镰刀/斧头/锄头(默认全装备)；用于清障与耕地 */
+const TOOLS = [
+  {key:'pickaxe', name:'镐子', clears:'rock',   icon:'toolPick'},
+  {key:'scythe',  name:'镰刀', clears:'weed',   icon:null},        // 镰刀无干净静态图标, 用程序化绘制
+  {key:'axe',     name:'斧头', clears:'branch', icon:'toolAxe'},
+  {key:'hoe',     name:'锄头', clears:null,     icon:'toolHoe'},
+];
+/* 路障可用的真素材精灵(paths.png), 按类型分组取变体 */
+const OBS_SPR = { rock:['obsRock','obsRock2'], weed:['obsWeed','obsWeed2','obsWeed3','obsBush'], branch:['obsBranch'] };
 /* 觅食灌木/野花 重生计时 */
 const forageT={}, pickedF={};
-const player  = {x:5.5*TILE, y:6.5*TILE, dir:'down', flip:false, moving:false, animT:0, frame:'A', frameI:0, z:0, vz:0};
+const player  = {x:5.5*TILE, y:6.5*TILE, dir:'down', flip:false, moving:false, animT:0, frame:'A', frameI:0, z:0, vz:0, over:null};
+/* 头顶展示：over={kind:'item'|'tool', icon/tool, t0, dur} —— 拾取举过头顶 / 使用工具挥舞 */
+function showOver(kind, val, dur){ player.over={kind, val, t0:game.time, dur:dur||1.2}; }
+function showGet(icon){ showOver('item', icon, 1.3); player.moving=false; }
 const partner = {x:30*TILE, y:27*TILE, scene:'world', dir:'down', flip:false, role:'bride', bob:0};
 const chickens = [
   {x:18*TILE, y:9*TILE,  dir:1, t:0, pause:false},
@@ -286,11 +306,32 @@ const chicken = chickens[0];   // talkChicken/near 以第一只母鸡为准
 /* 猫：状态机漫游(博物馆与邻居家之间的街角) + 喂食后跟随 */
 const cat = {x:29*TILE, y:21.6*TILE, homeX:29*TILE, homeY:21.6*TILE,
              tx:29*TILE, ty:21.6*TILE, state:'sit', t:2, flip:false, followT:0, animT:0, frame:0};
-const plots = {};               // "x,y"->{st:0空/1种/2浇, fert:0/1, t}
+/* 农田地块: till=耕地进度(0未耕→3全耕可种), st=0空/1已种/2已浇, fert, t */
+const plots = {};               // "x,y"->{till,st,fert,t}
 {
   const wg=SCENES.world.g;
   for(let y=0;y<SCENES.world.h;y++)for(let x=0;x<SCENES.world.w;x++)
-    if(wg[y][x]==='P') plots[x+','+y]={st:0,fert:0,t:0};
+    if(wg[y][x]==='P') plots[x+','+y]={till:0,st:0,fert:0,t:0};   // 初始未耕(草地), 需用锄头开垦
+}
+/* 路上的障碍物: "x,y"->{type:'rock'|'weed'|'branch'} —— 用对应工具(镐/镰/斧)清除后可通行
+ * 分布规则：在「路径及其两侧各 2 格」的带状区域内, 按确定性哈希随机散布(不连成墙),
+ * 且只落在空草地/路面上, 避开建筑/栅栏/水域/树木/邮箱/水井/各类装饰等现有元素。 */
+const obstacles = {};
+{
+  const s=SCENES.world, g=s.g, occ=new Set(), mk=(x,y)=>occ.add(x+','+y);
+  for(const b of BUILDINGS) for(let y=b.y-1;y<=b.y+b.h;y++)for(let x=b.x-1;x<=b.x+b.w;x++) mk(x,y);   // 建筑+门口
+  for(const k in WOBJ){const o=WOBJ[k]; mk((o.x/TILE)|0,(o.y/TILE)|0); mk(((o.x+o.w)/TILE)|0,((o.y+o.h)/TILE)|0);}
+  for(const d of WDECOR){const tx=((d.x+8)/TILE)|0, ty=(d.y/TILE)|0; for(let yy=ty-1;yy<=ty+1;yy++)for(let xx=tx-1;xx<=tx+1;xx++) mk(xx,yy);}
+  for(let y=4;y<=13;y++)for(let x=3;x<=23;x++) mk(x,y);    // 家/农田/鸡舍一带留白
+  for(let y=24;y<=31;y++)for(let x=24;x<=35;x++) mk(x,y);  // 花田(另一半所在)留白
+  const grassPath=t=>t==='.'||t===','||t===':';
+  const nearPath=(x,y)=>{ for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const r=g[y+dy]; if(r&&r[x+dx]===':')return true;} return false; };
+  const types=['rock','weed','branch'];
+  for(let y=2;y<s.h-2;y++)for(let x=2;x<s.w-2;x++){
+    if(occ.has(x+','+y)||!grassPath(g[y][x])||!nearPath(x,y)) continue;
+    const h=hash(x*131+7, y*197+13);
+    if(h%100 < 24){ const type=types[h%3], v=OBS_SPR[type]; obstacles[x+','+y]={type, spr:v[(h>>5)%v.length]}; }
+  }
 }
 
 /* ============================================================
@@ -330,6 +371,9 @@ addEventListener('keydown',e=>{
   keys[k]=true;
   if([' ','e','enter','z'].includes(k)){ if(!e.repeat) actA=true; holdA=true; }
   if(['x','shift'].includes(k)) actB=true;
+  if(['1','2','3','4'].includes(k)) selectTool(+k-1);
+  if(k==='q') selectTool(game.tool-1);
+  if(k==='r'||k==='tab'){ if(k==='tab')e.preventDefault(); selectTool(game.tool+1); }
 });
 addEventListener('keyup',e=>{
   const k=e.key.toLowerCase();
@@ -388,6 +432,7 @@ function solidAt(px,py,airborne){
   const t=tileAt(px,py);
   if(t==='T'||t==='W'||t==='~')return true;
   if((t==='f'||t==='B')&&!airborne)return true;   // 篱笆/开花灌木均可跳越
+  if(game.scene==='world'&&obstacles[(px/TILE|0)+','+(py/TILE|0)])return true;   // 未清除的障碍物
   for(const o of objList()) if(px>=o.x&&px<o.x+o.w&&py>=o.y&&py<o.y+o.h)return true;
   return false;
 }
@@ -467,7 +512,7 @@ function endFishing(ok){
       maybeFrag(1);
     });
   }else{
-    game.fishN++;
+    game.fishN++;showGet('🐟');
     toast(`钓到一条鱼！（背包 ${game.fishN} 条，可去杂货店卖掉）`);
     maybeFrag(.3);
     updateItemBar();
@@ -692,11 +737,18 @@ function drawTiles(){
     }
     else if(t==='P'){
       const key=tx+','+ty,pl=plots[key];
-      const watered=pl&&pl.st===2;
-      const soil=img(watered?'tilledWet':'tilled');
-      if(soil)ctx.drawImage(soil,px,py);
-      else{ ctx.fillStyle=watered?'#5b3a1e':'#8a5a2f';ctx.fillRect(px+1,py+1,14,14);
-        ctx.fillStyle='rgba(0,0,0,.15)';for(let i=0;i<3;i++)ctx.fillRect(px+2,py+3+i*4,12,1); }
+      const till=pl?pl.till:0, watered=pl&&pl.st===2;
+      /* 草地底（开垦前就是普通草地） */
+      ctx.fillStyle=(h%7<2)?'#55a04a':'#5fae52';ctx.fillRect(px,py,TILE,TILE);
+      if(h%11===0){ctx.fillStyle='#4c9342';ctx.fillRect(px+(h>>3)%12,py+(h>>5)%12,2,2);}
+      if(till>0){                                   // 耕地: hoeDirt 真素材, 随次数逐步变深
+        const hd=img('hoeDirt'), a=[0,0.42,0.72,1][till];
+        ctx.save(); ctx.globalAlpha=a;
+        if(hd)ctx.drawImage(hd, watered?80:0,0,16,16, px,py,16,16);
+        else{ ctx.fillStyle=watered?'#5b3a1e':'#8a5a2f';ctx.fillRect(px+1,py+1,14,14);
+          ctx.fillStyle='rgba(0,0,0,.18)';for(let i=0;i<3;i++)ctx.fillRect(px+2,py+3+i*4,12,1); }
+        ctx.restore();
+      }
       if(pl&&pl.fert){ctx.fillStyle='rgba(160,110,224,.5)';ctx.fillRect(px+2,py+2,3,3);ctx.fillRect(px+11,py+10,3,3);}
       if(pl&&pl.st>0){
         const stage=pl.st===1?0:Math.min(3,1+((game.time-pl.t)/(pl.fert?0.9:1.6)|0));
@@ -893,7 +945,7 @@ function drawChar(c,role,npc){
   if(npc){
     const byy=py-26+Math.sin(partner.bob*2.4)*1.5;
     ctx.fillStyle='#e0457b';ctx.fillRect(px+4,byy|0,2,2);ctx.fillRect(px+7,byy|0,2,2);ctx.fillRect(px+4,byy+2|0,5,2);ctx.fillRect(px+5,byy+4|0,3,1);
-  }
+  }else if(player.over) drawOverHead(c);
 }
 function drawTree(px,py,h){
   /* 三种树按位置哈希混栽：橡树/枫树/松树 */
@@ -904,6 +956,38 @@ function drawTree(px,py,h){
   ctx.fillStyle='#4c9b3c';ctx.fillRect(px,py-16,16,8);ctx.fillRect(px+2,py-18,12,4);
   ctx.fillStyle='#2f6b24';ctx.fillRect(px+2,py-6,4,3);ctx.fillRect(px+10,py-10,4,3);
   if(h%5===0){ctx.fillStyle='#ff7daa';ctx.fillRect(px+4,py-14,2,2);ctx.fillRect(px+11,py-9,2,2);}
+}
+/* 路障：石头(镐) / 草丛灌木(镰) / 树枝(斧)，paths.png 真素材, 底边对齐地块 */
+function drawObstacle(px,py,ob){
+  const im=img(ob.spr);
+  ctx.fillStyle='rgba(0,0,0,.20)';ctx.beginPath();ctx.ellipse(px+8,py+14,6,2.5,0,0,7);ctx.fill();
+  if(im){ ctx.drawImage(im, px, py); return; }
+  /* 回退(素材未加载)：简易程序化 */
+  if(ob.type==='rock'){ ctx.fillStyle='#8a8f9a';ctx.beginPath();ctx.ellipse(px+8,py+9,6,5,0,0,7);ctx.fill();ctx.fillStyle='#aab0bb';ctx.fillRect(px+5,py+5,4,3); }
+  else if(ob.type==='weed'){ ctx.fillStyle='#3f8a3c';for(const [bx,by,hh] of [[4,15,8],[7,15,11],[10,15,8]])ctx.fillRect(px+bx,py+by-hh,2,hh); }
+  else{ ctx.fillStyle='#7a4a2a';ctx.fillRect(px+2,py+11,12,3);ctx.fillStyle='#8c5a2b';ctx.fillRect(px+9,py+7,3,5); }
+}
+/* 头顶展示：拾取的物品(emoji)举过头顶 / 使用工具挥舞 */
+function drawOverHead(c){
+  const o=player.over; if(!o)return;
+  const t=(game.time-o.t0)/o.dur; if(t>=1){player.over=null;return;}
+  const px=c.x-cam.x|0, py=c.y-cam.y|0;
+  if(o.kind==='item'){
+    const rise=Math.min(1,t*4), bob=Math.sin(game.time*9)*1.5;
+    const cx=px+6, cy=py-14-rise*8+bob;
+    ctx.save();
+    ctx.fillStyle='rgba(255,255,255,.92)';ctx.beginPath();ctx.ellipse(cx,cy,11,11,0,0,7);ctx.fill();
+    ctx.strokeStyle='#8c4a16';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.font='13px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(o.val, cx, cy+1);
+    ctx.restore();
+  }else{ /* tool 挥舞：工具图标在头顶上方快速下挥 */
+    const ang=-1.1+Math.min(1,t*3)*1.9, cx=px+6, cy=py-12;
+    const tt=TOOLS.find(x=>x.key===o.val), ti=tt&&tt.icon&&img(tt.icon);
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);
+    if(ti)ctx.drawImage(ti,0,0,ti.width,ti.height,-8,-8,16,16); else drawToolIcon(ctx,-7,-7,o.val,14);
+    ctx.restore();
+  }
 }
 
 /* 程序化书架（始终完整, 木框+三层彩色书脊+顶部小物） */
@@ -1279,6 +1363,10 @@ function drawWorld(){
     ents.push({y:WOBJ.bush.y+14,draw:drawBush});
     ents.push({y:cat.y+12,draw:drawCat});
     chickens.forEach(ck=>ents.push({y:ck.y+12,draw:()=>drawChickenE(ck)}));
+    for(const key in obstacles){
+      const [ox,oy]=key.split(',').map(Number), ob=obstacles[key];
+      ents.push({y:oy*TILE+15,draw:()=>drawObstacle(ox*TILE-cam.x|0, oy*TILE-cam.y|0, ob)});
+    }
   }
   if(game.scene==='museum')drawMuseumInt(ents);
   if(game.scene==='hall')drawHallInt(ents);
@@ -1354,6 +1442,13 @@ function loop(t){
   if(lastW!==_r.width||lastH!==_r.height){resize();updateCam();}
   update(dt);
   if(game.mode!=='title'){ctx.clearRect(0,0,VW,VH);drawWorld();}
+  /* 装备栏：首帧渲染(并在 slotBox 素材加载完成后重渲一次)，仅户外游玩时显示 */
+  const tb=document.getElementById('toolBar');
+  if(tb){
+    if(!tb._init||(!tb._img&&img('slotBox'))){renderToolbar();tb._init=1;tb._img=!!img('slotBox');}
+    const show=game.mode==='play'&&game.scene==='world';
+    if(tb._show!==show){tb.style.display=show?'flex':'none';tb._show=show;}
+  }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -1683,6 +1778,46 @@ function updateItemBar(){
   if(game.fishQ)chips.push(`💞鱼`);
   bar.innerHTML=chips.map(c=>`<span class="chip">${c}</span>`).join('');
 }
+/* —— 装备栏(工具) —— */
+/* 在任意 canvas 上下文里画一个工具图标(以 16 单元为基准, 缩放到 size) */
+function drawToolIcon(g,x,y,key,size){
+  const s=size/16, R=(a,b,w,h)=>g.fillRect(x+a*s|0,y+b*s|0,Math.max(1,Math.round(w*s)),Math.max(1,Math.round(h*s)));
+  if(key==='hoe'){
+    g.fillStyle='#9a6a3a';R(7,3,2,11); g.fillStyle='#7a4a2a';R(7,3,1,11);
+    g.fillStyle='#8a8f9a';R(4,2,7,3); g.fillStyle='#b8bdc8';R(4,2,7,1);
+  }else if(key==='pickaxe'){
+    g.fillStyle='#9a6a3a';R(7,5,2,9); g.fillStyle='#7a4a2a';R(7,5,1,9);
+    g.fillStyle='#8a8f9a';R(2,4,12,2);R(2,4,2,2);R(12,4,2,2);R(3,6,2,1);R(11,6,2,1);
+    g.fillStyle='#b8bdc8';R(2,4,12,1);
+  }else if(key==='axe'){
+    g.fillStyle='#9a6a3a';R(6,3,2,11); g.fillStyle='#7a4a2a';R(6,3,1,11);
+    g.fillStyle='#8a8f9a';R(7,2,6,6); g.fillStyle='#b8bdc8';R(7,2,6,1); g.fillStyle='#6b7079';R(7,7,6,1);
+  }else{ /* scythe 镰刀 */
+    g.fillStyle='#9a6a3a';R(5,4,2,10); g.fillStyle='#7a4a2a';R(5,4,1,10);
+    g.fillStyle='#cfd4dc';R(5,3,8,2);R(11,4,2,3);R(12,6,1,2); g.fillStyle='#eef1f5';R(5,3,8,1);
+  }
+}
+function renderToolbar(){
+  const bar=document.getElementById('toolBar'); if(!bar)return;
+  bar.innerHTML='';
+  TOOLS.forEach((t,i)=>{
+    const slot=document.createElement('div');
+    slot.className='tool-slot'+(i===game.tool?' sel':'');
+    const cv=document.createElement('canvas'); cv.width=cv.height=40;
+    const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
+    const sb=img('slotBox');
+    if(sb)g.drawImage(sb,0,0,sb.width,sb.height,0,0,40,40);
+    else{ g.fillStyle='#7a3b16';g.fillRect(0,0,40,40); g.fillStyle='#e8943a';g.fillRect(3,3,34,34); g.fillStyle='#ffd9a8';g.fillRect(6,6,28,28); }
+    const ti=t.icon&&img(t.icon);
+    if(ti)g.drawImage(ti,0,0,ti.width,ti.height,8,8,24,24); else drawToolIcon(g,10,9,t.key,22);
+    slot.appendChild(cv);
+    slot.appendChild(Object.assign(document.createElement('span'),{className:'tname',textContent:t.name}));
+    slot.onclick=()=>selectTool(i);
+    bar.appendChild(slot);
+  });
+}
+function selectTool(i){ game.tool=((i%TOOLS.length)+TOOLS.length)%TOOLS.length; renderToolbar(); sfx&&sfx('blip'); }
+function curTool(){ return TOOLS[game.tool]; }
 function maybeFrag(prob,after){
   const left=RT.frags.map((f,i)=>i).filter(i=>!game.fragGot.includes(i));
   if(!left.length||Math.random()>prob){after&&after();return;}
@@ -1739,6 +1874,8 @@ function interact(){
     if(partner.scene==='world'&&near(partner,22))return talkPartner();
     if(near(chicken,18))return talkChicken();
     if(near(cat,20))return talkCat();
+    /* 路障：面前有石头/杂草/树枝 → 用对应工具清除 */
+    { const okey=(fx/TILE|0)+','+(fy/TILE|0); if(obstacles[okey])return clearObstacle(okey); }
     if(inRect(fx,fy,WOBJ.mailbox,8)||inRect(player.x+6,player.y+12,WOBJ.mailbox,10))return openMailbox();
     if(inRect(fx,fy,WOBJ.chest,8))return openChest();
     if(inRect(fx,fy,WOBJ.well,8))return useWell();
@@ -1819,7 +1956,7 @@ function forageBush(tx,ty){
     return startDialog([{who:'me',text:'这丛灌木刚被薅过，过一会儿再来吧。'}]);
   if(game.feed>=5)return toast('谷粒袋满了（5/5），先去喂鸡吧');
   forageT[key]=game.time;
-  game.feed++;sfx('plant');updateItemBar();
+  game.feed++;sfx('plant');updateItemBar();showGet('🌾');
   toast(`🌾 在灌木丛里翻到一把谷粒（${game.feed}/5）· 可以去喂鸡`);
 }
 /* —— 野花采摘：可卖钱 —— */
@@ -1829,7 +1966,7 @@ function pickFlower(tx,ty){
     return toast('这一株刚被摘过，等它再开');
   if(game.flowers>=9)return toast('野花已经抱不下了（9/9），去杂货店卖掉些吧');
   pickedF[key]=game.time;
-  game.flowers++;sfx('plant');updateItemBar();
+  game.flowers++;sfx('plant');updateItemBar();showGet('🌼');
   flyHearts(innerWidth/2,innerHeight/2,1);
   toast(`🌼 摘下一朵野花（${game.flowers}/9）· 杂货店收购 2金/朵`);
 }
@@ -1851,7 +1988,7 @@ function useWell(){
   /* 任务获取水壶：TA 把水壶忘在了井边 */
   if(!game.hasCan){
     if(game.quest<1)return startDialog([{who:'me',text:'井边挂着一只旧水壶…是 TA 的。先去花田找 TA 吧。'}]);
-    game.hasCan=true;game.water=3;sfx('harvest');updateItemBar();
+    game.hasCan=true;game.water=3;sfx('harvest');updateItemBar();showGet('🪣');
     return startDialog([{who:'me',text:'井边果然挂着 TA 说的那只旧水壶！壶身上还刻着我们俩的名字缩写。'}],()=>{
       toast('🏆 获得 <b style="color:#7dc4ff">刻字水壶</b>（已接满 3 格水）');
       setQuest(1);
@@ -1948,7 +2085,7 @@ function talkChicken(){
            {who:'chicken',text:'咯咯咯咯——！（它欢快地啄食谷粒，然后神圣地蹲下…）'},
            {who:'me',text:'它下蛋了！热乎的！'});
          dlg.onDoneExtra=()=>{
-           game.eggs++;sfx('harvest');updateItemBar();
+           game.eggs++;sfx('harvest');updateItemBar();showGet('🥚');
            toast('🥚 获得鸡蛋 ×1（可以送TA、喂猫、或卖4金）');
          };
        }else if(label.startsWith('「咯咯哒？')){
@@ -1987,13 +2124,29 @@ function openMailbox(){
   }else startDialog([{who:'me',text:'信已经收好啦。'}]);
 }
 
+/* —— 清除路障(石头/杂草/树枝) —— */
+function clearObstacle(key){
+  const ob=obstacles[key], tool=curTool();
+  const cn={rock:'石头',weed:'杂草',branch:'树枝'}[ob.type];
+  const need={rock:'镐子',weed:'镰刀',branch:'斧头'}[ob.type];
+  if(tool.clears!==ob.type){ sfx('blip'); return toast(`这是${cn}，需要用「${need}」清除（点底部装备栏切换工具）`); }
+  showOver('tool', tool.key, 0.5); sfx('harvest');
+  delete obstacles[key];
+  toast(`🧹 用${need}清除了${cn}，路通了！`);
+}
 /* —— 农务 —— */
 function farmAction(key){
   const p=plots[key];
   if(game.quest<1)return startDialog([{who:'me',text:'先去花田找 TA 吧（跟着金色箭头）。'}]);
+  /* 0) 开垦：用锄头多次翻土, 逐步变深, 第 3 下成可种地块 */
+  if(p.till<3){
+    if(curTool().key!=='hoe'){ sfx('blip'); return toast('这块地还没开垦——请选「锄头」翻土（点底部装备栏切换）'); }
+    p.till++; showOver('tool','hoe',0.5); sfx('plant');
+    return toast(p.till>=3?'🟫 翻好一块松软的地！现在可以播种了':`⛏ 翻土中…（${p.till}/3，再用锄头翻几下）`);
+  }
   if(p.st===0){
     if(game.seeds<=0)return startDialog([{who:'me',text:'没有种子了。杂货店有卖（3 金币一颗）。'}]);
-    game.seeds--;p.st=1;p.fert=0;sfx('plant');updateItemBar();
+    game.seeds--;p.st=1;p.fert=0;sfx('plant');updateItemBar();showGet('🌱');
     toast(`🌱 种下向日葵种子（剩 ${game.seeds}）· 浇灌它吧`);
   }else if(p.st===1){
     if(!game.hasCan)return startDialog([{who:'me',text:'还没有水壶。TA 说忘在水井边了，去拿吧（跟着箭头）。'}]);
@@ -2011,7 +2164,7 @@ function farmAction(key){
       sfx('blip');return toast(p.fert?'金灿灿的，马上就熟！':'长得很好，再等等…（杂货店的肥料可加速）');
     }
     const golden=p.fert===1;
-    p.st=0;p.fert=0;game.fruits++;sfx('harvest');
+    p.st=0;p.fert=0;game.fruits++;sfx('harvest');showGet(golden?'🌟':'🌻');
     flyHearts(innerWidth/2,innerHeight/2,3);
     toast(`🌻 收获${golden?'「金色」':''}向日葵！（${game.fruits}/3）`);
     updateItemBar();
@@ -2064,14 +2217,14 @@ overlayInner.addEventListener('click',e=>{
   const buy=b.dataset.buy, sell=b.dataset.sell;
   if(buy==='seed'){
     if(game.coins<3)return toast('金币不够…卖点鸡蛋/野花/鱼吧');
-    game.coins-=3;game.seeds++;sfx('coin');toast('购买成功：向日葵种子 +1');
+    game.coins-=3;game.seeds++;sfx('coin');showGet('🌱');toast('购买成功：向日葵种子 +1');
   }else if(buy==='fert'){
     if(game.coins<5)return toast('金币不够…卖点鸡蛋/野花/鱼吧');
     game.coins-=5;game.fert++;sfx('coin');toast('购买成功：魔法肥料 +1');
   }else if(buy==='rod'){
     if(game.rod)return toast('已经有鱼竿了');
     if(game.coins<12)return toast(`还差 ${12-game.coins} 金币…喂鸡下蛋、采野花都能换钱`);
-    game.coins-=12;game.rod=true;sfx('quest');toast('🎣 购得鱼竿！再备点鱼饵就能开钓');
+    game.coins-=12;game.rod=true;sfx('quest');showGet('🎣');toast('🎣 购得鱼竿！再备点鱼饵就能开钓');
   }else if(buy==='bait'){
     if(game.coins<2)return toast('金币不够…卖点东西吧');
     game.coins-=2;game.bait++;sfx('coin');toast('购买成功：鱼饵 +1');
