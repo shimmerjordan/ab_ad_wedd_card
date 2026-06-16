@@ -19,9 +19,20 @@ function showOverlay(html,onClose,btnText){
     cb&&cb();
   };
 }
+/* 联系方式：手机→tel: / 邮箱→mailto:，留空的不显示(支持多人) */
+function contactsText(){
+  const rows=(CONFIG.contacts||[]).map(p=>{
+    const bits=[];
+    if(p.phone) bits.push(`<a href="tel:${esc(p.phone)}" style="color:inherit">${esc(p.phone)}</a>`);
+    if(p.email) bits.push(`<a href="mailto:${esc(p.email)}" style="color:inherit">✉ ${esc(p.email)}</a>`);
+    return bits.length ? (p.label?esc(p.label)+'　':'')+bits.join('　') : '';
+  }).filter(Boolean);
+  return rows.join('<br>') || '—';
+}
 function coupleHTML(){
-  return `<h3>♥ 新人介绍 ♥</h3>
-  <div class="couple-row">
+  return `<h3>♥ 新人介绍 ♥</h3>`+
+  (CONFIG.couplePhoto?`<div class="couple-photo"><img src="${esc(resolveImg(CONFIG.couplePhoto))}" alt="合照"></div>`:'')+
+  `<div class="couple-row">
     <div><div class="frame"><canvas class="pcg" width="64" height="64"></canvas></div>
       <div class="nm">${CONFIG.groom}</div><div class="ds">${CONFIG.groomDesc}</div></div>
     <span class="px-heart"></span>
@@ -34,7 +45,7 @@ function infoHTML(){
   <div class="info-row"><div class="info-ico">日</div><div>${CONFIG.dateDetail}</div></div>
   <div class="info-row"><div class="info-ico">时</div><div>${CONFIG.timeDetail}</div></div>
   <div class="info-row"><div class="info-ico">地</div><div>${CONFIG.place}</div></div>
-  <div class="info-row"><div class="info-ico">话</div><div>${CONFIG.phone}</div></div>
+  <div class="info-row"><div class="info-ico">系</div><div>${contactsText()}</div></div>
   <div class="countdown" data-cd="1">
     <div class="cd-cell"><b class="cdD">--</b><span>天</span></div>
     <div class="cd-cell"><b class="cdH">--</b><span>时</span></div>
@@ -73,20 +84,17 @@ function posterHeroHTML(){
     <img class="poster-sign" src="assets/elem/wedSign.png" alt="WEDDING INVITATION">
   </div>
   <div class="poster-sub">❀ ${esc(CONFIG.groom)} &amp; ${esc(CONFIG.bride)} 的${esc(CONFIG.eventName||'婚礼')}请帖 ❀</div>
-  <div class="arch-scene">
-    <img class="arch-cloud l" src="assets/elem/svCloud.png" alt="">
-    <img class="arch-cloud r" src="assets/elem/svCloud.png" alt="">
-    <div class="arch-top"></div>
-    <img class="arch-vine l" src="assets/elem/hangVine.png" alt="">
-    <img class="arch-vine r" src="assets/elem/hangVine.png" alt="">
-    <img class="arch-sun l" src="assets/elem/sunflower.png" alt="">
-    <img class="arch-sun r" src="assets/elem/sunflower.png" alt="">
-    <div class="arch-stage">
-      <canvas class="arch-ch" data-role="groom" width="16" height="32"></canvas>
-      <span class="px-heart"></span>
-      <canvas class="arch-ch" data-role="bride" width="16" height="32"></canvas>
-      <canvas class="arch-cat" width="64" height="64"></canvas>
+  <div class="hero-photo">
+    <div class="hero-frame">
+      ${CONFIG.archPhoto
+        ? `<img src="${esc(resolveImg(CONFIG.archPhoto))}" alt="主婚纱照">`
+        : `<div class="hero-ph"><span class="o">❀</span><span class="t">主婚纱照</span></div>`}
     </div>
+    <img class="hero-garland" src="assets/elem/garland.png" alt="">
+    <img class="hero-vine l" src="assets/elem/hangVine.png" alt="">
+    <img class="hero-vine r" src="assets/elem/hangVine.png" alt="">
+    <img class="hero-sun l" src="assets/elem/sunflower.png" alt="">
+    <img class="hero-sun r" src="assets/elem/sunflower.png" alt="">
   </div>
   <div class="chat-wrap">
     <div class="chat-bubble"><canvas class="chat-ava" data-port="groom" width="64" height="64"></canvas><div>${esc((CONFIG.posterLines||[])[0]||'')}</div></div>
@@ -105,11 +113,9 @@ function couplePosterHTML(){
       <div class="nm">${esc(CONFIG.bride)}</div><div class="ds">${CONFIG.brideDesc}</div></div>
   </div>`;
 }
-/* 海报内全部像素画布上色：相框肖像 + 拱门下新人立绘 + 小猫 + 气泡头像 */
+/* 海报内像素画布上色：相框肖像 + 气泡头像（主婚纱照用真实图片，不再用立绘拼接） */
 function drawPosterArt(){
   drawOverlayPortraits();
-  document.querySelectorAll('.arch-ch').forEach(c=>titleCardInto(c,c.dataset.role));
-  document.querySelectorAll('.arch-cat').forEach(c=>portraitInto(c,'cat'));
   document.querySelectorAll('.chat-ava[data-port]').forEach(c=>portraitInto(c,c.dataset.port));
   const rb=document.getElementById('rsvpBtn'); if(rb) rb.onclick=openRsvp;
 }
@@ -118,11 +124,10 @@ function rsvpHTML(){
   const r=CONFIG.rsvp||{};
   const inner = r.url
     ? `<button class="sdv-btn rsvp-btn" id="rsvpBtn">📝 填写回执 ▶</button>
-       <div class="rsvp-hint">约 30 秒 · 免登录 · 提交后我们会收到</div>`
-    : `<div class="rsvp-setup">尚未配置：在 <b>js/config.js → rsvp.url</b> 填入你的
-       金数据 / 腾讯问卷 / 问卷星 表单链接，这里就会出现「填写回执」按钮。</div>`;
+       <div class="rsvp-hint">约 30 秒 · 免登录 · 提交后我们即可收到</div>`
+    : `<div class="rsvp-setup">在 <b>js/config.js → rsvp.url</b> 填入问卷链接后，这里会出现「填写回执」按钮。</div>`;
   return `<div class="rsvp-card">
-    <div class="rsvp-title">📝 ${esc(r.title||'婚礼回执 · RSVP')}</div>
+    <div class="rsvp-title">📮 ${esc(r.title||'婚礼回执 · RSVP')}</div>
     <div class="rsvp-desc">${r.desc||'麻烦填一下：贵姓 · 来宾人数 · 祝福（选填）'}</div>
     ${inner}
   </div>`;

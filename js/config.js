@@ -3,9 +3,9 @@
  *
  * ┌──────────────────────────────────────────────────────────┐
  * │ 复用提示：换一场宴席(如去女方家办「答谢宴」)，只需改本文件！  │
- * │ ① 核心信息区：eventName / 姓名 / 日期时间 / 地点 / 电话 /     │
- * │    weddingISO(倒计时) / rsvp(问卷链接) / 邀请函 / 当日流程 /  │
- * │    海报对白 —— 全部集中在下面，逐项改即可。                   │
+ * │ ① 核心信息区：eventName / 姓名 / weddingISO(时间→倒计时+日期) │
+ * │    / 农历 / 地点 / contacts(手机·邮箱) / 头像合照 / rsvp /    │
+ * │    邀请函 / 当日流程 / 海报对白 —— 全部集中在下面，逐项改即可。 │
  * │ ② 博物馆展品 / 桌位表 / 记忆碎片：游戏内 ⚙设置 → 连点版本号    │
  * │    10 下进入 DEBUG 可视化配置（也可在本文件末尾改默认值）。     │
  * └──────────────────────────────────────────────────────────┘
@@ -15,16 +15,26 @@ const GITHUB_URL = 'https://github.com/shimmerjordan/ab_ad_wedd_card';
 const CONFIG = {
   /* —— ① 核心信息（复用改这里）—— */
   eventName: '婚礼',                  // 场合名：婚礼 / 答谢宴 …（用于「✦XX信息✦」「…的XX请帖」等标题）
-  groom: '新郎名字',
-  bride: '新娘名字',
+  groom: '鞠桥丹',
+  bride: '赵芮晨',
   groomDesc: '鹈鹕镇农场主<br>擅长种地与钓鱼',
   brideDesc: '小镇图书馆常客<br>最爱的礼物是向日葵',
-  dateText: '2026 . 10 . 01',
-  dateDetail: '2026 年 10 月 1 日（星期四）<br>农历八月廿一',
-  timeDetail: '上午 11 : 08 准时开席',
-  place: '某某市某某区<br>幸福大酒店 · 二楼宴会厅',
-  phone: '新郎 138-0000-0000<br>新娘 139-0000-0000',
-  weddingISO: '2026-10-01T11:08:00+08:00',
+  /* —— 时间·地点（只填 weddingISO + 农历/后缀；日期、星期、上午/下午全自动推导，避免重复维护）—— */
+  weddingISO: '2026-09-19T11:08:00+08:00',  // ★婚礼准确时间(含时区)：驱动倒计时 + 自动生成日期/时间显示
+  lunar: '农历八月初九',                      // 农历(选填，留空则不显示)
+  timeNote: '准时开席',                       // 时间后缀(选填，如「准时开席」)
+  place: '江苏省镇江市京口区禾嘉·禧宴大酒店（丁卯店） · 二楼梦幻城堡厅',
+  /* —— 联系方式：手机 / 邮箱按需各自填，留空的不显示；可加更多人 —— */
+  contacts: [
+    {label:'新郎', phone:'', email:'shimmeradan@foxmail.com'},
+    {label:'新娘', phone:'', email:'476906052@qq.com'},
+  ],
+  /* —— 图片：本地把文件放 assets/imgs/ 只填文件名(如 合照.jpg)，或直接填图床URL(https://…)；留空=用默认像素头像 —— */
+  groomAvatar: '',   // 星露谷版·新郎头像（相框/对话气泡）
+  brideAvatar: '',   // 星露谷版·新娘头像
+  couplePhoto: '',   // 星露谷版·「新人介绍」处的合照
+  archPhoto:   '',   // 星露谷版·请帖顶部「主婚纱照」(竖版)，嵌在木质相框+花藤里（留空=显示占位框）
+  luxHero:     '',   // 老登版·开头的主婚纱照（留空=不显示）
   /* 海报顶部·两句对白气泡（新郎、新娘各一句） */
   posterLines: ['人生从此，将展开新的一页 ❀', '……而往后的路，必定是光明的！'],
   /* 「典雅请帖」专用邀请词（低调奢华版；留空则沿用上面的 letterHTML） */
@@ -44,7 +54,7 @@ const CONFIG = {
     url: 'https://v.wjx.cn/vm/Y1KBzEx.aspx',       // 问卷星表单
     embed: false,                    // 问卷星禁止内嵌 → 新窗口打开
     title: '婚礼回执 · RSVP',
-    desc: '为方便安排席位与餐食，麻烦花 30 秒填一下：<br><b>贵姓 · 来宾人数 · 想对我们说的话（选填）</b>',
+    desc: '为方便安排席位与餐食，麻烦花 30 秒填一下：<br><b>贵姓 · 来宾人数 · 住宿需求</b>',
     nameParam: '',                   // 可留空；如金数据填类似 "field_1" 之类的字段参数名
   },
   letterHTML: `亲爱的朋友：<br><br>
@@ -92,11 +102,23 @@ const CONFIG = {
     {text:'记忆碎片 · 领证那天，工作人员说「你们是今天笑得最傻的一对」。', img:''},
     {text:'记忆碎片 · 第一次一起做饭，糊了锅，烟雾报警器都看不下去了。', img:''},
   ],
-  /* 婚礼殿堂里的婚纱照展板：图片填 assets/imgs/ 下的文件名(如 婚纱照1.jpg)，DEBUG 可视化配置 */
+  /* 婚纱照（★老登版画廊 + 星露谷殿堂展板 共用）：
+   *  img 填 assets/imgs/ 下的文件名(如 婚纱照1.jpg)，或直接填图床URL(https://…)；也可在 DEBUG 里可视化配置。 */
   hallPhotos: [
-    {title:'婚纱照 · 一', text:'把你们最好看的合照放进 assets/imgs/，在 DEBUG 里填文件名即可。', img:''},
+    {title:'婚纱照 · 一', text:'把你们最好看的合照放进 assets/imgs/(或填图床URL)。', img:''},
     {title:'婚纱照 · 二', text:'每一张都是我们的故事。', img:''},
     {title:'婚纱照 · 三', text:'愿往后岁月，皆如此刻。', img:''},
     {title:'婚纱照 · 四', text:'谢谢你陪我走到这里。', img:''},
   ],
 };
+/* —— 由 weddingISO + lunar + timeNote 自动推导显示用字段（无需手填，杜绝重复/不一致）—— */
+(function deriveDateTime(){
+  const m=/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(CONFIG.weddingISO||'');
+  if(!m){ CONFIG.dateText=CONFIG.dateText||''; CONFIG.dateDetail=CONFIG.dateDetail||''; CONFIG.timeDetail=CONFIG.timeDetail||''; return; }
+  const Y=m[1],Mo=m[2],D=m[3],h=+m[4],Mi=m[5];
+  const wd='日一二三四五六'[new Date(+Y,+Mo-1,+D).getDay()];
+  const ap=h<12?'上午':h<18?'下午':'晚上', h12=((h+11)%12)+1;
+  CONFIG.dateText   = `${Y} . ${Mo} . ${D}`;
+  CONFIG.dateDetail = `${Y} 年 ${+Mo} 月 ${+D} 日（星期${wd}）` + (CONFIG.lunar?`<br>${CONFIG.lunar}`:'');
+  CONFIG.timeDetail = `${ap} ${h12} : ${Mi}` + (CONFIG.timeNote?` ${CONFIG.timeNote}`:'');
+})();

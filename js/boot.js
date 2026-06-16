@@ -345,6 +345,9 @@ function buildLux(){
       <h1 class="lux-names">${esc(c.groom)}<span class="amp">&amp;</span>${esc(c.bride)}</h1>
       <div class="lux-date">${esc(c.dateText)}</div>
       <div class="lux-divider"><span>❦</span></div>
+      <div class="lux-hero-photo">${c.luxHero
+        ? `<img src="${esc(resolveImg(c.luxHero))}" alt="">`
+        : `<div class="lux-hero-ph"><span class="orn">❦</span><span class="t">主 婚 纱 照</span></div>`}</div>
     </header>
     <section class="lux-sec reveal"><p class="lux-letter">${c.luxLetter||c.letterHTML}</p>
       <div class="lux-sign">— ${esc(c.groom)} &amp; ${esc(c.bride)} 敬上</div></section>
@@ -354,7 +357,7 @@ function buildLux(){
         <div class="lux-row"><span class="lux-lab">日期</span><span class="lux-val">${c.dateDetail}</span></div>
         <div class="lux-row"><span class="lux-lab">时间</span><span class="lux-val">${c.timeDetail}</span></div>
         <div class="lux-row"><span class="lux-lab">地点</span><span class="lux-val">${c.place}</span></div>
-        <div class="lux-row"><span class="lux-lab">联系</span><span class="lux-val">${c.phone}</span></div>
+        <div class="lux-row"><span class="lux-lab">联系</span><span class="lux-val">${contactsText()}</span></div>
       </div>
       <div class="countdown lux-cd" data-cd="1">
         <div class="cd-cell"><b class="cdD">--</b><span>天</span></div>
@@ -419,3 +422,6 @@ if(_q.get('show'))setTimeout(()=>{
   else if(s==='settings')openSettings();
   else if(s==='fish')startFishing();
 },650);
+
+/* —— 所有模块就绪后启动主循环 —— */
+requestAnimationFrame(loop);

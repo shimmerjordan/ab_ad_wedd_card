@@ -90,12 +90,9 @@ function drawMuseumInt(ents){
   }});
 }
 /* 婚纱照懒加载缓存(图片在 assets/imgs/, 不在素材清单里) */
-const _photoCache={};
 function hallPhotoImg(idx){
   const o=RT.hallPhotos&&RT.hallPhotos[idx]; if(!o||!o.img) return null;
-  const src=resolveImg(o.img);
-  let im=_photoCache[src];
-  if(!im){ im=new Image(); im._ok=false; im.onload=()=>{im._ok=true;}; im.onerror=()=>{im._ok=false;}; im.src=src; _photoCache[src]=im; }
+  const im=loadPhoto(resolveImg(o.img));   // 共享缓存(assets.js)
   return im._ok?im:null;
 }
 /* 立式婚纱照展板(木相框+画架腿; 有图显示缩略图, 无图显示爱心占位) */

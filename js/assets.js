@@ -155,6 +155,13 @@ function portraitInto(canvas, who){
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,canvas.width,canvas.height);
   if(who==='groom'||who==='bride'){
+    /* 自定义头像(config.groomAvatar/brideAvatar：assets/imgs 文件名或图床URL)优先 */
+    const custom=who==='groom'?CONFIG.groomAvatar:CONFIG.brideAvatar;
+    if(custom){
+      const cim=loadPhoto(resolveImg(custom));
+      if(cim._ok){ coverDraw(c,cim,0,0,canvas.width,canvas.height); return; }
+      cim.addEventListener('load',()=>portraitInto(canvas,who),{once:true});   // 加载完成后重绘
+    }
     const im=img(who==='groom'?'portGroom':'portBride');
     if(im){ c.drawImage(im,0,0,64,64,0,0,64,64); return; }
     c.save(); c.translate(4,0); c.scale(4,4);
@@ -186,4 +193,17 @@ function resolveImg(v){
   if(!v) return '';
   if(/^(https?:|data:|\.{0,2}\/)/.test(v)) return v;
   return 'assets/imgs/'+v;
+}
+/* 个人照片(头像/合照/婚纱照)统一缓存加载；带 _ok 标记 */
+const _photoCache={};
+function loadPhoto(src){
+  let im=_photoCache[src];
+  if(!im){ im=new Image(); im._ok=false; im.onload=()=>im._ok=true; im.onerror=()=>im._ok=false; im.src=src; _photoCache[src]=im; }
+  return im;
+}
+/* 等比裁剪铺满目标矩形(cover) */
+function coverDraw(c,im,x,y,w,h){
+  const s=Math.max(w/im.width,h/im.height), sw=w/s, sh=h/s;
+  c.imageSmoothingEnabled=true;
+  c.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh, x,y,w,h);
 }

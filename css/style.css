@@ -259,6 +259,10 @@ canvas{image-rendering:pixelated;display:block}
 .letter-paper .sign{text-align:right;margin-top:10px;color:#8a5a2b}
 .letter-ico{text-align:center;font-size:15px;letter-spacing:6px;opacity:.92;margin:2px 0 8px}
 .letter-ico:last-child{margin:10px 0 2px}
+/* 合照（新人介绍处，可选）：木金双框居中 */
+.couple-photo{text-align:center;margin:10px 0 4px}
+.couple-photo img{max-width:78%;max-height:200px;border:3px solid #8c4a16;border-radius:4px;
+  box-shadow:inset 0 0 0 3px #e0b44a,0 4px 0 rgba(0,0,0,.2);image-rendering:auto;background:#fff}
 .couple-row{display:flex;justify-content:center;gap:8px;align-items:center;margin:8px 0 4px}
 /* 新人相框：金木双框, 四角点缀(参考星露谷请帖相框) */
 .couple-row .frame{background:#fff;border:3px solid #8c4a16;border-radius:4px;padding:7px;position:relative;
@@ -290,9 +294,11 @@ canvas{image-rendering:pixelated;display:block}
 
 /* ============ 完整请帖 · 海报版 ============ */
 /* 整张请帖以 stardewPanorama 作背景(固定铺底, 卡片透出); 卡片本身透明只留外框 */
-#overlayCard:has(.poster){background:#bfe6f3;
-  box-shadow:inset 0 0 0 4px var(--orange), 0 6px 0 rgba(0,0,0,.25)}
-.poster{margin:-6px -2px 0;padding:8px 4px 2px;border-radius:4px;
+/* 请帖整体用 _5 花藤边框(border-image 九宫格)；面板内透出 panorama */
+#overlayCard:has(.poster){background:#f6e2b8;border-radius:0;
+  border:26px solid transparent;border-image:url('../assets/elem/frameOrnate.png') 96 / 26px stretch;
+  box-shadow:0 8px 0 rgba(0,0,0,.3)}
+.poster{margin:0;padding:6px 2px 2px;border-radius:2px;
   background:url('../assets/elem/panorama.png') center top/cover fixed}
 /* 顶部天空带：木牌「悬」在星露谷天空中(背景直接用 panorama 天空) */
 .poster-sky{position:relative;overflow:hidden;margin:-4px -2px 6px;padding:12px 10px 8px;border-radius:8px;
@@ -303,26 +309,25 @@ canvas{image-rendering:pixelated;display:block}
 .poster-sign{position:relative;z-index:1;display:block;width:100%;max-width:340px;margin:0 auto;
   image-rendering:auto;filter:drop-shadow(0 3px 0 rgba(0,0,0,.18))}
 .poster-sub{font-size:12px;letter-spacing:2px;color:#a3572b;margin:8px 0 12px;text-align:center}
-/* 花拱门·新人合影场景：天空→草地渐变，花藤垂顶，向日葵夹道，新人居中 */
-.arch-scene{position:relative;overflow:hidden;margin:0 0 14px;padding:0;
-  border:4px solid var(--wood-dark);border-radius:6px;
-  background:linear-gradient(180deg,#bfe8f5 0%,#cfeef0 46%,#8ace6c 47%,#6cb44d 100%);
-  box-shadow:inset 0 0 0 3px rgba(255,255,255,.22), 0 4px 0 rgba(0,0,0,.18);}
-.arch-cloud{position:absolute;image-rendering:pixelated;pointer-events:none;opacity:.8;z-index:0}
-.arch-cloud.l{width:64px;top:0;left:-12px}
-.arch-cloud.r{width:48px;top:6px;right:-6px}
-.arch-top{position:relative;z-index:1;height:30px;background:url('../assets/elem/garland.png') repeat-x center/auto 100%;
-  image-rendering:pixelated;filter:drop-shadow(0 2px 0 rgba(0,80,0,.18))}
-.arch-stage{position:relative;display:flex;justify-content:center;align-items:flex-end;gap:4px;
-  min-height:104px;padding:6px 60px 8px}
-.arch-ch{width:48px;height:96px;image-rendering:pixelated}
-.arch-cat{width:42px;height:42px;image-rendering:pixelated}
-.arch-stage .px-heart{align-self:center;margin-bottom:30px}
-.arch-vine{position:absolute;top:30px;height:84px;image-rendering:pixelated;opacity:.95}
-.arch-vine.l{left:8px}.arch-vine.r{right:8px;transform:scaleX(-1)}
-.arch-sun{position:absolute;bottom:-4px;height:66px;image-rendering:pixelated;
-  filter:drop-shadow(0 2px 0 rgba(0,60,0,.2))}
-.arch-sun.l{left:2px}.arch-sun.r{right:2px;transform:scaleX(-1)}
+/* 主婚纱照：_6 木质相框(border-image 九宫格)居中，四周用 _11 花环/垂藤/向日葵装饰(完整露出不裁切) */
+.hero-photo{position:relative;display:flex;justify-content:center;align-items:flex-start;
+  margin:4px 0 20px;padding:14px 10px 24px}
+.hero-frame{position:relative;z-index:2;box-sizing:border-box;width:252px;height:306px;
+  border:24px solid transparent;border-image:url('../assets/elem/frameWood.png') 58 / 24px stretch;
+  filter:drop-shadow(0 6px 14px rgba(0,40,10,.4))}
+.hero-frame img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:auto}
+.hero-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8px;background:linear-gradient(160deg,#fbf3df,#ecd9b0)}
+.hero-ph .o{font-size:28px;color:#c98a3a;opacity:.8}
+.hero-ph .t{font-size:14px;letter-spacing:3px;color:#a3572b}
+.hero-garland{position:absolute;z-index:3;top:-6px;left:50%;transform:translateX(-50%);
+  width:200px;image-rendering:pixelated;filter:drop-shadow(0 2px 0 rgba(0,80,0,.2));pointer-events:none}
+.hero-vine{position:absolute;z-index:3;top:6px;height:128px;image-rendering:pixelated;pointer-events:none;
+  filter:drop-shadow(0 1px 0 rgba(0,70,0,.18))}
+.hero-vine.l{left:26px}.hero-vine.r{right:26px;transform:scaleX(-1)}
+.hero-sun{position:absolute;z-index:4;bottom:6px;height:76px;image-rendering:pixelated;
+  filter:drop-shadow(0 2px 0 rgba(0,60,0,.25));pointer-events:none}
+.hero-sun.l{left:20px}.hero-sun.r{right:20px;transform:scaleX(-1)}
 /* 星露谷对话气泡 */
 .chat-wrap{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
 .chat-bubble{display:flex;align-items:center;gap:10px;text-align:left;
@@ -337,18 +342,16 @@ canvas{image-rendering:pixelated;display:block}
   color:#ffefc9;border:2px solid var(--wood-dark);border-radius:3px;padding:2px 12px;font-size:12px;
   letter-spacing:3px;margin-top:6px;box-shadow:0 2px 0 var(--wood-dark)}
 /* 婚礼回执 RSVP 卡片 */
-.rsvp-card{margin:14px 0 0;padding:14px 14px 12px;text-align:center;
-  background:linear-gradient(180deg,#fff3cf,#ffe1a6);
-  border:3px solid #c9952e;border-radius:8px;
-  box-shadow:0 4px 0 rgba(0,0,0,.16), inset 0 0 0 2px #fffaf0}
-.rsvp-title{font-size:15px;letter-spacing:2px;color:var(--wood);font-weight:bold;margin-bottom:6px}
-.rsvp-desc{font-size:13px;line-height:1.8;color:#8a5a2b;margin-bottom:12px}
-.rsvp-desc b{color:var(--red)}
-.rsvp-btn{font-size:15px;padding:11px 26px}
-.rsvp-hint{font-size:11px;color:#a3865a;margin-top:8px;letter-spacing:1px}
-.rsvp-setup{font-size:12px;color:#a3572b;line-height:1.8;background:#fff8e8;border:2px dashed #c9a86a;
-  border-radius:4px;padding:8px 10px}
-.rsvp-setup b{color:var(--red)}
+.rsvp-card{margin:16px 0 0;padding:16px 16px 18px;text-align:center;border-radius:8px;
+  background:linear-gradient(180deg,#fff7e6,#ffeccb);border:3px solid var(--wood-dark);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.5),0 4px 0 rgba(0,0,0,.12)}
+.rsvp-title{font-size:15px;letter-spacing:1px;color:#6e4a23;font-weight:bold;margin-bottom:6px}
+.rsvp-desc{font-size:12px;line-height:1.7;color:#5b4427;margin-bottom:12px}
+.rsvp-desc b{color:#b04a2a}
+.rsvp-btn{font-size:15px;letter-spacing:2px;padding:9px 26px}
+.rsvp-hint{font-size:10px;color:#7a5a32;margin-top:8px;letter-spacing:.5px}
+.rsvp-setup{font-size:11px;color:#7a3a2a;line-height:1.7}
+.rsvp-setup b{color:#b04a2a}
 /* RSVP 内嵌问卷弹层 */
 #rsvpModal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
   background:rgba(27,16,53,.84);padding:14px}
@@ -506,6 +509,16 @@ body.lux-bg{ background:var(--lux-bg); }   /* 入口/典雅页时给 body 垫米
 @keyframes fadeUp{ from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
 @keyframes sweep{ 0%{left:-60%} 55%,100%{left:130%} }
 .lux-hero{ text-align:center; }
+/* 开头主婚纱照：大图压顶, 金边柔光, 入场缓升 */
+.lux-hero-photo{ margin:0 auto 24px; max-width:400px; animation:fadeUp 1.1s .05s ease both; }
+.lux-hero-photo img{ width:100%; height:auto; max-height:460px; object-fit:cover; display:block; border-radius:16px;
+  border:1px solid rgba(216,179,106,.45); box-shadow:0 18px 54px rgba(0,0,0,.55), 0 0 0 1px rgba(212,176,106,.18); }
+/* 未设置主婚纱照时的占位（典雅金色虚线框） */
+.lux-hero-ph{ width:100%; aspect-ratio:4/5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  border:1.5px dashed rgba(216,179,106,.5); border-radius:16px;
+  background:linear-gradient(160deg, rgba(255,255,255,.045), rgba(216,179,106,.06)); }
+.lux-hero-ph .orn{ font-size:32px; color:var(--g); opacity:.85 }
+.lux-hero-ph .t{ font-size:14px; letter-spacing:5px; color:var(--soft) }
 .lux-kicker{ font-size:12px; letter-spacing:8px; color:var(--g); opacity:0; animation:fadeUp 1s .15s ease both; }
 .lux-names{ font-size:42px; line-height:1.16; letter-spacing:2px; margin:18px 0 12px; font-weight:500;
   background:linear-gradient(100deg,#b9a877 0%,#fff4d8 24%,var(--g2) 44%,#fff7e2 60%,#b9a877 86%);

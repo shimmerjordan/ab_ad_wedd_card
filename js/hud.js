@@ -69,7 +69,7 @@ function loop(t){
   }
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+/* 主循环的启动放到最后一个模块(boot.js)末尾，确保各模块函数都已就绪 */
 
 /* ============================================================
  * 音频
