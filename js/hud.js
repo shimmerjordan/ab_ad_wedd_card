@@ -51,6 +51,84 @@ function updateArrow(){
 }
 
 /* ============================================================
+ * 好感度 ❤ + 右上角木牌 HUD（倒计时/金币/心条）
+ * ============================================================ */
+function weddingDaysLeft(nowMs){
+  const t=new Date(CONFIG.weddingISO).getTime();
+  return Math.ceil((t-(nowMs===undefined?Date.now():nowMs))/864e5);
+}
+function addHearts(n,label){
+  const before=game.hearts;
+  game.hearts=Math.max(0,Math.min(10,game.hearts+n));
+  if(game.hearts>before){
+    flyHearts(innerWidth-70,60,Math.min(3,n));
+    toast(`❤ 好感 +${game.hearts-before}${label?`（${label}）`:''} · ${game.hearts}/10`);
+  }
+  updateBoard();
+}
+/* 右上角木板下半的状态行（DOM, 与任务栏同板）：倒计时/金币/心条/章节星 */
+function updateBoard(){
+  const days=document.getElementById('biDays');
+  if(!days)return;
+  const d=weddingDaysLeft();
+  days.textContent=d>0?`距婚礼 ${d} 天`:'♥ 大喜之日 ♥';
+  document.getElementById('biCoins').textContent=game.coins;
+  let hh='';
+  for(let i=0;i<10;i++)hh+=`<span class="${i<game.hearts?'on':'off'}">♥</span>`;
+  document.getElementById('biHearts').innerHTML=hh;
+  let ss='';
+  for(let i=0;i<6;i++)ss+=`<span class="${i<game.quest?'on':'off'}">★</span>`;
+  document.getElementById('biStars').innerHTML=ss;
+}
+
+/* ============================================================
+ * 金币飘字（canvas 内, 跟随玩家头顶向上飘散）
+ * ============================================================ */
+const FLOATS=[];
+function spawnFloat(txt,color){ FLOATS.push({txt,color,t:0,ox:(Math.random()*10-5)}); }
+let _prevCoins;
+function updateFloats(dt){
+  if(_prevCoins!==undefined&&game.coins!==_prevCoins){
+    const d=game.coins-_prevCoins;
+    spawnFloat((d>0?'+':'')+d+'金', d>0?'#ffd84d':'#ff8a7d');
+    updateBoard();
+  }
+  _prevCoins=game.coins;
+  for(let i=FLOATS.length-1;i>=0;i--){ FLOATS[i].t+=dt; if(FLOATS[i].t>1.3)FLOATS.splice(i,1); }
+}
+function sfxSafe(){}   // 金币音效由各交易点自行播放, 这里仅占位
+function drawFloats(){
+  if(!FLOATS.length)return;
+  ctx.save();
+  ctx.font='9px "Fusion Pixel 12px Proportional SC",monospace';
+  ctx.textAlign='center';
+  for(const f of FLOATS){
+    const px=player.x+6-cam.x+f.ox, py=player.y-24-cam.y-f.t*18;
+    ctx.globalAlpha=Math.max(0,1-Math.max(0,f.t-0.6)/0.7);
+    ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillText(f.txt,px+1,py+1);
+    ctx.fillStyle=f.color;ctx.fillText(f.txt,px,py);
+  }
+  ctx.restore();
+}
+/* 「A」互动提示气泡：面前有可互动目标时浮在玩家头顶 */
+function drawInteractHint(){
+  if(game.mode!=='play')return;
+  let has=false;
+  try{ has=!!interact(true); }catch(e){}
+  const btn=document.getElementById('btnA');
+  if(btn&&btn._ready!==has){ btn.classList.toggle('ready',has); btn._ready=has; }
+  if(!has)return;
+  const px=player.x+6-cam.x|0, py=(player.y-26-cam.y+Math.sin(game.time*4)*1.5)|0;
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(px-5,py-4,12,12);
+  ctx.fillStyle='#fdf6e3';ctx.fillRect(px-6,py-5,12,12);
+  ctx.fillStyle='#c0392b';
+  /* 像素字母 A */
+  ctx.fillRect(px-3,py-3,6,2);ctx.fillRect(px-3,py-1,2,6);ctx.fillRect(px+1,py-1,2,6);ctx.fillRect(px-1,py+1,2,2);
+  /* 小尾巴 */
+  ctx.fillStyle='#fdf6e3';ctx.fillRect(px-1,py+7,2,2);
+}
+
+/* ============================================================
  * 主循环
  * ============================================================ */
 let lastT=0;
@@ -59,7 +137,13 @@ function loop(t){
   const _r=cv.getBoundingClientRect();
   if(lastW!==_r.width||lastH!==_r.height){resize();updateCam();}
   update(dt);
-  if(game.mode!=='title'){ctx.clearRect(0,0,VW,VH);drawWorld();}
+  updateFloats(dt);
+  if(game.mode!=='title'){
+    ctx.clearRect(0,0,VW,VH);drawWorld();
+    if(game.mode==='fish')drawFishUI();
+    drawInteractHint();
+    drawFloats();
+  }
   /* 装备栏：首帧渲染(并在 slotBox 素材加载完成后重渲一次)，仅户外游玩时显示 */
   const tb=document.getElementById('toolBar');
   if(tb){
@@ -80,6 +164,10 @@ const fq=m=>440*Math.pow(2,(m-69)/12);
 const MELODY=[[64,1],[67,1],[72,1],[71,1.5],[69,.5],[67,1],[69,1],[67,1],[64,1],[67,3],
               [64,1],[67,1],[72,1],[74,1.5],[76,.5],[74,1],[72,1],[69,1],[71,1],[72,3]];
 const BASSL=[[48,55,55],[43,50,50],[45,52,52],[48,55,55],[48,55,55],[43,50,50],[41,48,53],[48,52,55]];
+/* 殿堂专属：庄重喜庆的进堂曲（自创短句, 长音+上行收束） */
+const MELODY_HALL=[[60,1],[64,1],[67,2],[67,1],[65,1],[64,2],[64,1],[67,1],[72,2],[71,1],[69,1],[67,2],
+                   [65,1],[69,1],[72,2],[74,1],[72,1],[71,2],[72,1],[76,1],[79,4]];
+const BASSL_HALL=[[48,52,55],[41,45,48],[43,47,50],[48,52,55],[45,48,52],[43,47,50],[41,45,50],[48,55,60]];
 function tone(type,midi,t,dur,vol){
   const o=actx.createOscillator(),gg=actx.createGain();
   o.type=type;o.frequency.value=fq(midi);
@@ -93,8 +181,11 @@ function tone(type,midi,t,dur,vol){
 function ensureCtx(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();}
 function bgmLoop(){
   let t=actx.currentTime+.05;const t0=t;
-  MELODY.forEach(([m,b])=>{if(m)tone('square',m,t,b*BEAT,.04);t+=b*BEAT;});
-  BASSL.forEach((bar,bi)=>{const bt=t0+bi*3*BEAT;bar.forEach((m,i)=>tone('triangle',m,bt+i*BEAT,BEAT*.9,i===0?.06:.035));});
+  /* 殿堂里换进堂曲, 其余场景是小镇主题 */
+  const mel=game.scene==='hall'?MELODY_HALL:MELODY;
+  const bas=game.scene==='hall'?BASSL_HALL:BASSL;
+  mel.forEach(([m,b])=>{if(m)tone('square',m,t,b*BEAT,.04);t+=b*BEAT;});
+  bas.forEach((bar,bi)=>{const bt=t0+bi*3*BEAT;bar.forEach((m,i)=>tone('triangle',m,bt+i*BEAT,BEAT*.9,i===0?.06:.035));});
   loopTimer=setTimeout(bgmLoop,(t-t0-.15)*1000);
 }
 function toggleBgm(force){
@@ -117,6 +208,9 @@ function sfx(name){
   else if(name==='coin'){tone('square',88,t,.05,.04);tone('square',93,t+.05,.08,.04);}
   else if(name==='piano'){[60,64,67,72,76].forEach((m,i)=>tone('sine',m,t+i*.12,.4,.06));}
   else if(name==='pop'){tone('square',96,t,.04,.05);tone('square',60,t+.03,.1,.04);}
+  else if(name==='cast'){tone('square',80,t,.05,.04);tone('square',72,t+.06,.06,.035);tone('sine',55,t+.16,.1,.05);}
+  else if(name==='bite'){tone('square',95,t,.05,.06);tone('square',100,t+.06,.09,.06);}
+  else if(name==='treasure'){[72,76,79,84].forEach((m,i)=>tone('square',m,t+i*.06,.08,.045));}
   else if(name==='fanfare'){[60,64,67,72,76,79,84].forEach((m,i)=>tone('square',m,t+i*.1,.16,.05));[48,52,55,60].forEach((m,i)=>tone('triangle',m,t+i*.2,.3,.06));}
 }
 
@@ -163,7 +257,7 @@ const dlg={el:document.getElementById('dialog'),txt:document.getElementById('dlg
 function portraitFor(who){
   portraitInto(document.querySelector('#dlgPortrait canvas'), who);
 }
-function nameFor(who){return who==='groom'?CONFIG.groom:who==='bride'?CONFIG.bride:who==='cat'?'小猫':'小鸡';}
+function nameFor(who){return who==='groom'?CONFIG.groom:who==='bride'?CONFIG.bride:who==='cat'?'小猫':who==='mayor'?'刘易斯镇长':'小鸡';}
 function startDialog(lines,onDone){
   game.mode='dialog';
   dlg.queue=lines;dlg.idx=0;dlg.onDone=onDone||null;

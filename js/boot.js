@@ -252,7 +252,7 @@ function startGame(role){
   }
   game.mode='play';
   setQuest(0);updateCam();
-  setTimeout(()=>startDialog([
+  if(!QS.get('nodlg'))setTimeout(()=>startDialog([
     {who:'me',text:`（天气真好。${nameFor(partnerRole())} 在东南边的花田等我——跟着金色箭头走吧。）`},
     {who:'me',text:'（镇上多了好几栋房子：杂货店、博物馆…南边还有座挂满彩旗的婚礼殿堂！）'},
   ]),350);
@@ -403,6 +403,23 @@ if(_q.get('lux'))setTimeout(()=>{ gateEl.style.display='none'; document.getEleme
 if(_q.get('auto'))setTimeout(()=>startGame(_q.get('auto')==='bride'?'bride':'groom'),200);
 if(_q.get('at')){const[ax,ay]=_q.get('at').split(',').map(Number);setTimeout(()=>{player.x=ax*TILE;player.y=ay*TILE;updateCam();},350);}
 if(_q.get('scene'))setTimeout(()=>{game.scene=_q.get('scene');updateCam();},340);
+if(_q.get('hearts'))setTimeout(()=>{game.hearts=Math.min(10,+_q.get('hearts')||0);},400);
+if(_q.get('dlg'))setTimeout(()=>{   // 对话预览: ?dlg=mayor|cat|chicken|groom|bride
+  if(game.mode==='dialog'){clearInterval(dlg.timer);dlg.el.style.display='none';game.mode='play';}
+  startDialog([{who:_q.get('dlg'),text:'（头像与名字预览）今天，我们在此见证两位新人喜结连理！'}]);
+},1200);
+if(_q.get('gems'))setTimeout(()=>{for(const g of GEM_TYPES)game.gems[g.key]=1;updateItemBar();},400);
+if(_q.get('hen'))setTimeout(()=>{    // 母鸡定位(遮挡关系截图用): ?hen=x,y
+  const[hx,hy]=_q.get('hen').split(',').map(Number);
+  chickens[0].x=hx*TILE;chickens[0].y=hy*TILE;chickens[0].pause=true;chickens[0].t=99;
+},600);
+if(_q.get('crop'))setTimeout(()=>{   // 作物渲染预览: ?crop=straw|blue|sun 在农田种满各阶段
+  const kind=_q.get('crop'), keys=Object.keys(plots).slice(0,4);
+  keys.forEach((k,i)=>{ plots[k]={till:2,st:i===0?1:2,crop:kind,fert:0,t:game.time-(i*CROP_DEFS[kind].ripe+0.1)}; });
+},500);
+if(_q.get('donated'))setTimeout(()=>{
+  _q.get('donated').split(',').forEach(k=>{ if(game.donated[k]!==undefined&&!game.donated[k]){game.donated[k]=1;game.donatedN++;} });
+},400);
 if(_q.get('q'))setTimeout(()=>{
   const q=+_q.get('q');
   if(q>=1){game.seeds=3;game.hasCan=true;game.water=3;}
@@ -420,7 +437,21 @@ if(_q.get('show'))setTimeout(()=>{
   else if(s==='couple'){showOverlay(coupleHTML());drawOverlayPortraits();}
   else if(s==='letter')showOverlay(letterHTML());
   else if(s==='settings')openSettings();
-  else if(s==='fish')startFishing();
+  else if(s==='shop')openShop();
+  else if(s==='fish'){
+    /* 钓鱼调试：传送到栈道尽头, 可用 fphase=wait|bite|reel 强制阶段, fsp=carp… 强制鱼种, ftr=1 出宝箱 */
+    game.rod=true;game.bait=Math.max(game.bait,3);
+    player.x=29*TILE;player.y=7.4*TILE;player.dir='up';updateCam();
+    startFishing();
+    const ph=_q.get('fphase');
+    if(ph==='bite'){fish.waitT=0.01;}
+    else if(ph==='reel'){
+      fish.waitT=0;fishBite();
+      if(_q.get('fsp')){fish.junk=null;fish.sp=FISH_SPECIES.find(f=>f.key===_q.get('fsp'))||FISH_HEART;}
+      startReel();
+      if(_q.get('ftr')){fish.trAt=0;fish.t=1;}
+    }
+  }
 },650);
 
 /* —— 所有模块就绪后启动主循环 —— */

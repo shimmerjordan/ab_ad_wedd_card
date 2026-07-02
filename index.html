@@ -51,7 +51,14 @@
 
 <!-- HUD -->
 <div id="hud">
-  <div id="questBar"><span class="dot"></span><span id="questText">…</span></div>
+  <div id="questBar">
+    <div class="quest-line"><span class="dot"></span><span id="questText">…</span></div>
+    <div id="boardInfo">
+      <div class="bi-top"><span id="biDays">…</span><span class="bi-sep">·</span><span class="bi-coin"></span><span id="biCoins">0</span></div>
+      <div id="biHearts"></div>
+      <div id="biStars"></div>
+    </div>
+  </div>
   <div id="itemBar"></div>
   <div id="progress"></div>
   <div id="menuBtns">
@@ -87,11 +94,7 @@
 <!-- 浮层 -->
 <div id="overlay"><div id="overlayCard" class="sdv-panel"><div class="inner" id="overlayInner"></div></div></div>
 
-<!-- 钓鱼小游戏 -->
-<div id="fishUI">
-  <div id="fishTrack"><div id="fishZone"></div><div id="fishIcon">🐟</div></div>
-  <div id="fishSide"><div id="fishProgWrap"><div id="fishProg"></div></div></div>
-</div>
+<!-- 钓鱼小游戏（画面画在游戏画布上，这里只留提示文字） -->
 <div id="fishHint">按住 A：绿色区域上移<br>让绿区罩住小鱼，攒满进度！</div>
 
 <div id="toasts"></div>

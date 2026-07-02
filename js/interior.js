@@ -9,6 +9,29 @@ function drawMuseumInt(ents){
     const im=img('shelfBig'); if(!im)return;
     ctx.drawImage(im,(26*TILE-im.width)/2-cam.x|0, 50-im.height-cam.y|0);
   }});
+  /* 展架正下方：四大宝石捐赠柜（红丝绒+金框, 捐一颗亮一颗） */
+  ents.push({y:-996.5,draw(){
+    const CW=88,CH=24, cx0=(26*TILE-CW)/2-cam.x|0, cy0=52-cam.y|0;
+    ctx.fillStyle='#3a1d08';ctx.fillRect(cx0-2,cy0-2,CW+4,CH+4);       // 外框
+    ctx.fillStyle='#e0b44a';ctx.fillRect(cx0-1,cy0-1,CW+2,CH+2);       // 金边
+    ctx.fillStyle='#5a2233';ctx.fillRect(cx0,cy0,CW,CH);               // 红丝绒
+    ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(cx0,cy0,CW,3);
+    const slots=['amethyst','aqua','topaz','ruby'];
+    slots.forEach((k,i)=>{
+      const gx=cx0+4+i*22, gy=cy0+3;
+      ctx.fillStyle='#e0b44a';ctx.fillRect(gx+2,gy+15,14,3);           // 金底座
+      ctx.fillStyle='#8c5a2b';ctx.fillRect(gx+3,gy+18,12,2);
+      if(game.donated[k]){
+        const gm=img(gemOf(k).icon);
+        if(gm)ctx.drawImage(gm,gx+1,gy);
+        else{ctx.fillStyle='#ffd84d';ctx.fillRect(gx+4,gy+4,10,10);}
+        if((game.time*2+i)%2<1){ctx.fillStyle='#fff';ctx.fillRect(gx+13,gy-1,2,2);ctx.fillRect(gx,gy+5,2,2);}
+      }else{ /* 空位：暗色剪影 */
+        ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(gx+5,gy+6,8,9);
+        ctx.fillStyle='rgba(255,255,255,.25)';ctx.fillRect(gx+8,gy+8,2,5);
+      }
+    });
+  }});
   /* 金柱一对立在大展架两侧的地面上(不贴墙) */
   ents.push({y:3.9*TILE,draw(){
     const im=img('pillar'); if(!im)return;
@@ -164,8 +187,9 @@ function drawHallInt(ents){
     const rg=img('rugStage'); if(!rg)return;
     ctx.drawImage(rg, CX-rg.width/2-cam.x|0, 4.2*TILE-cam.y|0);
   }});
-  /* ③ 舞台「花拱门」：真实金柱 + 开花灌木花环（素材拼合, 居中对称） */
-  ents.push({y:6*TILE+2,draw(){
+  /* ③ 舞台「花拱门」：真实金柱 + 开花灌木花环（素材拼合, 居中对称）
+     排序键=柱底(6.3*TILE)：舞台上(柱底以北)的人物被柱子遮住 */
+  ents.push({y:6.3*TILE,draw(){
     const pil=img('pillar'), bush=img('bushFl');
     const lx=10.5*TILE-cam.x|0, rx=14.3*TILE-cam.x|0, base=6.3*TILE-cam.y|0;
     const ph=pil?pil.height:48;
@@ -258,6 +282,30 @@ function drawHallInt(ents){
     ctx.fillStyle='#c0392b';ctx.fillRect(px,py,12,6);
     if((game.time*2|0)%2){ctx.fillStyle='#ffd84d';ctx.fillRect(px+4,py-4,3,3);}
   }});
+  /* ⑧b 喜宴宾客(镇民 NPC)：围站桌旁, 轻微呼吸浮动; 礼成后轮流冒小心心 */
+  HALL_GUESTS.forEach(([gx,gy,key,flip],gi)=>{
+    ents.push({y:gy*TILE+16,draw(){
+      const im=img(key); if(!im)return;
+      const px=gx*TILE-cam.x|0;
+      const bob=Math.sin(game.time*1.6+gi*1.3)>0.7?-1:0;
+      const py=(gy*TILE-16+bob)-cam.y|0;
+      ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(px+2,py+30,10,2);
+      drawSprite(ctx,im,0,0,16,32,px,py,!!flip);
+      if(ceremonyDone&&((game.time*0.9+gi*0.71)%4)<0.9){   // 鼓掌欢呼冒心
+        ctx.fillStyle='#e0457b';
+        const hy=py-8+Math.sin(game.time*6+gi)*1.5|0;
+        ctx.fillRect(px+4,hy,2,2);ctx.fillRect(px+8,hy,2,2);
+        ctx.fillRect(px+4,hy+2,6,2);ctx.fillRect(px+6,hy+4,2,1);
+      }
+    }});
+  });
+  /* ⑧c 主持人(镇长)：站在舞台后方正中（排序键=脚底, 与宾客/伴侣一致, 站拱门后会被金柱遮住） */
+  ents.push({y:HALL_MAYOR.y+16,draw(){
+    const im=img('npcLewis'); if(!im)return;
+    const px=HALL_MAYOR.x-cam.x|0, py=HALL_MAYOR.y-16-cam.y|0;
+    ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(px+2,py+30,10,2);
+    drawSprite(ctx,im,0,0,16,32,px,py,false);
+  }});
   /* ⑨ 红圆桌（真素材, 纯装饰；无桌号/无座位安排, 左右对称摆放） */
   TABLE_POS.forEach(([tx,ty],i)=>{
     ents.push({y:ty*TILE+28,draw(){
@@ -299,6 +347,9 @@ function drawWorld(){
         ents.push({y:ty*TILE+TILE,occ:{x:tx*TILE-16,y:ty*TILE-80,w:48,h:88},
           draw:((a,b,c)=>()=>drawTree(a,b,c))(tx*TILE-cam.x|0,ty*TILE-cam.y|0,hash(tx,ty))});
       }
+      else if(tch==='f'){ /* 栅栏：实体化, 站其北侧的鸡/人物会被正确遮住 */
+        ents.push({y:ty*TILE+TILE,draw:((a,b)=>()=>drawFenceTile(a,b))(tx,ty)});
+      }
       else if(tch==='B'){ /* 开花灌木(可跳越) */
         ents.push({y:ty*TILE+TILE,draw:((a,b)=>()=>{
           const im=img('bushFl');
@@ -330,9 +381,58 @@ function drawWorld(){
     ents.push({y:WOBJ.bush.y+14,draw:drawBush});
     ents.push({y:cat.y+12,draw:drawCat});
     chickens.forEach(ck=>ents.push({y:ck.y+12,draw:()=>drawChickenE(ck)}));
+    /* 农场狗「旺财」：坐在家门口打盹 */
+    ents.push({y:dog.y+16,draw(){
+      const im=img('dogSit'); const px=dog.x-cam.x|0, py=dog.y-cam.y|0;
+      ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(px+8,py+14,16,3);
+      if(im)ctx.drawImage(im,px,py-16);
+      else{ctx.fillStyle='#c9772e';ctx.fillRect(px+8,py,14,12);}
+      if(!dog.petted&&(game.time*1.5|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+26,py-18,2,2);}
+    }});
+    /* 湖面鸭子：两帧浮水 + 随波起伏 + 涟漪 */
+    ducks.forEach((dk,di)=>{
+      ents.push({y:dk.y+8,draw(){
+        const bob=Math.round(Math.sin(game.time*1.8+di*2.1)*1.2);
+        const px=dk.x-cam.x|0, py=(dk.y+bob)-cam.y|0;
+        ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.ellipse(px+8,py+13,7,2,0,0,7);ctx.stroke();
+        const im=img((game.time*1.6+di|0)%2?'duckA':'duckB');
+        if(im)drawSprite(ctx,im,0,0,16,16,px,py,dk.flip);
+        else{ctx.fillStyle='#7ec850';ctx.fillRect(px+4,py+4,8,8);}
+      }});
+    });
     for(const key in obstacles){
       const [ox,oy]=key.split(',').map(Number), ob=obstacles[key];
       ents.push({y:oy*TILE+15,draw:()=>drawObstacle(ox*TILE-cam.x|0, oy*TILE-cam.y|0, ob)});
+    }
+    /* 采石点矿岩（重生后带宝石闪光） */
+    for(const key in mines){
+      const [mx,my]=key.split(',').map(Number);
+      if(!mineAlive(mx,my))continue;
+      ents.push({y:my*TILE+15,draw:()=>{
+        const px=mx*TILE-cam.x|0, py=my*TILE-cam.y|0;
+        const im=img(hash(mx,my)%2?'obsRock':'obsRock2');
+        ctx.fillStyle='rgba(0,0,0,.20)';ctx.beginPath();ctx.ellipse(px+8,py+14,6,2.5,0,0,7);ctx.fill();
+        if(im)ctx.drawImage(im,px,py);
+        else drawRockFallback(px,py);
+        if((game.time*2+mx)%2<1){ctx.fillStyle='#bfe8ff';ctx.fillRect(px+10,py+2,2,2);ctx.fillRect(px+3,py+6,2,2);}
+      }});
+    }
+  }
+  /* 花田蝴蝶（顶层氛围, 不参与排序遮挡） */
+  if(game.scene==='world'){
+    for(const bf of butterflies){
+      const t=game.time+bf.phase;
+      const bx=bf.x+Math.sin(t*0.7)*26+Math.sin(t*1.9)*8-cam.x;
+      const by=bf.y+Math.cos(t*0.9)*18+Math.sin(t*2.7)*5-cam.y;
+      if(bx<-8||by<-8||bx>VW+8||by>VH+8)continue;
+      ents.push({y:1e6,draw:((x,y,c,ph)=>()=>{
+        const wing=(game.time*9+ph|0)%2;   // 双帧扑翼
+        ctx.fillStyle=c;
+        if(wing){ ctx.fillRect(x-2,y-1,2,2); ctx.fillRect(x+1,y-1,2,2); }
+        else{ ctx.fillRect(x-3,y-2,2,3); ctx.fillRect(x+2,y-2,2,3); }
+        ctx.fillStyle='#2b2b34';ctx.fillRect(x,y-1,1,3);
+      })(bx|0,by|0,bf.hue,bf.phase)});
     }
   }
   if(game.scene==='museum')drawMuseumInt(ents);
@@ -348,6 +448,38 @@ function drawWorld(){
       ctx.globalAlpha=0.5; e.draw(); ctx.globalAlpha=1;
     } else e.draw();
   });
+  if(game.scene==='world'&&game.quest>=6)drawDusk();
   drawMarker();
+}
+/* —— 礼成后的户外黄昏：暖色调 + 灯笼光晕 + 萤火虫 —— */
+function drawDusk(){
+  ctx.fillStyle='rgba(255,140,60,.10)';ctx.fillRect(0,0,VW,VH);
+  ctx.fillStyle='rgba(50,30,90,.20)';ctx.fillRect(0,0,VW,VH);
+  /* 灯笼亮起 */
+  for(const d of WDECOR){
+    if(d.img!=='lantern')continue;
+    const px=d.x+8-cam.x, py=d.y-8-cam.y;
+    if(px<-30||py<-30||px>VW+30||py>VH+30)continue;
+    const g=0.30+0.14*Math.sin(game.time*2.3+d.x);
+    ctx.save();
+    ctx.globalAlpha=g;     ctx.fillStyle='#ffe48c';ctx.beginPath();ctx.ellipse(px,py,9,9,0,0,7);ctx.fill();
+    ctx.globalAlpha=g*0.4; ctx.fillStyle='#ffefb0';ctx.beginPath();ctx.ellipse(px,py,16,15,0,0,7);ctx.fill();
+    ctx.restore();
+  }
+  /* 萤火虫：全镇低空漂浮的光点 */
+  const s=sc();
+  for(let i=0;i<16;i++){
+    const t=game.time*0.5+i*7.7;
+    const fx=(hash(i*31,7)%(s.w*TILE))+Math.sin(t)*24;
+    const fy=(hash(13,i*17)%(s.h*TILE))+Math.cos(t*0.8)*16;
+    const px=fx-cam.x, py=fy-cam.y;
+    if(px<0||py<0||px>VW||py>VH)continue;
+    const a=0.30+0.35*Math.sin(game.time*2.2+i*2.3);
+    if(a<=0.08)continue;
+    ctx.save();
+    ctx.globalAlpha=a;     ctx.fillStyle='#d8ffa0';ctx.fillRect(px,py,2,2);
+    ctx.globalAlpha=a*0.3; ctx.beginPath();ctx.ellipse(px+1,py+1,5,5,0,0,7);ctx.fill();
+    ctx.restore();
+  }
 }
 

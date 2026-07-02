@@ -124,16 +124,41 @@ const ASSET_MANIFEST = {
   flowerA:'assets/elem/flowerA.png', flowerB:'assets/elem/flowerB.png',
   flowerC:'assets/elem/flowerC.png', flowerSprout:'assets/elem/flowerSprout.png',
   potA:'assets/elem/potA.png', potB:'assets/elem/potB.png', potC:'assets/elem/potC.png',
+  /* 鱼获(springobjects 真素材) + 钓鱼杂物 */
+  fishCarp:'assets/elem/fishCarp.png', fishPerch:'assets/elem/fishPerch.png',
+  fishTrout:'assets/elem/fishTrout.png', fishHeart:'assets/elem/fishHeart.png',
+  junkWeed:'assets/elem/junkWeed.png', junkTrash:'assets/elem/junkTrash.png',
+  /* 宝石(springobjects 真素材)：挖矿获得, 可捐博物馆/出售/送人 */
+  gemAmethyst:'assets/elem/gemAmethyst.png', gemAqua:'assets/elem/gemAqua.png',
+  gemTopaz:'assets/elem/gemTopaz.png', gemRuby:'assets/elem/gemRuby.png',
+  gemDiamond:'assets/elem/gemDiamond.png',
+  /* 婚礼宾客 NPC(镇民立绘, 不与新郎新娘立绘同款) + 主持人 */
+  npcAbigail:'assets/elem/npcAbigail.png', npcSebastian:'assets/elem/npcSebastian.png',
+  npcCaroline:'assets/elem/npcCaroline.png', npcEmily:'assets/elem/npcEmily.png',
+  npcMaru:'assets/elem/npcMaru.png', npcHarvey:'assets/elem/npcHarvey.png',
+  npcSam:'assets/elem/npcSam.png', npcPenny:'assets/elem/npcPenny.png',
+  npcGus:'assets/elem/npcGus.png', npcLeah:'assets/elem/npcLeah.png',
+  npcLewis:'assets/elem/npcLewis.png', npcEvelyn:'assets/elem/npcEvelyn.png',
+  /* 商店老板皮埃尔(肖像) */
+  portPierre:'assets/elem/portPierre.png',
+  /* 新作物条带(8帧 16x32) + 果实图标 */
+  cropStraw:'assets/elem/cropStraw.png', cropBlue:'assets/elem/cropBlue.png',
+  iconStraw:'assets/elem/iconStraw.png', iconBlue:'assets/elem/iconBlue.png',
+  /* 农场狗(坐姿) + 湖面鸭子(两帧浮水) */
+  dogSit:'assets/elem/dogSit.png',
+  duckA:'assets/elem/duckA.png', duckB:'assets/elem/duckB.png',
 };
 /* 8 幅挂壁油画键名（博物馆展位 1-8） */
 const PAINT_KEYS=['paintJelly','paintGreen','paintCity','paintBoat','paintBeach','paintHills','paintSunset','paintNight'];
 /* 猫全图 32x32/帧 4列: 行1=向右走 行7=蜷睡 行0=坐姿 */
 const CAT_F={ walkRow:1, sleepY:224, sitY:0 };
+/* 素材版本号：更新素材后 +1，强制宾客浏览器绕过旧缓存（file:// 直开不加参数） */
+const ASSET_VER='3';
 for(const k in ASSET_MANIFEST){
   const im=new Image();
   im.onload=()=>{im._ok=true;};
   im.onerror=()=>{im._ok=false;};
-  im.src=ASSET_MANIFEST[k];
+  im.src=ASSET_MANIFEST[k]+(location.protocol==='file:'?'':'?v='+ASSET_VER);
   IMGS[k]=im;
 }
 function img(k){ const im=IMGS[k]; return im&&im._ok?im:null; }
@@ -172,6 +197,11 @@ function portraitInto(canvas, who){
     const im=img('chicken');
     if(im){ c.drawImage(im,0,0,16,16,8,8,48,48); return; }
     c.save(); c.translate(8,14); c.scale(4,4); blit(c,CHICKEN,0,0,false); c.restore(); return;
+  }
+  if(who==='mayor'){
+    const im=img('npcLewis');
+    if(im){ c.drawImage(im,2,1,12,12,8,8,48,48); return; }   // 头部特写放大
+    c.fillStyle='#5a3413'; c.fillRect(16,16,32,32); return;
   }
   /* cat */
   const im=img('cat');

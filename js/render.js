@@ -117,21 +117,7 @@ function drawTiles(){
         }
       }
     }
-    else if(t==='f'){ // 连体栅栏（秋季图集木栅真素材, 底边对齐地块, 栏柱向上伸出）
-      const lf=g[ty][tx-1]==='f',rt=g[ty][tx+1]==='f',up=g[ty-1]&&g[ty-1][tx]==='f',dn=g[ty+1]&&g[ty+1][tx]==='f';
-      const fh=img('fenceH'), fv=img('fenceV');
-      if(fh&&(lf||rt))      ctx.drawImage(fh, px, py+TILE-fh.height);
-      else if(fv&&(up||dn)) ctx.drawImage(fv, px+((TILE-fv.width)/2|0), py+TILE-fv.height);
-      else if(fh)           ctx.drawImage(fh, px, py+TILE-fh.height);
-      else{
-        ctx.fillStyle='#9a6433';
-        if(lf||rt){ctx.fillRect(lf?px:px+6,py+6,lf&&rt?TILE:10,3);ctx.fillRect(lf?px:px+6,py+11,lf&&rt?TILE:10,2);}
-        if(up||dn)ctx.fillRect(px+6,up?py:py+4,3,up&&dn?TILE:12);
-        ctx.fillStyle='#8c5a2b';ctx.fillRect(px+5,py+3,5,11);
-        ctx.fillStyle='#6e4218';ctx.fillRect(px+5,py+3,5,2);
-        ctx.fillStyle='#a8743c';ctx.fillRect(px+6,py+5,2,8);
-      }
-    }
+    /* 栅栏('f')不在地砖层画——作为实体参与 y 排序(见 drawWorld), 这里只留草地基底 */
     else if(t==='P'){
       const key=tx+','+ty,pl=plots[key];
       const till=pl?pl.till:0, watered=pl&&pl.st===2;
@@ -139,7 +125,7 @@ function drawTiles(){
       ctx.fillStyle=(h%7<2)?'#55a04a':'#5fae52';ctx.fillRect(px,py,TILE,TILE);
       if(h%11===0){ctx.fillStyle='#4c9342';ctx.fillRect(px+(h>>3)%12,py+(h>>5)%12,2,2);}
       if(till>0){                                   // 耕地: hoeDirt 真素材, 随次数逐步变深
-        const hd=img('hoeDirt'), a=[0,0.42,0.72,1][till];
+        const hd=img('hoeDirt'), a=[0,0.55,1][till]||1;
         ctx.save(); ctx.globalAlpha=a;
         if(hd)ctx.drawImage(hd, watered?80:0,0,16,16, px,py,16,16);
         else{ ctx.fillStyle=watered?'#5b3a1e':'#8a5a2f';ctx.fillRect(px+1,py+1,14,14);
@@ -148,11 +134,12 @@ function drawTiles(){
       }
       if(pl&&pl.fert){ctx.fillStyle='rgba(160,110,224,.5)';ctx.fillRect(px+2,py+2,3,3);ctx.fillRect(px+11,py+10,3,3);}
       if(pl&&pl.st>0){
-        const stage=pl.st===1?0:Math.min(3,1+((game.time-pl.t)/(pl.fert?0.9:1.6)|0));
-        const sun=img('sunflower');
-        if(sun){ /* 向日葵 6 帧条带: 种下=芽(2), 生长=3/4, 成熟=5 */
-          const fi=stage===0?2:2+stage;
-          ctx.drawImage(sun, fi*16,0,16,32, px, py-16, 16,32);
+        const def=CROP_DEFS[pl.crop||'sun'];
+        const stage=pl.st===1?0:Math.min(3,1+((game.time-pl.t)/(pl.fert?def.fertRipe:def.ripe)|0));
+        const strip=img(def.strip);
+        if(strip){ /* 按作物条带取帧: frames=[种下,苗,长,熟] */
+          const fi=def.frames[stage];
+          ctx.drawImage(strip, fi*16,0,16,32, px, py-16, 16,32);
           if(stage===3&&(game.time*3|0)%2){
             ctx.fillStyle=pl.fert?'#ffec8a':'#fff';
             ctx.fillRect(px+3,py-10,2,2);ctx.fillRect(px+11,py-13,2,2);
@@ -354,14 +341,46 @@ function drawTree(px,py,h){
   ctx.fillStyle='#2f6b24';ctx.fillRect(px+2,py-6,4,3);ctx.fillRect(px+10,py-10,4,3);
   if(h%5===0){ctx.fillStyle='#ff7daa';ctx.fillRect(px+4,py-14,2,2);ctx.fillRect(px+11,py-9,2,2);}
 }
-/* 路障：石头(镐) / 草丛灌木(镰) / 树枝(斧)，paths.png 真素材, 底边对齐地块 */
+/* 栅栏（y 排序实体绘制：人物/小鸡在其北侧时会被正确遮住） */
+function drawFenceTile(tx,ty){
+  const g=sc().g, px=tx*TILE-cam.x|0, py=ty*TILE-cam.y|0;
+  const lf=g[ty][tx-1]==='f',rt=g[ty][tx+1]==='f',up=g[ty-1]&&g[ty-1][tx]==='f',dn=g[ty+1]&&g[ty+1][tx]==='f';
+  const fh=img('fenceH'), fv=img('fenceV');
+  if(fh&&(lf||rt))      ctx.drawImage(fh, px, py+TILE-fh.height);
+  else if(fv&&(up||dn)) ctx.drawImage(fv, px+((TILE-fv.width)/2|0), py+TILE-fv.height);
+  else if(fh)           ctx.drawImage(fh, px, py+TILE-fh.height);
+  else{
+    ctx.fillStyle='#9a6433';
+    if(lf||rt){ctx.fillRect(lf?px:px+6,py+6,lf&&rt?TILE:10,3);ctx.fillRect(lf?px:px+6,py+11,lf&&rt?TILE:10,2);}
+    if(up||dn)ctx.fillRect(px+6,up?py:py+4,3,up&&dn?TILE:12);
+    ctx.fillStyle='#8c5a2b';ctx.fillRect(px+5,py+3,5,11);
+    ctx.fillStyle='#6e4218';ctx.fillRect(px+5,py+3,5,2);
+    ctx.fillStyle='#a8743c';ctx.fillRect(px+6,py+5,2,8);
+  }
+}
+/* 石头占位（与 343/450 真素材同风格：土灰石堆+受光面+暗部, 不再是灰椭圆） */
+function drawRockFallback(px,py){
+  ctx.fillStyle='#8f8674';ctx.fillRect(px+4,py+5,9,8);ctx.fillRect(px+3,py+7,11,5);   // 主石
+  ctx.fillStyle='#b3a98f';ctx.fillRect(px+5,py+5,5,3);ctx.fillRect(px+4,py+8,3,2);    // 受光面
+  ctx.fillStyle='#6b6252';ctx.fillRect(px+5,py+11,8,2);ctx.fillRect(px+12,py+8,2,4);  // 暗部
+  ctx.fillStyle='#8f8674';ctx.fillRect(px+1,py+10,4,4);ctx.fillStyle='#b3a98f';ctx.fillRect(px+2,py+10,2,1); // 小石
+}
+/* 杂草占位（与 674-677 真素材同风格：阔叶簇, 不再是三根竖条） */
+function drawWeedFallback(px,py){
+  ctx.fillStyle='#2f6b24';
+  ctx.fillRect(px+6,py+4,4,4);ctx.fillRect(px+2,py+7,4,5);ctx.fillRect(px+10,py+7,4,5);ctx.fillRect(px+5,py+9,6,5);
+  ctx.fillStyle='#4c9b3c';
+  ctx.fillRect(px+7,py+5,2,2);ctx.fillRect(px+3,py+8,2,2);ctx.fillRect(px+11,py+8,2,2);ctx.fillRect(px+7,py+11,2,2);
+  ctx.fillStyle='#1e4a18';ctx.fillRect(px+7,py+13,2,2);
+}
+/* 路障：石头(镐) / 草丛灌木(镰) / 树枝(斧)，真素材, 底边对齐地块 */
 function drawObstacle(px,py,ob){
   const im=img(ob.spr);
   ctx.fillStyle='rgba(0,0,0,.20)';ctx.beginPath();ctx.ellipse(px+8,py+14,6,2.5,0,0,7);ctx.fill();
   if(im){ ctx.drawImage(im, px, py); return; }
-  /* 回退(素材未加载)：简易程序化 */
-  if(ob.type==='rock'){ ctx.fillStyle='#8a8f9a';ctx.beginPath();ctx.ellipse(px+8,py+9,6,5,0,0,7);ctx.fill();ctx.fillStyle='#aab0bb';ctx.fillRect(px+5,py+5,4,3); }
-  else if(ob.type==='weed'){ ctx.fillStyle='#3f8a3c';for(const [bx,by,hh] of [[4,15,8],[7,15,11],[10,15,8]])ctx.fillRect(px+bx,py+by-hh,2,hh); }
+  /* 回退(素材未加载瞬间)：与真素材同风格的程序化占位 */
+  if(ob.type==='rock')drawRockFallback(px,py);
+  else if(ob.type==='weed')drawWeedFallback(px,py);
   else{ ctx.fillStyle='#7a4a2a';ctx.fillRect(px+2,py+11,12,3);ctx.fillStyle='#8c5a2b';ctx.fillRect(px+9,py+7,3,5); }
 }
 /* 头顶展示：拾取的物品(emoji)举过头顶 / 使用工具挥舞 */

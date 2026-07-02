@@ -84,26 +84,51 @@ canvas{image-rendering:pixelated;display:block}
 /* ============ HUD ============ */
 #hud{position:fixed;left:0;right:0;top:0;z-index:20;display:none;pointer-events:none;
   padding:10px;padding-top:max(10px, env(safe-area-inset-top));}
+/* 任务+状态合并木板：固定右上角 */
 #questBar{
-  margin:0 auto;width:fit-content;max-width:calc(100% - 210px);
+  position:absolute;right:10px;top:max(10px, env(safe-area-inset-top));
+  width:fit-content;max-width:min(232px, calc(100vw - 190px));
   text-align:center;line-height:1.5;
   background:linear-gradient(180deg,var(--wood-light),var(--wood));
   border:3px solid var(--wood-dark);border-radius:4px;
-  color:#ffefc9;font-size:13px;letter-spacing:1px;padding:7px 14px;
+  color:#ffefc9;font-size:12px;letter-spacing:1px;padding:6px 10px;
   box-shadow:0 4px 0 rgba(0,0,0,.3);text-shadow:1px 1px 0 rgba(0,0,0,.4);
-  display:flex;align-items:center;gap:8px;
 }
+#questBar .quest-line{display:flex;align-items:center;gap:7px;text-align:left}
 #questBar .dot{width:8px;height:8px;background:#ffd84d;flex:none;animation:beat 1s infinite}
+/* 木板下半：倒计时/金币/心/星（同一块板, 虚线隔开） */
+#boardInfo{
+  margin-top:5px;padding-top:5px;border-top:2px dashed rgba(255,239,201,.3);
+  display:flex;flex-direction:column;gap:1px;align-items:center;
+}
+#boardInfo .bi-top{font-size:11px;color:#ffefc9;display:flex;align-items:center;gap:5px;justify-content:center}
+#boardInfo .bi-sep{opacity:.6}
+#boardInfo .bi-coin{width:9px;height:9px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 35% 35%, #ffec8a, #ffd84d 55%, #e8943a);border:1px solid #8c5a16}
+#biHearts,#biStars{font-size:11px;letter-spacing:2px;line-height:1.25;text-shadow:none}
+#biHearts .on{color:#ff5c8a}  #biHearts .off{color:rgba(30,18,26,.5)}
+#biStars .on{color:#ffd84d}   #biStars .off{color:rgba(30,18,26,.5)}
+/* 物品栏：左侧竖列（右上被木板占用） */
 #itemBar{
-  margin:8px auto 0;width:fit-content;display:flex;gap:6px;
+  position:absolute;left:10px;top:calc(max(10px, env(safe-area-inset-top)) + 50px);
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;
 }
+/* 物品栏格子：星露谷背包槽位风(木框+内浅底+高光) */
 .chip{
-  background:rgba(91,44,14,.85);border:2px solid #3a1d08;border-radius:4px;
-  color:#ffe9a8;font-size:12px;padding:4px 8px;letter-spacing:1px;
+  background:linear-gradient(180deg,#ffd9a8,#e8b06a);
+  border:2px solid #5a3413;border-radius:5px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5), inset 0 -2px 0 rgba(90,52,19,.35), 0 2px 0 rgba(0,0,0,.25);
+  color:#5b2c0e;font-size:12px;font-weight:bold;padding:4px 7px;letter-spacing:1px;
 }
-#progress{position:absolute;right:10px;top:max(10px, env(safe-area-inset-top));display:flex;gap:4px}
-#progress .ph{width:18px;height:16px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 12" shape-rendering="crispEdges"><path fill="%23493a52" d="M2 1h3v1h1v1h1V2h1V1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v-1H4V9H3V8H2V7H1V6H0V2h1V1h1z"/></svg>') no-repeat center/contain}
-#progress .ph.on{background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 12" shape-rendering="crispEdges"><path fill="%23e0457b" d="M2 1h3v1h1v1h1V2h1V1h3v1h1v3h-1v1h-1v1h-1v1h-1v1h-1v1h-1v1h-1v-1H4V9H3V8H2V7H1V6H0V2h1V1h1z"/><path fill="%23ff7daa" d="M2 2h2v1H3v2H2z"/></svg>') no-repeat center/contain}
+/* 章节进度星已并入画布右上角木牌 HUD，DOM 容器隐藏 */
+#progress{display:none}
+/* 商店老板栏 */
+.shop-keeper{
+  display:flex;align-items:center;gap:10px;margin:4px 0 6px;
+  background:rgba(140,90,43,.15);border:2px dashed rgba(140,70,21,.35);border-radius:8px;padding:6px 10px;
+}
+.shop-keeper img{width:52px;height:52px;image-rendering:pixelated;border:2px solid var(--wood-dark);border-radius:6px;background:#cfe6f4}
+.shop-keeper .sk-line{font-size:13px;color:#6b3a12;text-align:left;line-height:1.5}
 #menuBtns{position:absolute;left:10px;top:max(10px, env(safe-area-inset-top));display:flex;gap:8px;pointer-events:auto}
 .mini-btn{
   width:40px;height:40px;font-size:17px;padding:0;font-family:inherit;cursor:pointer;
@@ -374,6 +399,14 @@ canvas{image-rendering:pixelated;display:block}
 .trade-row + .trade-row{border-top:3px dashed rgba(140,70,21,.22)}
 .trade-row .nm{flex:1}
 .trade-row .pr{color:#a3572b;font-size:13px}
+.ticon{width:24px;height:24px;image-rendering:pixelated;vertical-align:-6px;margin-right:2px}
+/* A 键就绪发光：面前有可互动目标 */
+.act-btn.ready{
+  background:linear-gradient(180deg,#ffe9a8,#ffc65c);
+  box-shadow:0 0 14px rgba(255,216,77,.9), 0 4px 0 rgba(0,0,0,.3);
+  transform:scale(1.08);
+}
+.act-btn{transition:transform .15s, box-shadow .15s}
 #fishUI{
   position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:42;display:none;align-items:center;gap:18px;

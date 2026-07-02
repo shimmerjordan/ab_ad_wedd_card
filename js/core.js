@@ -10,6 +10,14 @@ const game = {
   scene:'world',
   quest:0,                      // 0找TA 1农务 2钓鱼 3收信 4博物馆 5殿堂仪式 6完结
   coins:10, seeds:0, fert:0, water:0, fruits:0, fishN:0, fishQ:false,
+  fishInv:[],                   // 鱼获明细 [{sp,perfect}]，fishN 与其长度同步
+  hearts:0,                     // ❤ 与TA的好感度 0-10（送礼/彩蛋/剧情获得）
+  heartLv6:false, heartLv10:false,   // 心级奖励是否已发放
+  gems:{amethyst:0,aqua:0,topaz:0,ruby:0,diamond:0},   // 💎 宝石背包
+  donated:{amethyst:0,aqua:0,topaz:0,ruby:0},          // 博物馆已捐赠(每种一颗)
+  donatedN:0, donateLv2:false, donateLv4:false,        // 捐赠里程碑
+  seedBag:{straw:0,blue:0},                            // 经济作物种子(向日葵用 seeds)
+  cropInv:{straw:0,blue:0},                            // 收获的经济作物
   rod:false, hasCan:false,      // 鱼竿(商店购买)/水壶(水井任务获取)
   bait:0, eggs:0, feed:0, flowers:0, giftN:0,
   chickenFedT:-99,              // 母鸡消化计时
@@ -31,6 +39,22 @@ const TOOLS = [
 const OBS_SPR = { rock:['obsRock','obsRock2'], weed:['obsWeed','obsWeed2','obsWeed3','obsBush'], branch:['obsBranch'] };
 /* 觅食灌木/野花 重生计时 */
 const forageT={}, pickedF={};
+/* —— 宝石表：挖矿掉落权重/卖价（钻石稀有, 不参与博物馆四件套捐赠）—— */
+const GEM_TYPES=[
+  {key:'amethyst',name:'紫水晶',icon:'gemAmethyst',price:8, w:30},
+  {key:'aqua',    name:'海蓝宝',icon:'gemAqua',    price:12,w:22},
+  {key:'topaz',   name:'黄水晶',icon:'gemTopaz',   price:6, w:28},
+  {key:'ruby',    name:'红宝石',icon:'gemRuby',    price:15,w:15},
+  {key:'diamond', name:'钻石',  icon:'gemDiamond', price:30,w:5},
+];
+function gemOf(key){ return GEM_TYPES.find(g=>g.key===key); }
+function gemTotal(){ return Object.values(game.gems).reduce((a,b)=>a+b,0); }
+function rollGem(rng){
+  const total=GEM_TYPES.reduce((s,g)=>s+g.w,0);
+  let r=(rng||Math.random)()*total;
+  for(const g of GEM_TYPES){ r-=g.w; if(r<0)return g; }
+  return GEM_TYPES[0];
+}
 const player  = {x:5.5*TILE, y:6.5*TILE, dir:'down', flip:false, moving:false, animT:0, frame:'A', frameI:0, z:0, vz:0, over:null};
 /* 头顶展示：over={kind:'item'|'tool', icon/tool, t0, dur} —— 拾取举过头顶 / 使用工具挥舞 */
 function showOver(kind, val, dur){ player.over={kind, val, t0:game.time, dur:dur||1.2}; }
@@ -44,8 +68,27 @@ const chicken = chickens[0];   // talkChicken/near 以第一只母鸡为准
 /* 猫：状态机漫游(博物馆与邻居家之间的街角) + 喂食后跟随 */
 const cat = {x:29*TILE, y:21.6*TILE, homeX:29*TILE, homeY:21.6*TILE,
              tx:29*TILE, ty:21.6*TILE, state:'sit', t:2, flip:false, followT:0, animT:0, frame:0};
-/* 农田地块: till=耕地进度(0未耕→3全耕可种), st=0空/1已种/2已浇, fert, t */
-const plots = {};               // "x,y"->{till,st,fert,t}
+/* 农场狗「旺财」：坐在家门口小路旁(避开栅栏), 可以摸头 */
+const dog = {x:6.0*TILE, y:6.6*TILE, petted:false};
+/* 湖面鸭子：慢慢游动 + 随波起伏 */
+const ducks = [
+  {x:26*TILE, y:4*TILE,  tx:28*TILE, ty:5*TILE, t:0, flip:false},
+  {x:31*TILE, y:6.5*TILE,tx:30*TILE, ty:4.5*TILE, t:2, flip:true},
+];
+/* 花田蝴蝶（纯装饰, 程序化绘制） */
+const butterflies = Array.from({length:6},(_,i)=>({
+  x:(27+(i*2.3)%7)*TILE, y:(26+(i*1.7)%4)*TILE,
+  phase:i*1.3, hue:['#ff9eb5','#ffd84d','#fdfdff','#a06ee0','#ff8a5c','#7dc4ff'][i],
+}));
+/* —— 作物表：strip=生长条带素材, frames=[种下,苗,长,熟]帧序, ripe=每阶段秒数 ——
+ *  向日葵是任务作物(fruits 计数)；草莓/蓝莓是经济作物(卖钱) */
+const CROP_DEFS={
+  sun:  {name:'向日葵', strip:'sunflower', frames:[2,3,4,5], ripe:1.6, fertRipe:0.9, sell:5,  icon:'🌻'},
+  straw:{name:'草莓',   strip:'cropStraw', frames:[2,3,5,6], ripe:2.0, fertRipe:1.1, sell:8,  icon:'🍓'},
+  blue: {name:'蓝莓',   strip:'cropBlue',  frames:[2,3,5,6], ripe:2.4, fertRipe:1.3, sell:10, icon:'🫐'},
+};
+/* 农田地块: till=耕地进度(0未耕→2全耕可种), st=0空/1已种/2已浇, crop=作物键, fert, t */
+const plots = {};               // "x,y"->{till,st,crop,fert,t}
 {
   const wg=SCENES.world.g;
   for(let y=0;y<SCENES.world.h;y++)for(let x=0;x<SCENES.world.w;x++)
@@ -70,6 +113,20 @@ const obstacles = {};
     const h=hash(x*131+7, y*197+13);
     if(h%100 < 24){ const type=types[h%3], v=OBS_SPR[type]; obstacles[x+','+y]={type, spr:v[(h>>5)%v.length]}; }
   }
+}
+/* 采石点：会重生的矿岩(镐子敲开有几率掉宝石)；只落在空草地上 */
+const mines={};
+{
+  const g=SCENES.world.g;
+  for(const [mx,my] of [[2,14],[3,16],[2,18],[39,13],[41,17],[40,33]]){
+    const t=g[my]&&g[my][mx];
+    if((t==='.'||t===',')&&!obstacles[mx+','+my]) mines[mx+','+my]={t:-99};   // t=上次被挖时间
+  }
+}
+const MINE_RESPAWN=45;
+function mineAlive(tx,ty){
+  const m=mines[tx+','+ty];
+  return !!m&&(game.time-m.t>=MINE_RESPAWN);
 }
 
 /* ============================================================
@@ -103,6 +160,8 @@ function updateCam(){
 const keys={};
 const stick={on:false,id:-1,ox:0,oy:0,dx:0,dy:0};
 let actA=false, actB=false, holdA=false;
+/* 测试钩子：单测中注入输入（生产环境无副作用） */
+function __setInput(a,h){ actA=!!a; holdA=!!h; }
 addEventListener('keydown',e=>{
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
   const k=e.key.toLowerCase();
@@ -171,6 +230,7 @@ function solidAt(px,py,airborne){
   if(t==='T'||t==='W'||t==='~')return true;
   if((t==='f'||t==='B')&&!airborne)return true;   // 篱笆/开花灌木均可跳越
   if(game.scene==='world'&&obstacles[(px/TILE|0)+','+(py/TILE|0)])return true;   // 未清除的障碍物
+  if(game.scene==='world'&&mineAlive(px/TILE|0,py/TILE|0))return true;           // 未敲开的矿岩
   for(const o of objList()) if(px>=o.x&&px<o.x+o.w&&py>=o.y&&py<o.y+o.h)return true;
   return false;
 }

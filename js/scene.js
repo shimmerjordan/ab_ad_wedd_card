@@ -17,12 +17,13 @@ function applyLocal(){
   }
 }
 applyLocal();
-/* 站点部署可提交 wedding-config.json 让宾客也读到配置 */
-fetch('wedding-config.json').then(r=>r.ok?r.json():null).then(j=>{
-  if(!j) return;
-  for(const k of ['museum','seats','frags','hallPhotos']) if(Array.isArray(j[k]) && !lsGet(LS[k])) RT[k]=j[k];
-  refreshGuest();
-}).catch(()=>{});
+/* 站点部署可提交 wedding-config.json 让宾客也读到配置（file:// 直开时跳过, 避免 CORS 报错） */
+if(location.protocol!=='file:')
+  fetch('wedding-config.json').then(r=>r.ok?r.json():null).then(j=>{
+    if(!j) return;
+    for(const k of ['museum','seats','frags','hallPhotos']) if(Array.isArray(j[k]) && !lsGet(LS[k])) RT[k]=j[k];
+    refreshGuest();
+  }).catch(()=>{});
 
 const QS = new URLSearchParams(location.search);
 let GUEST = null;                     // {name, table}
@@ -210,6 +211,17 @@ const HOBJ = {
 /* 婚纱照展板(立式相框, 红毯两侧/入口处, 带碰撞; 内容取 RT.hallPhotos 按文件名) */
 /* 婚纱照展板：靠左右两侧紧凑成对, 避开中央舞台(x8-17)与红毯过道 */
 const HALLPHOTO_POS=[[2.8,7.0],[5.5,7.0],[18.5,7.0],[21.3,7.0]];
+/* 喜宴宾客(镇民 NPC)：围站在各圆桌旁([tileX,tileY,素材,翻转])；礼成后会鼓掌冒心 */
+const HALL_GUESTS=[
+  [3.4,8.7,'npcAbigail',0],[6.0,8.9,'npcSebastian',1],
+  [18.4,8.7,'npcCaroline',0],[23.6,8.9,'npcSam',1],
+  [1.6,12.3,'npcEmily',0],[7.9,12.4,'npcMaru',1],
+  [18.0,12.2,'npcHarvey',0],[24.0,12.4,'npcPenny',1],
+  [3.2,15.8,'npcGus',0],[22.6,15.8,'npcLeah',1],
+  [6.6,16.0,'npcEvelyn',0],
+];
+/* 主持人(镇长)：舞台上新人左侧（再靠后会被拱门花环挡住） */
+const HALL_MAYOR={x:11.0*TILE, y:4.5*TILE};
 /* 殿堂内装饰（无碰撞）：盆栽对称列于舞台两侧 + 红毯夹道 */
 const HDECOR = [
   {img:'potB', x:8.2*TILE, y:6.4*TILE},

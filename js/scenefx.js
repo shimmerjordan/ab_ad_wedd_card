@@ -53,16 +53,20 @@ function tryCeremony(){
   if(game.quest<5||ceremonyDone)return;
   ceremonyDone=true;
   const other=partnerRole();
+  sfx('piano');
   startDialog([
+    {who:'mayor',text:'咳咳——各位来宾请就座！鹈鹕镇最隆重的仪式，现在开始！'},
     {who:other,text:'你来了。今天的殿堂，是全星露谷最好看的地方。'},
     {who:'me',text:'因为你站在这里。'},
-    {who:other,text:'（脸红）咳咳…仪式开始！请交换信物，并说出你的誓言——',
+    {who:'mayor',text:'二位，在亲友的见证下——请交换信物，并说出你们的誓言。',
       choices:CONFIG.vowChoices.map(c=>[c[0]]),
       onPick:i=>{game.vowIdx=i;dlg.queue.splice(dlg.idx+1,0,
         {who:other,text:CONFIG.vowChoices[i][1]},
-        {who:other,text:(game.chestOpened?'戴上你找到的那枚「美人鱼吊坠」——':'交换「美人鱼吊坠」——')+'从今天起，我们就是一家人啦！'});
+        {who:other,text:(game.chestOpened?'戴上你找到的那枚「美人鱼吊坠」——':'交换「美人鱼吊坠」——')+'从今天起，我们就是一家人啦！'},
+        {who:'mayor',text:'我宣布：礼成——！撒花！🎉'});
       }},
   ],()=>{
+    game.hearts=10;game.heartLv6=true;game.heartLv10=true;   // 礼成 = 十心圆满
     sfx('fanfare');
     confetti(140);
     flyHearts(innerWidth/2,innerHeight/3,10);
@@ -86,7 +90,7 @@ function achHTML(){
     [game.chestOpened,'美人鱼吊坠'],[game.chickenTalk>=3,'小鸡的祝福'],
     [game.wellWish>=3,'井底的愿望'],[game.bushJump>=3,'草丛萤火虫'],
     [game.catTalk,'后巷小猫'],[game.bootCaught,'旧靴子纸条'],
-    [game.catFed>=3,'猫粮赞助商'],
+    [game.catFed>=3,'猫粮赞助商'],[game.hearts>=10,'十心相印'],
   ].filter(a=>a[0]).map(a=>'🏆 '+a[1]);
   return list.length?`<br>${list.join(' · ')}`:'';
 }
@@ -146,30 +150,97 @@ document.getElementById('bookBtn').addEventListener('click',()=>{
 /* ============================================================
  * 另一半的对话（按任务阶段）
  * ============================================================ */
+/* —— 心级奖励：好感 6 心 TA 回礼；10 心特别对话（各一次）—— */
+function heartMilestone(other){
+  if(game.hearts>=10&&!game.heartLv10){
+    game.heartLv10=true;
+    sfx('fanfare');confetti(60);
+    startDialog([
+      {who:other,text:'知道吗，好感度这种东西，其实早就满格啦。'},
+      {who:other,text:'从你第一次来找我那天起，就一直是 10 颗心。💗'},
+      {who:'me',text:'（成就解锁：十心相印）'},
+    ],()=>{ toast('🏆 隐藏成就：十心相印'); flyHearts(innerWidth/2,innerHeight/2,10); });
+    return true;
+  }
+  if(game.hearts>=6&&!game.heartLv6){
+    game.heartLv6=true;
+    const r=Math.random();
+    startDialog([
+      {who:other,text:'老收你的礼物，我也准备了回礼——闭上眼，伸出手！'},
+      {who:other,text:'（TA 在你手心放了一样东西，还顺势捏了捏你的手）'},
+    ],()=>{
+      if(r<0.4){game.fert+=2;toast('🎁 回礼：魔法肥料 ×2');}
+      else if(r<0.7){game.bait+=3;toast('🎁 回礼：鱼饵 ×3');}
+      else{game.coins+=6;toast('🎁 回礼：6 金币');}
+      sfx('coin');updateItemBar();flyHearts(innerWidth/2,innerHeight/2,5);
+    });
+    return true;
+  }
+  return false;
+}
+/* —— 礼物反应表（星露谷式：不同礼物不同喜爱度）—— */
+function giveGift(other,kind){
+  game.giftN++;
+  if(kind==='egg'){
+    game.eggs--;updateItemBar();
+    const reward=game.giftN%2===1?'bait':'coin';
+    dlg.queue.splice(dlg.idx+1,0,
+      {who:other,text:'给我的？还热乎着！（TA 小心地把鸡蛋收进篮子）'},
+      {who:other,text:reward==='bait'?'拿这个回礼——两份鱼饵，钓鱼时用得上！':'那我也不能小气——给你 3 金币零花！'});
+    dlg.onDoneExtra=()=>{
+      if(reward==='bait'){game.bait+=2;toast('🪱 获得鱼饵 ×2');}
+      else{game.coins+=3;toast('💰 获得 3 金币');}
+      sfx('coin');updateItemBar();
+      addHearts(1,'送鸡蛋');
+      flyHearts(innerWidth/2,innerHeight/2,4);
+    };
+  }else if(kind==='fish'){
+    const f=consumeBestFish();
+    if(!f)return;
+    const sp=fishSpeciesOf(f.sp);
+    updateItemBar();
+    dlg.queue.splice(dlg.idx+1,0,
+      f.perfect
+        ? {who:other,text:`哇，一条品相完美的「${sp.name}」！鳞片亮得能照出人影…舍不得下锅了，先养起来！`}
+        : {who:other,text:`「${sp.name}」！今晚就加菜——你负责钓，我负责煎，这分工不错吧？`});
+    dlg.onDoneExtra=()=>{ addHearts(f.perfect?2:1,f.perfect?'完美鱼获':'送鱼'); };
+  }else if(kind==='flower'){
+    game.fruits--;updateItemBar();
+    dlg.queue.splice(dlg.idx+1,0,
+      {who:other,text:'向日葵！我们的定情花…（TA 把花别在耳边）好看吗？'},
+      {who:'me',text:'好看。比太阳还亮。'});
+    dlg.onDoneExtra=()=>{ addHearts(2,'定情花'); };
+  }else if(kind==='gem'){
+    /* 送出最贵的一颗宝石 */
+    let best=null;
+    for(const g of GEM_TYPES)if(game.gems[g.key]>0&&(!best||g.price>best.price))best=g;
+    if(!best)return;
+    game.gems[best.key]--;updateItemBar();
+    dlg.queue.splice(dlg.idx+1,0,
+      best.key==='diamond'
+        ? {who:other,text:'钻、钻石？！你从矿岩里敲出了钻石还直接送我…（TA 攥紧了拳头又松开）好，婚戒的事就包在我身上了！'}
+        : {who:other,text:`「${best.name}」！刚好配我婚礼那天的耳环…你怎么什么都想到了。（TA 把宝石对着阳光眯眼看了很久）`});
+    dlg.onDoneExtra=()=>{ addHearts(2,best.key==='diamond'?'钻石恒久远':'心爱的宝石'); };
+  }
+}
 function talkPartner(){
   const other=partnerRole();
-  /* 送鸡蛋（任意阶段，1-5 章可触发；奖励交替：鱼饵→金币） */
-  if(game.quest>=1&&game.quest<6&&game.eggs>0&&game.scene==='world'){
-    const opts=[['「聊聊进展」'],[`「送TA一颗鸡蛋」(🥚${game.eggs})`]];
+  /* 心级奖励优先（不打断任务推进的关键节点） */
+  if(game.quest>=1&&game.scene==='world'&&heartMilestone(other))return;
+  /* 送礼菜单（1-5 章，户外）：鸡蛋/最好的鱼/多余的向日葵 */
+  const gifts=[];
+  if(game.eggs>0)gifts.push(['egg',`「送TA一颗鸡蛋」(🥚${game.eggs})`]);
+  if(game.fishN>0)gifts.push(['fish',`「送TA一条鱼」(🐟${game.fishN})`]);
+  if(game.fruits>3)gifts.push(['flower',`「送TA一朵向日葵」(🌻${game.fruits-3})`]);
+  if(gemTotal()>0)gifts.push(['gem',`「送TA一颗宝石」(💎${gemTotal()})`]);
+  if(game.quest>=1&&game.quest<6&&gifts.length&&game.scene==='world'){
+    const opts=[['「聊聊进展」']].concat(gifts.map(g=>[g[1]]));
     startDialog([
       {who:other,text:'怎么啦？是来看我，还是有好东西要分享？',
        choices:opts,
        onPick:i=>{
-         if(i===1){
-           game.eggs--;game.giftN++;updateItemBar();
-           const reward=game.giftN%2===1?'bait':'coin';
-           dlg.queue.splice(dlg.idx+1,0,
-             {who:other,text:'给我的？还热乎着！（TA 小心地把鸡蛋收进篮子）'},
-             {who:other,text:reward==='bait'?'拿这个回礼——两份鱼饵，钓鱼时用得上！':'那我也不能小气——给你 3 金币零花！'});
-           dlg.onDoneExtra=()=>{
-             if(reward==='bait'){game.bait+=2;toast('🪱 获得鱼饵 ×2');}
-             else{game.coins+=3;toast('💰 获得 3 金币');}
-             sfx('coin');updateItemBar();
-             flyHearts(innerWidth/2,innerHeight/2,4);
-           };
-         }else{
-           dlg.queue.splice(dlg.idx+1,0,{who:other,text:partnerHint(other)});
-         }
+         if(i===0)dlg.queue.splice(dlg.idx+1,0,{who:other,text:partnerHint(other)});
+         else giveGift(other,gifts[i-1][0]);
        }},
     ],()=>{ const cb=dlg.onDoneExtra;dlg.onDoneExtra=null;cb&&cb(); });
     return;
@@ -186,6 +257,7 @@ function talkPartner(){
     ],()=>{
       game.seeds=3;
       toast('获得 <b style="color:#ffd84d">向日葵种子×3</b> · 水壶在水井边');
+      addHearts(2,'久别重逢');
       showOverlay(coupleHTML(),()=>setQuest(1));
       drawOverlayPortraits();
     });
@@ -208,7 +280,7 @@ function partnerHint(other){
         ?'站上栈道尽头朝湖按 A！按住 A 绿区上浮、松开下沉，罩住小鱼攒满进度！'
         :'渔具去杂货店买：鱼竿 12 金、鱼饵 2 金。钱不够就卖鸡蛋(4金)、野花(2金)～';
     case 3: return '刚才邮递员来过！快回家看看那个红色邮箱。';
-    case 4: return '欢迎来到「我们的回忆博物馆」！墙上的画、玻璃柜里的展品，走近按 A 都能看。';
+    case 4: return '欢迎来到「我们的回忆博物馆」！墙上的画、玻璃柜里的展品，走近按 A 都能看。对了，上墙的矿物展架还缺四颗宝石——镇西和湖东的矿岩里挖得到！';
     case 5: return '就等你啦。走上舞台来——仪式马上开始！';
     default: return '婚礼达成 ♥ 香槟塔、钢琴、五月柱、礼花筒都可以玩玩！';
   }

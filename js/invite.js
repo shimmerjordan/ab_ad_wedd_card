@@ -178,7 +178,7 @@ setInterval(()=>{
  * ============================================================ */
 function updateItemBar(){
   const bar=document.getElementById('itemBar');
-  const chips=[`💰${game.coins}`];
+  const chips=[];                       // 金币显示在右上角木牌 HUD 上
   if(game.seeds)chips.push(`🌱${game.seeds}`);
   if(game.hasCan)chips.push(`💧${game.water}/3`);
   if(game.fert)chips.push(`💜${game.fert}`);
@@ -187,7 +187,14 @@ function updateItemBar(){
   if(game.flowers)chips.push(`🌼${game.flowers}`);
   if(game.bait)chips.push(`🪱${game.bait}`);
   if(game.quest===1||game.fruits)chips.push(`🌻${Math.min(game.fruits,3)}/3${game.fruits>3?'+'+(game.fruits-3):''}`);
-  if(game.fishN)chips.push(`🐟${game.fishN}`);
+  if(game.fishN){
+    const pf=game.fishInv.filter(f=>f.perfect).length;
+    chips.push(`🐟${game.fishN}${pf?'✨':''}`);
+  }
+  if(gemTotal())chips.push(`💎${gemTotal()}`);
+  if(game.seedBag.straw||game.cropInv.straw)chips.push(`🍓${game.cropInv.straw}${game.seedBag.straw?'/籽'+game.seedBag.straw:''}`);
+  if(game.seedBag.blue||game.cropInv.blue)chips.push(`🫐${game.cropInv.blue}${game.seedBag.blue?'/籽'+game.seedBag.blue:''}`);
+  if(typeof updateBoard==='function')updateBoard();
   if(game.fishQ)chips.push(`💞鱼`);
   bar.innerHTML=chips.map(c=>`<span class="chip">${c}</span>`).join('');
 }
