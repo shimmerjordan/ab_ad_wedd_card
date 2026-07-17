@@ -12,6 +12,7 @@ function drawTiles(){
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
     const t=g[ty][tx],px=tx*TILE-cam.x|0,py=ty*TILE-cam.y|0,h=hash(tx,ty);
     if(t==='W'){ // 内墙：距地面3行内的墙体画墙纸立面，其余画砖色
+      if(game.scene==='mine'){ ctx.fillStyle='#241f2b';ctx.fillRect(px,py,TILE,TILE);ctx.fillStyle='#31283c';ctx.fillRect(px,py,TILE,3);ctx.fillStyle='#1a1622';ctx.fillRect(px,py+13,TILE,3); continue; }
       const wp=img(game.scene==='museum'?'wallMuseum':'wallHall');
       let below=0; while(g[ty+below+1]&&g[ty+below+1][tx]==='W') below++;
       const faceRow = below<=2 && g[ty+below+1] && g[ty+below+1][tx]!=='W';
@@ -26,6 +27,7 @@ function drawTiles(){
       continue;
     }
     if(t==='w'||t==='c'||t==='S'){ // 木地板基底（素材地板优先）
+      if(game.scene==='mine'){ ctx.fillStyle=(tx+ty)%2?'#3a3340':'#332d3a';ctx.fillRect(px,py,TILE,TILE);ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(px,py+15,TILE,1); if(hash(tx,ty)%9===0){ctx.fillStyle='#2a2433';ctx.fillRect(px+3,py+5,3,2);} continue; }
       const fl=img(game.scene==='museum'?'floorMuseum':'floorHall');
       if(fl) ctx.drawImage(fl,(tx%2)*16,(ty%2)*16,16,16,px,py,16,16);
       else{
@@ -283,6 +285,18 @@ function drawBush(){
   ctx.fillStyle='#2f6b24';ctx.fillRect(px+3,py+6,4,3);ctx.fillRect(px+10,py+3,4,3);
   if(game.bushJump<3&&(game.time*1.5|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+12,py-3,2,2);ctx.fillRect(px+2,py-1,1,1);}
 }
+/* 矿洞入口(玩法⑦)：岩石拱口 + 木牌 + 洞内微光 */
+function drawMineEntry(){
+  const o=WOBJ.mineEntry,px=o.x-cam.x|0,py=o.y-cam.y|0;
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(px+14,py+20,15,4,0,0,7);ctx.fill();
+  ctx.fillStyle='#6b6252';ctx.fillRect(px-2,py-4,32,22);
+  ctx.fillStyle='#8f8674';ctx.fillRect(px-2,py-4,32,4);
+  ctx.fillStyle='#4a4453';ctx.fillRect(px+2,py+2,24,16);
+  ctx.fillStyle='#17131f';ctx.beginPath();ctx.moveTo(px+4,py+18);ctx.lineTo(px+4,py+8);ctx.quadraticCurveTo(px+14,py-2,px+24,py+8);ctx.lineTo(px+24,py+18);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#8c5a2b';ctx.fillRect(px+3,py-12,22,8);ctx.fillStyle='#5b2c0e';ctx.fillRect(px+3,py-12,22,2);
+  ctx.fillStyle='#ffefc9';ctx.font='8px "Fusion Pixel 12px Proportional SC",monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('矿洞',px+14,py-7);
+  if((game.time*1.6|0)%2){ctx.fillStyle='rgba(190,232,255,.55)';ctx.fillRect(px+12,py+8,2,2);ctx.fillRect(px+16,py+11,2,2);}
+}
 function drawCat(){
   const px=cat.x-cam.x|0,py=cat.y-cam.y|0;
   ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(px,py+10,14,2);
@@ -310,6 +324,18 @@ function drawChickenE(ck){
     return;
   }
   blit(ctx,CHICKEN,px,py-(ck.pause?0:(game.time*6|0)%2),ck.dir===1);
+}
+/* 小鸡仔（彩蛋⑤孵出）：母鸡素材缩到 ~10px, 嫩黄点缀 */
+function drawChickChick(ck){
+  const px=ck.x-cam.x|0,py=ck.y-cam.y|0, S=10;
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(px+2,py+8,7,2);
+  const im=img('chicken');
+  if(im){
+    const fi=ck.pause?0:(game.time*6|0)%2;
+    if(ck.dir===1){ ctx.save();ctx.translate(px+S,py-2);ctx.scale(-1,1);ctx.drawImage(im,fi*16,0,16,16,0,0,S,S);ctx.restore(); }
+    else ctx.drawImage(im,fi*16,0,16,16,px,py-2,S,S);
+  }else{ ctx.fillStyle='#ffe066';ctx.fillRect(px+2,py,6,7); }
+  ctx.fillStyle='#ffd84d';ctx.fillRect(px+3,py+1,1,1);
 }
 function drawChar(c,role,npc){
   const px=c.x-cam.x|0,py=c.y-cam.y|0;

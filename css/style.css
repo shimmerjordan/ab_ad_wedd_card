@@ -1,3 +1,15 @@
+/* —— 中文像素字体·自托管（Fusion Pixel 12px Proportional, © TakWolf, OFL）——
+ *  修复此前 jsDelivr @fontsource 无中文子集导致中文回退系统字体的问题；国内可靠、离线可用。
+ *  latin 子集覆盖 ASCII/数字/符号，zh_hans 子集兜底其余(中文及标点)。 */
+@font-face{
+  font-family:'Fusion Pixel 12px Proportional SC'; font-style:normal; font-weight:400; font-display:swap;
+  src:url(../assets/fonts/fusion-pixel-latin.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0100-024F,U+2000-206F,U+2190-21FF,U+2460-24FF;
+}
+@font-face{
+  font-family:'Fusion Pixel 12px Proportional SC'; font-style:normal; font-weight:400; font-display:swap;
+  src:url(../assets/fonts/fusion-pixel-sc.woff2) format('woff2');
+}
 :root{
   --wood-dark:#5b2c0e; --wood:#8c4615; --wood-light:#b3661f;
   --orange:#e8943a; --cream:#ffe6b0; --cream-deep:#f6d291;
@@ -603,3 +615,33 @@ body.lux-bg{ background:var(--lux-bg); }   /* 入口/典雅页时给 body 垫米
 #luxBox img{ max-width:94%; max-height:90%; border:1px solid var(--g,#d8b36a); border-radius:8px; box-shadow:0 10px 60px rgba(212,176,106,.25); }
 #luxBoxClose{ position:absolute; top:18px; right:20px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.08); color:#f3dca0; border:1px solid #d8b36a; font-size:18px; cursor:pointer; }
 @media (prefers-reduced-motion:reduce){ .lux-names,.lux-divider::before,.lux-divider::after,.lux-btn::after,#lux::before,#lux::after{ animation:none; } .reveal{ transition:opacity .4s; transform:none; filter:none; } }
+
+/* —— 通关结算卡（玩法③）+ 分享图（UI） —— */
+.score-card{margin:16px 0 0;padding:16px;border-radius:10px;text-align:center;
+  background:linear-gradient(180deg,#fff6e2,#ffe9c4);border:3px solid var(--wood-dark);box-shadow:0 4px 0 rgba(91,44,14,.25)}
+.score-title{font-size:16px;font-weight:bold;color:#b04a3a;letter-spacing:1px}
+.score-num{margin:6px 0 2px}
+.score-num b{font-size:40px;color:var(--orange);line-height:1}
+.score-num span{font-size:14px;color:#a3572b;margin-left:2px}
+.score-bar{height:10px;border-radius:6px;background:rgba(140,70,21,.18);overflow:hidden;margin:6px 0 12px}
+.score-bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#7ec850,#ffd84d,#e8943a)}
+.score-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;font-size:12px;color:#5b4427;margin-bottom:12px}
+.share-img{display:block;max-width:100%;width:300px;margin:8px auto 0;border:4px solid var(--wood-dark);
+  border-radius:6px;image-rendering:auto;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+/* —— 小地图（📜 菜单里） —— */
+.mini-wrap{margin:12px auto 4px;text-align:center}
+#miniMap{display:block;margin:0 auto;width:230px;height:240px;image-rendering:pixelated;border:3px solid var(--wood-dark);border-radius:6px;background:#5fae52}
+.mini-legend{font-size:11px;color:#8a5a2b;margin-top:6px;line-height:1.6}
+
+/* —— 祝福墙（拓展②） —— */
+.wish-wall{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.wish-item{background:#fff6e2;border:2px solid rgba(140,70,21,.3);border-left:5px solid var(--orange);border-radius:6px;padding:9px 12px;text-align:left}
+.wish-text{font-size:13px;color:#5b4427;line-height:1.7}
+.wish-from{font-size:12px;color:#a3572b;text-align:right;margin-top:4px}
+
+/* —— 通关分享图·领奖码 —— */
+.gift-code{margin:10px 0 0;padding:12px;text-align:center;border-radius:8px;background:#fff6e2;border:2px dashed #b04a3a;color:#5b4427;font-size:14px}
+.gift-code b{font-size:20px;letter-spacing:3px;color:#b04a3a}
+.gift-code span{display:block;font-size:11px;color:#8a5a2b;margin-top:5px}
+.gift-code.locked{background:#f3ece0;border-color:#9a6a3a;color:#7a5a3a}
+.gift-code.locked b{color:#9a6a3a;font-size:inherit;letter-spacing:normal}

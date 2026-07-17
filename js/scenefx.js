@@ -42,7 +42,30 @@ function playPiano(){sfx('piano');flyHearts(innerWidth/2,innerHeight/3,3);toast(
 function champagne(){sfx('coin');confetti(24);toast('🥂 香槟塔亮起金色的光！');}
 function cakeBite(){sfx('harvest');toast('🍰 偷尝了一口奶油…甜到心里！');}
 function popper(){sfx('pop');confetti(60);toast('🎉 砰——！礼花漫天');}
+/* 逐桌敬酒祝福语：优先拼接该桌宾客名(RT.seats) + 可配置 toastLines */
+function toastLineFor(i){
+  const table=String(i+1);
+  const names=(RT.seats||[]).filter(s=>String(s.table)===table).map(s=>s.name);
+  const cfg=(CONFIG.toastLines&&CONFIG.toastLines.length)?CONFIG.toastLines:[
+    '举杯——谢谢你能来，这杯我干了，你随意！','这一桌都是最亲的人，今天真高兴！','喜糖管够、酒管够，玩得尽兴啊！'];
+  const base=cfg[i%cfg.length];
+  return names.length?`（走到 ${table} 号桌）${names.join('、')}，谢谢你们来！${base}`:`（走到 ${table} 号桌）${base}`;
+}
 function tableInfo(i){
+  /* 终章：逐桌碰杯（玩法①），敬完全场触发「滴酒不洒」 */
+  if(game.quest>=6&&!game.toastDone){
+    if(!game.toastedTables)game.toastedTables=[];
+    if(game.toastedTables.includes(i))
+      return startDialog([{who:'me',text:'这一桌已经敬过啦，去别的桌看看～（还没敬的桌子上有金杯在闪）'}]);
+    game.toastedTables.push(i); game.toastCount=game.toastedTables.length;
+    sfx('coin');flyHearts(innerWidth/2,innerHeight/2,2);
+    const done=game.toastCount>=TABLE_POS.length;
+    return startDialog([{who:'me',text:toastLineFor(i)}],()=>{
+      if(done){ game.toastDone=true; confetti(80);sfx('fanfare');
+        toast('🏆 隐藏成就：滴酒不洒 · 与全场宾客碰杯完毕！');addHearts(1,'滴酒不洒'); }
+      else toast(`🍷 已敬 ${game.toastCount}/${TABLE_POS.length} 桌`);
+    });
+  }
   const lines=['一张布置好的喜宴圆桌，红绸桌布、瓷盘和小花艺都摆好了。','随便坐——今天来的都是自家人。','桌上的喜糖是星之果实味的，记得尝一颗。'];
   startDialog([{who:'me',text:lines[i%lines.length]}],()=>{sfx('blip');});
 }
@@ -79,19 +102,14 @@ function tryCeremony(){
            <div class="frame"><canvas class="pcb" width="64" height="64"></canvas></div>
          </div>
          <div class="body center" style="text-align:center">在星露谷的见证下<br><b>${CONFIG.groom}</b> 与 <b>${CONFIG.bride}</b> 永结同心<br><br>—— 而现实中的婚礼，等你来 ——</div>`,
-        ()=>{showOverlay(scheduleHTML(),()=>{setQuest(6);finalSummary();},'查看完整请帖 ▶');},
+        ()=>{ startBouquet(()=>showOverlay(scheduleHTML(),()=>{setQuest(6);finalSummary();},'查看完整请帖 ▶')); },
         '然后呢？▶');
       drawOverlayPortraits();
     },900);
   });
 }
 function achHTML(){
-  const list=[
-    [game.chestOpened,'美人鱼吊坠'],[game.chickenTalk>=3,'小鸡的祝福'],
-    [game.wellWish>=3,'井底的愿望'],[game.bushJump>=3,'草丛萤火虫'],
-    [game.catTalk,'后巷小猫'],[game.bootCaught,'旧靴子纸条'],
-    [game.catFed>=3,'猫粮赞助商'],[game.hearts>=10,'十心相印'],
-  ].filter(a=>a[0]).map(a=>'🏆 '+a[1]);
+  const list=achEarned().map(a=>'🏆 '+a.name);
   return list.length?`<br>${list.join(' · ')}`:'';
 }
 function finalSummary(opt){
@@ -105,7 +123,9 @@ function finalSummary(opt){
     '<hr>'+letterHTML()+
     '<hr>'+infoHTML()+
     '<hr>'+scheduleHTML()+
+    wishWallHTML()+
     rsvpHTML()+
+    scoreCardHTML()+
     `<div class="body center" style="text-align:center;margin-top:14px;font-size:13px;color:#8a5a2b">
       你的誓言：「${CONFIG.vowChoices[game.vowIdx][0].replace(/[「」]/g,'')}」
       ${achHTML()}
@@ -137,9 +157,12 @@ document.getElementById('bookBtn').addEventListener('click',()=>{
        ${game.quest>=5?'✅':'🔒'} 回忆展 —— 参观博物馆<br>
        ${game.quest>=6?'✅':'🔒'} 当日流程 —— 殿堂仪式
      </div>
+     <div class="mini-wrap"><canvas id="miniMap" width="230" height="240"></canvas>
+       <div class="mini-legend">🟡 你的位置 · 🔴 建筑(家/店/馆/邻/鸡/殿) · 🔵 湖 · 🟤 小路 · 🌸 花田</div></div>
      <div class="frag-list">${fragList}</div>
      <div class="center" style="margin-top:12px"><button class="sdv-btn ghost" style="color:#8a5a2b;border-color:#8a5a2b" id="revealAll">跳过游戏，直接看完整请帖</button></div>`,
     null,'继续游戏 ▶');
+  { const mm=document.getElementById('miniMap'); if(mm)drawMinimap(mm); }
   document.getElementById('revealAll').onclick=()=>{game.vowIdx=game.vowIdx||0;finalSummary();};
   overlayInner.querySelectorAll('[data-frag]').forEach(el=>el.onclick=()=>{
     const f=RT.frags[+el.dataset.frag];
@@ -159,7 +182,8 @@ function heartMilestone(other){
       {who:other,text:'知道吗，好感度这种东西，其实早就满格啦。'},
       {who:other,text:'从你第一次来找我那天起，就一直是 10 颗心。💗'},
       {who:'me',text:'（成就解锁：十心相印）'},
-    ],()=>{ toast('🏆 隐藏成就：十心相印'); flyHearts(innerWidth/2,innerHeight/2,10); });
+    ],()=>{ toast('🏆 隐藏成就：十心相印'); flyHearts(innerWidth/2,innerHeight/2,10);
+      setTimeout(()=>startStarDate(),1200); });
     return true;
   }
   if(game.hearts>=6&&!game.heartLv6){
@@ -284,5 +308,42 @@ function partnerHint(other){
     case 5: return '就等你啦。走上舞台来——仪式马上开始！';
     default: return '婚礼达成 ♥ 香槟塔、钢琴、五月柱、礼花筒都可以玩玩！';
   }
+}
+
+/* ============================================================
+ * 星空约会（玩法⑤）——十心相印后解锁的隐藏浪漫场景（一次性 overlay）
+ * ============================================================ */
+function startStarDate(){
+  if(game.starDate)return;
+  game.starDate=true;
+  sfx('piano');
+  showOverlay(
+    `<h3>🌌 星空之下</h3>
+     <canvas id="starCv" width="320" height="200" style="display:block;width:100%;max-width:320px;margin:0 auto;image-rendering:pixelated;border:3px solid var(--wood-dark);border-radius:6px"></canvas>
+     <div class="frag-card">夜色温柔，湖面倒映着整条星河。<br>你们并肩坐在小船里，萤火虫提着灯笼从身边飘过。<br><br>「以后每年今天，都来这儿看一次星星，好不好？」<br>「好，一言为定。」</div>`,
+    ()=>{ toast('🏆 隐藏成就：星空之约'); flyHearts(innerWidth/2,innerHeight/2,6); },
+    '❤ 一言为定');
+  const cv=document.getElementById('starCv'); if(cv)drawStarScene(cv);
+}
+function drawStarScene(cv){
+  const g=cv.getContext('2d'), W=cv.width, H=cv.height; g.imageSmoothingEnabled=false;
+  const sky=g.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#1b1035');sky.addColorStop(.58,'#3a2360');sky.addColorStop(.58,'#0e1a3a');sky.addColorStop(1,'#16264a');
+  g.fillStyle=sky;g.fillRect(0,0,W,H);
+  for(let i=0;i<70;i++){ const x=hash(i,7)%W, y=hash(7,i)%(H*0.56|0); g.fillStyle=i%5?'#fff':'#ffe9a8'; g.fillRect(x,y,i%7?1:2,i%7?1:2); }
+  /* 月牙 */
+  g.fillStyle='#ffe9a8';g.beginPath();g.arc(W-52,40,16,0,7);g.fill();
+  g.fillStyle='#1b1035';g.beginPath();g.arc(W-45,35,14,0,7);g.fill();
+  /* 湖面倒影 */
+  g.fillStyle='rgba(255,233,168,.14)';for(let i=0;i<14;i++){const x=hash(i*3,3)%W;g.fillRect(x,(H*0.6+i*3)|0,7,1);}
+  /* 小船 + 两个小人 + 爱心 */
+  const bx=W/2, by=H*0.72|0;
+  g.fillStyle='#5b3413';g.beginPath();g.moveTo(bx-34,by);g.lineTo(bx+34,by);g.lineTo(bx+26,by+12);g.lineTo(bx-26,by+12);g.closePath();g.fill();
+  g.fillStyle='#8c5a2b';g.fillRect(bx-30,by-2,60,3);
+  g.fillStyle='#f8c890';g.fillRect(bx-14,by-16,8,10);g.fillRect(bx+6,by-16,8,10);
+  g.fillStyle='#c0392b';g.fillRect(bx-14,by-6,8,8);g.fillStyle='#3b4a6b';g.fillRect(bx+6,by-6,8,8);
+  if(typeof drawPixHeart==='function'){ g.fillStyle='#ff6fa5';drawPixHeart(g,bx-3,by-26,2); }
+  /* 萤火虫 */
+  for(let i=0;i<12;i++){const x=hash(i*5,11)%W, y=(hash(11,i*5)%(H*0.5|0))+H*0.18|0;g.fillStyle='rgba(216,255,160,.85)';g.fillRect(x,y,2,2);}
 }
 

@@ -104,6 +104,10 @@ function drawMuseumInt(ents){
       if(o.proc==='bookcase')      drawBookcase(px,py);
       else if(o.proc==='guestbook')drawGuestbook(px,py);
       else if(im)ctx.drawImage(im, px, (o.y+o.h-im.height)-cam.y|0);
+      if(k==='skel'&&im&&game.skelPoke>0&&(game.time*2|0)%3===0){   // 彩蛋⑦：被戳过后眼窝泛幽绿光
+        const gy=(o.y+o.h-im.height)-cam.y|0;
+        ctx.fillStyle='rgba(120,255,140,.9)';ctx.fillRect(px+16,gy+5,2,2);ctx.fillRect(px+22,gy+5,2,2);
+      }
     }});
   }
   /* 中央走道椭圆地毯 */
@@ -321,6 +325,12 @@ function drawHallInt(ents){
       if(d1)ctx.drawImage(d1, cx-d1.width-1, fy-(d1.height/2|0));
       if(d2)ctx.drawImage(d2, cx+1, fy-(d2.height/2|0));
       if(!d1){ctx.fillStyle='#3f8a3c';ctx.fillRect(cx-2,fy-2,4,3);ctx.fillStyle='#ff5c8a';ctx.fillRect(cx-2,fy-5,2,3);}
+      /* 敬酒提示(玩法①终章)：未敬冒金杯闪光, 已敬打勾 */
+      if(game.quest>=6&&!game.toastDone){
+        const toasted=game.toastedTables&&game.toastedTables.includes(i), ty2=py-8;
+        if(toasted){ ctx.fillStyle='#7ec850';ctx.fillRect(cx-3,ty2+2,2,3);ctx.fillRect(cx-1,ty2+4,2,2);ctx.fillRect(cx+1,ty2,2,6); }
+        else if((game.time*2|0)%2){ ctx.fillStyle='#ffd84d';ctx.fillRect(cx-2,ty2,5,4);ctx.fillStyle='#e8b04a';ctx.fillRect(cx-1,ty2+4,3,2); }
+      }
     }});
   });
 }
@@ -379,14 +389,17 @@ function drawWorld(){
     ents.push({y:WOBJ.mailbox.y+12,draw:drawMailbox});
     ents.push({y:WOBJ.chest.y+10,draw:drawChest});
     ents.push({y:WOBJ.bush.y+14,draw:drawBush});
+    ents.push({y:WOBJ.mineEntry.y+18,draw:drawMineEntry});
     ents.push({y:cat.y+12,draw:drawCat});
     chickens.forEach(ck=>ents.push({y:ck.y+12,draw:()=>drawChickenE(ck)}));
+    chicks.forEach(ck=>ents.push({y:ck.y+10,draw:()=>drawChickChick(ck)}));   // 彩蛋⑤孵出的小鸡仔
     /* 农场狗「旺财」：坐在家门口打盹 */
     ents.push({y:dog.y+16,draw(){
       const im=img('dogSit'); const px=dog.x-cam.x|0, py=dog.y-cam.y|0;
       ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(px+8,py+14,16,3);
       if(im)ctx.drawImage(im,px,py-16);
       else{ctx.fillStyle='#c9772e';ctx.fillRect(px+8,py,14,12);}
+      if(game.dogCollar){ ctx.fillStyle='#c0392b';ctx.fillRect(px+9,py-3,12,2);ctx.fillStyle='#ffd84d';ctx.fillRect(px+14,py-2,2,3); }
       if(!dog.petted&&(game.time*1.5|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+26,py-18,2,2);}
     }});
     /* 湖面鸭子：两帧浮水 + 随波起伏 + 涟漪 */
@@ -437,6 +450,7 @@ function drawWorld(){
   }
   if(game.scene==='museum')drawMuseumInt(ents);
   if(game.scene==='hall')drawHallInt(ents);
+  if(game.scene==='mine')drawMineInt(ents);
   if(partner.scene===game.scene&&game.quest<6)
     ents.push({y:partner.y+16,draw:()=>drawChar(partner,partner.role,true)});
   ents.push({y:player.y+16,draw:()=>drawChar(player,game.playerRole,false)});
@@ -448,8 +462,79 @@ function drawWorld(){
       ctx.globalAlpha=0.5; e.draw(); ctx.globalAlpha=1;
     } else e.draw();
   });
-  if(game.scene==='world'&&game.quest>=6)drawDusk();
+  if(game.scene==='world'){ if(game.quest>=6)drawDusk(); else drawAmbient(); }
+  if(game.scene==='mine')drawMineDark();
   drawMarker();
+}
+/* —— 日常户外氛围（非终章）：随现实时辰的极淡色调 + 飘落樱花瓣 + 夜间萤火虫 —— */
+function drawAmbient(){
+  let night=false;
+  let tint=null;
+  try{
+    const h=new Date().getHours();
+    if(h>=5&&h<8)       tint='rgba(255,206,130,.10)';   // 晨曦金
+    else if(h>=17&&h<19)tint='rgba(255,150,80,.12)';    // 黄昏橙
+    else if(h>=19||h<5){tint='rgba(38,40,110,.18)'; night=true;}   // 夜色蓝紫
+  }catch(e){}
+  if(tint){ ctx.fillStyle=tint; ctx.fillRect(0,0,VW,VH); }
+  /* 樱花花瓣飘落（确定性程序化, 无需状态） */
+  for(let i=0;i<11;i++){
+    const sp=16+(i%4)*7, sway=Math.sin(game.time*1.3+i*1.7)*10;
+    const x=((i*111+game.time*(6+(i%3)*3))%(VW+24))-12+sway;
+    const y=((i*70+game.time*sp)%(VH+24))-12;
+    ctx.fillStyle=['#ffd1dc','#ffe1ec','#ffffff','#ffc0cb'][i%4];
+    ctx.globalAlpha=.75;
+    if((game.time*3+i|0)%2) ctx.fillRect(x|0,y|0,3,2); else ctx.fillRect(x|0,y|0,2,3);
+    ctx.globalAlpha=1;
+  }
+  /* 夜间萤火虫（白天不显示） */
+  if(night){
+    const s=sc();
+    for(let i=0;i<10;i++){
+      const t=game.time*0.5+i*7.7;
+      const px=(hash(i*31,7)%(s.w*TILE))+Math.sin(t)*24-cam.x;
+      const py=(hash(13,i*17)%(s.h*TILE))+Math.cos(t*0.8)*16-cam.y;
+      if(px<0||py<0||px>VW||py>VH)continue;
+      const a=0.25+0.32*Math.sin(game.time*2.2+i*2.3);
+      if(a<=0.08)continue;
+      ctx.save();
+      ctx.globalAlpha=a;     ctx.fillStyle='#d8ffa0';ctx.fillRect(px|0,py|0,2,2);
+      ctx.globalAlpha=a*0.3; ctx.beginPath();ctx.ellipse(px+1,py+1,5,5,0,0,7);ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+/* —— 矿洞内景（玩法⑦）：可挖矿墙 + 深处水晶脉 + 出口指示 —— */
+function drawMineInt(ents){
+  for(const k in mineWalls){
+    const w=mineWalls[k]; if(w.mined)continue;
+    const p=k.split(',').map(Number), mx=p[0], my=p[1];
+    ents.push({y:my*TILE+15,draw(){
+      const px=mx*TILE-cam.x|0,py=my*TILE-cam.y|0;
+      ctx.fillStyle='#4a4453';ctx.fillRect(px+1,py+1,14,14);
+      drawRockFallback(px,py);
+      if(w.gem==='diamond'){ if((game.time*2|0)%2){ctx.fillStyle='#bfe8ff';ctx.fillRect(px+6,py+5,4,4);ctx.fillStyle='#fff';ctx.fillRect(px+7,py+6,2,2);} }
+      else if((game.time*2+mx|0)%3===0){ctx.fillStyle='rgba(190,232,255,.55)';ctx.fillRect(px+9,py+4,2,2);}
+    }});
+  }
+  if(!game.minedDeep){
+    ents.push({y:CRYSTAL_AT[1]*TILE+15,draw(){
+      const px=CRYSTAL_AT[0]*TILE-cam.x|0,py=CRYSTAL_AT[1]*TILE-cam.y|0;
+      const c=['#bfe8ff','#a06ee0','#7dc4ff'];
+      for(let i=0;i<5;i++){ctx.fillStyle=c[i%3];const hh=7+((i*3)%3)*3;ctx.fillRect(px+2+i*2,py+13-hh,3,hh);}
+      if((game.time*3|0)%2){ctx.fillStyle='#fff';ctx.fillRect(px+4,py+1,2,2);ctx.fillRect(px+11,py+3,2,2);}
+    }});
+  }
+  ents.push({y:1e6,draw(){
+    const s=SCENES.mine, px=10*TILE-cam.x|0, py=(s.h-1)*TILE-cam.y|0;
+    ctx.fillStyle='rgba(255,220,120,.5)';ctx.fillRect(px,py-2,2*TILE,3);
+    ctx.fillStyle='#ffefc9';ctx.font='9px "Fusion Pixel 12px Proportional SC",monospace';ctx.textAlign='center';ctx.fillText('↑ 出口',px+TILE,py-8);
+  }});
+}
+function drawMineDark(){
+  const g=ctx.createRadialGradient(VW/2,VH/2,26,VW/2,VH/2,Math.max(VW,VH)*0.72);
+  g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(6,4,14,.72)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,VW,VH);
 }
 /* —— 礼成后的户外黄昏：暖色调 + 灯笼光晕 + 萤火虫 —— */
 function drawDusk(){

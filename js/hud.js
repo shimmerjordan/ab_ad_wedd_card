@@ -141,6 +141,8 @@ function loop(t){
   if(game.mode!=='title'){
     ctx.clearRect(0,0,VW,VH);drawWorld();
     if(game.mode==='fish')drawFishUI();
+    if(game.mode==='bouquet')drawBouquetUI();
+    if(game.mode==='dance')drawDanceUI();
     drawInteractHint();
     drawFloats();
   }
@@ -148,7 +150,7 @@ function loop(t){
   const tb=document.getElementById('toolBar');
   if(tb){
     if(!tb._init||(!tb._img&&img('slotBox'))){renderToolbar();tb._init=1;tb._img=!!img('slotBox');}
-    const show=game.mode==='play'&&game.scene==='world';
+    const show=game.mode==='play'&&(game.scene==='world'||game.scene==='mine');
     if(tb._show!==show){tb.style.display=show?'flex':'none';tb._show=show;}
   }
   requestAnimationFrame(loop);
@@ -300,9 +302,12 @@ function advance(){
     cb&&cb();
   }else showLine();
 }
-document.getElementById('dlgBox').addEventListener('click',()=>{
+/* 点击/按A：正在打字→立即显示整行；已显示且无选项→翻页（有选项时只补全文字，不误触选项） */
+function dlgClick(){
   const line=dlg.queue[dlg.idx];
+  if(!line)return;
   if(dlg.typing){clearInterval(dlg.timer);dlg.txt.textContent=dlg.full;dlg.typing=false;endOfLine(line);}
   else if(!line.choices)advance();
-});
+}
+document.getElementById('dlgBox').addEventListener('click',dlgClick);
 

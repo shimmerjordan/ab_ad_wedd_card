@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>阿丹阿炳婚礼请柬</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-proportional-sc@latest/index.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/fusion-pixel-12px-proportional-sc@latest/chinese-simplified.css">
+<meta name="theme-color" content="#8c4615">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/elem/svLogo.png">
+<!-- 中文像素字体：已自托管到 assets/fonts/（@font-face 见 css/style.css 顶部），国内可靠·离线可用，不再依赖 CDN -->
+<link rel="preload" as="font" type="font/woff2" href="assets/fonts/fusion-pixel-sc.woff2" crossorigin>
 <!-- 优雅入口/请帖(#gate,#lux)指定 Noto Serif SC；多数设备未本地安装，需显式加载才能呈现设计中的衬线质感 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -117,5 +120,10 @@
 <script src="js/interact.js"></script>
 <script src="js/scenefx.js"></script>
 <script src="js/boot.js"></script>
+<!-- PWA：离线可用（file:// 直开时跳过） -->
+<script>
+if('serviceWorker' in navigator && location.protocol!=='file:')
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
 </body>
 </html>

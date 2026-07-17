@@ -27,6 +27,20 @@ const game = {
   exhibitSeen:false,
   playerRole:'groom', time:0,
   tool:3,                       // 当前选中工具下标(默认锄头), 见 TOOLS
+  /* —— 扩展玩法 / 彩蛋 / 成就状态（存档序列化用）—— */
+  toastCount:0, toastDone:false, toastedTables:[],  // ⑥ 终章逐桌敬酒
+  bouquetTried:false, bouquetCaught:false,// 抛捧花小游戏
+  starDate:false,                         // 十心·星空约会
+  danced:false,                           // 五月柱跳舞 QTE
+  konami:false,                           // Konami 秘技
+  ringCaught:false,                       // 湖中戒指(钓鱼稀有)
+  feedTotal:0, chickHatched:false,        // 喂鸡累计 → 孵出小鸡仔
+  dogPets:0, dogFetch:false,              // 摸狗执念
+  skelPoke:0,                             // 博物馆骨架眨眼
+  minedDeep:false,                        // 矿洞探底
+  dogCollar:false, wellCoins:0, fireworksBought:0,  // 金币消耗点
+  nightSeen:false, annivSeen:false,       // 深夜 / 纪念日彩蛋
+  playSec:0,                              // 累计游玩秒数(结算评分用)
 };
 /* 装备栏工具：镐子/镰刀/斧头/锄头(默认全装备)；用于清障与耕地 */
 const TOOLS = [
@@ -65,11 +79,14 @@ const chickens = [
   {x:20*TILE, y:10.5*TILE, dir:3, t:1, pause:false},
 ];
 const chicken = chickens[0];   // talkChicken/near 以第一只母鸡为准
+/* 喂鸡累计孵出的小鸡仔（彩蛋⑤）：在运动场内跟着母鸡跑 */
+const chicks=[];
+function spawnChick(){ chicks.push({x:19*TILE, y:10*TILE, dir:1, t:0, pause:false}); }
 /* 猫：状态机漫游(博物馆与邻居家之间的街角) + 喂食后跟随 */
 const cat = {x:29*TILE, y:21.6*TILE, homeX:29*TILE, homeY:21.6*TILE,
              tx:29*TILE, ty:21.6*TILE, state:'sit', t:2, flip:false, followT:0, animT:0, frame:0};
 /* 农场狗「旺财」：坐在家门口小路旁(避开栅栏), 可以摸头 */
-const dog = {x:6.0*TILE, y:6.6*TILE, petted:false};
+const dog = {x:6.0*TILE, y:6.6*TILE, petted:false, flip:false};
 /* 湖面鸭子：慢慢游动 + 随波起伏 */
 const ducks = [
   {x:26*TILE, y:4*TILE,  tx:28*TILE, ty:5*TILE, t:0, flip:false},
@@ -127,6 +144,19 @@ const MINE_RESPAWN=45;
 function mineAlive(tx,ty){
   const m=mines[tx+','+ty];
   return !!m&&(game.time-m.t>=MINE_RESPAWN);
+}
+/* —— 矿洞内可挖矿墙（玩法⑦）：中央走廊(x10,11)留空作通道, 两侧散布, 极少数含钻石 —— */
+const CRYSTAL_AT=[11,4];
+const mineWalls={};
+{
+  const s=SCENES.mine, g=s.g;
+  for(let y=3;y<s.h-2;y++)for(let x=2;x<s.w-2;x++){
+    if(g[y][x]!=='w')continue;
+    if(x===10||x===11)continue;                 // 中央走廊: 门口 → 水晶脉
+    if(x===CRYSTAL_AT[0]&&y===CRYSTAL_AT[1])continue;
+    const h=hash(x*17+3,y*23+5);
+    if(h%100<42) mineWalls[x+','+y]={gem:(h%100<5)?'diamond':null, mined:false};
+  }
 }
 
 /* ============================================================
@@ -231,6 +261,11 @@ function solidAt(px,py,airborne){
   if((t==='f'||t==='B')&&!airborne)return true;   // 篱笆/开花灌木均可跳越
   if(game.scene==='world'&&obstacles[(px/TILE|0)+','+(py/TILE|0)])return true;   // 未清除的障碍物
   if(game.scene==='world'&&mineAlive(px/TILE|0,py/TILE|0))return true;           // 未敲开的矿岩
+  if(game.scene==='mine'){                                                       // 矿洞内的矿墙/水晶脉
+    const k=(px/TILE|0)+','+(py/TILE|0);
+    if(mineWalls[k]&&!mineWalls[k].mined)return true;
+    if((px/TILE|0)===CRYSTAL_AT[0]&&(py/TILE|0)===CRYSTAL_AT[1]&&!game.minedDeep)return true;
+  }
   for(const o of objList()) if(px>=o.x&&px<o.x+o.w&&py>=o.y&&py<o.y+o.h)return true;
   return false;
 }
@@ -250,6 +285,117 @@ function gotoScene(name,px,py){
     player.x=px; player.y=py;
     updateCam(); fade(false);
     if(name==='hall'&&GUEST) toast(`🎫 ${GUEST.name}：您在 ${GUEST.table} 号桌（金色标记）`);
+    if(typeof autoSave==='function')autoSave();
   },420);
+}
+
+/* ============================================================
+ * 成就总表：所有隐藏彩蛋/里程碑集中登记
+ *  —— achHTML(结算)、成就计数、分享图都从这里派生，新增彩蛋只需在此加一行
+ * ============================================================ */
+const ACHIEVEMENTS=[
+  {key:'pendant',  name:'美人鱼吊坠', got:()=>game.chestOpened},
+  {key:'chicken',  name:'小鸡的祝福', got:()=>game.chickenTalk>=3},
+  {key:'well',     name:'井底的愿望', got:()=>game.wellWish>=3},
+  {key:'firefly',  name:'草丛萤火虫', got:()=>game.bushJump>=3},
+  {key:'cat',      name:'后巷小猫',   got:()=>game.catTalk},
+  {key:'boot',     name:'旧靴子纸条', got:()=>game.bootCaught},
+  {key:'catfeed',  name:'猫粮赞助商', got:()=>game.catFed>=3},
+  {key:'tenheart', name:'十心相印',   got:()=>game.hearts>=10},
+  {key:'miner',    name:'矿物学家',   got:()=>game.donateLv4},
+  {key:'dog',      name:'旺财的认可', got:()=>dog.petted},
+  /* —— 扩展玩法/彩蛋 —— */
+  {key:'toast',    name:'滴酒不洒',   got:()=>game.toastDone},
+  {key:'bouquet',  name:'捧花之约',   got:()=>game.bouquetCaught},
+  {key:'stardate', name:'星空之约',   got:()=>game.starDate},
+  {key:'dance',    name:'舞动鹈鹕镇', got:()=>game.danced},
+  {key:'konami',   name:'资深玩家',   got:()=>game.konami},
+  {key:'ring',     name:'湖中戒指',   got:()=>game.ringCaught},
+  {key:'chick',    name:'添丁进口',   got:()=>game.chickHatched},
+  {key:'dogfetch', name:'旺财的礼物', got:()=>game.dogFetch},
+  {key:'skel',     name:'骨头会动',   got:()=>game.skelPoke>=3},
+  {key:'deepmine', name:'深入矿脉',   got:()=>game.minedDeep},
+];
+function achEarned(){ return ACHIEVEMENTS.filter(a=>{ try{return a.got();}catch(e){return false;} }); }
+function achTotal(){ return ACHIEVEMENTS.length; }
+
+/* 通关结算评分 + 称号（玩法③，纯逻辑可单测）：碎片40 + 成就40 + 好感/捐赠/敬酒加成 */
+function computeScore(){
+  const fragTot=(typeof RT!=='undefined'&&RT.frags)?RT.frags.length:0;
+  const frags=game.fragGot.length, ach=achEarned().length, achTot=achTotal();
+  let score=Math.round(40*frags/Math.max(1,fragTot))
+           +Math.round(40*ach/Math.max(1,achTot))
+           +Math.min(10,game.hearts)
+           +Math.min(6,(game.donatedN||0)*1.5)
+           +Math.min(4,game.toastCount||0);
+  score=Math.max(0,Math.min(100,Math.round(score)));
+  let title;
+  if(score>=92)                       title='鹈鹕镇传奇 · 圆满新人';
+  else if(ach>=Math.ceil(achTot*0.7)) title='细节狂魔 · 彩蛋猎人';
+  else if(fragTot&&frags>=fragTot)     title='记忆收藏家';
+  else if(game.playSec>0&&game.playSec<210) title='闪电结缘 · 速通新人';
+  else if(game.hearts>=10)            title='十心眷侣';
+  else                                title='幸福的新人';
+  return {score,title,frags,fragTot,ach,achTot,hearts:game.hearts,
+          mins:Math.floor(game.playSec/60),secs:Math.floor(game.playSec%60)};
+}
+
+/* 领奖资格：需「完成婚礼 + 集齐全部记忆碎片 + 成就达阈值」，凭分享图领奖码才生效。
+ * 阈值取 15（全成就 20，因抛捧花一次性、Konami 键盘专属等不宜强求全成就，兼顾硬核与可达） */
+const GIFT_ACH_MIN=15;
+function giftEligible(){
+  const ach=achEarned().length, achTot=achTotal();
+  const need=Math.min(GIFT_ACH_MIN, achTot);
+  const fragTot=(typeof RT!=='undefined'&&RT.frags)?RT.frags.length:0;
+  const frags=game.fragGot.length;
+  const questOk=game.quest>=6, achOk=ach>=need, fragOk=fragTot?frags>=fragTot:true;
+  return {ok:questOk&&achOk&&fragOk, ach, achTot, need, frags, fragTot, questOk, achOk, fragOk};
+}
+
+/* ============================================================
+ * 存档：localStorage 单键快照（游戏进度/道具/好感/彩蛋/世界可变状态）
+ *  serializeSave/applySave 为纯逻辑, 可单测往返一致性
+ * ============================================================ */
+const SAVE_KEY='wedd_save', SAVE_VER=2;
+function serializeSave(){
+  const g={};
+  for(const k in game) if(typeof game[k]!=='function') g[k]=game[k];
+  return {
+    v:SAVE_VER,
+    g,                                                   // game 全量数据字段
+    dogPetted:dog.petted,
+    partner:{scene:partner.scene,x:partner.x,y:partner.y,role:partner.role,dir:partner.dir},
+    scene:game.scene, px:player.x, py:player.y,
+    ceremony:typeof ceremonyDone!=='undefined'&&ceremonyDone,
+    plots,                                               // 农田进度(可 JSON)
+    obs:Object.keys(obstacles),                          // 尚未清除的路障
+    mines:Object.fromEntries(Object.entries(mines).map(([k,v])=>[k,v.t])),
+  };
+}
+function applySave(s){
+  if(!s||s.v!==SAVE_VER||!s.g)return false;
+  Object.assign(game,s.g);
+  dog.petted=!!s.dogPetted;
+  if(s.partner)Object.assign(partner,s.partner);
+  if(s.scene)game.scene=s.scene;
+  if(typeof s.px==='number'){player.x=s.px;player.y=s.py;}
+  if(typeof ceremonyDone!=='undefined')ceremonyDone=!!s.ceremony;
+  /* 农田：清空后套用存档 */
+  if(s.plots){ for(const k in plots)delete plots[k]; Object.assign(plots,s.plots); }
+  /* 路障：只保留存档中仍存在的 key */
+  if(Array.isArray(s.obs)){ const keep=new Set(s.obs); for(const k in obstacles)if(!keep.has(k))delete obstacles[k]; }
+  /* 矿岩重生计时 */
+  if(s.mines)for(const k in s.mines)if(mines[k])mines[k].t=s.mines[k];
+  if(game.chickHatched&&!chicks.length)spawnChick();   // 已孵化过则重建小鸡仔
+  return true;
+}
+function hasSave(){ try{ const s=lsGet(SAVE_KEY); return !!(s&&s.v===SAVE_VER); }catch(e){ return false; } }
+function autoSave(){ if(game.mode==='title')return; try{ lsSet(SAVE_KEY,serializeSave()); }catch(e){} }
+function clearSave(){ lsDel(SAVE_KEY); }
+let _lastSaveT=0;
+function tickAutoSave(){                                 // 主循环里调用: 每 ~6 秒落一次盘
+  if(game.mode==='title')return;
+  if(game.time-_lastSaveT<6)return;
+  _lastSaveT=game.time; autoSave();
 }
 

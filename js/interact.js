@@ -52,6 +52,7 @@ function interact(probe){
     if(inRect(fx,fy,WOBJ.chest,8))return probe||openChest();
     if(inRect(fx,fy,WOBJ.well,8))return probe||useWell();
     if(inRect(fx,fy,WOBJ.bush,6))return probe||pokeBush();
+    if(inRect(fx,fy,WOBJ.mineEntry,8))return probe||enterMine();
     /* 建筑门 */
     for(const b of BUILDINGS){
       const door=bldDoorRect(b);
@@ -90,12 +91,23 @@ function interact(probe){
       return probe||startDialog([{who:'me',text:'这张展台还空着，等待布展。（DEBUG 模式可以添加展品）'}]);
     }
     /* 家具小互动 */
-    if(inRect(fx,fy,MOBJ.skel,6))return probe||startDialog([{who:'me',text:'「远古海兽骨架」——据说是从矿井深处挖出来的。婚礼也要有镇馆之宝！'}]);
+    if(inRect(fx,fy,MOBJ.skel,6)){                          // 彩蛋⑦：骨架眨眼(戳 3 次)
+      if(probe)return true;
+      game.skelPoke++;
+      if(game.skelPoke===3)
+        return startDialog([{who:'me',text:'我又戳了戳它…骨架的眼窝里，忽然闪过一点幽绿的光！它…它刚才是不是动了一下?!'}],
+          ()=>{ toast('🏆 隐藏彩蛋：骨头会动');addHearts(1,'骨头会动'); });
+      const sl=['「远古海兽骨架」——据说是从矿井深处挖出来的。婚礼也要有镇馆之宝！','我盯着它看了很久…总觉得，它也在看我。'];
+      return startDialog([{who:'me',text:sl[(game.skelPoke-1)%sl.length]}]);
+    }
     if(inRect(fx,fy,MOBJ.bookL,8)||inRect(fx,fy,MOBJ.bookR,8))return probe||startDialog([{who:'me',text:'书架上摆着我们读过的书。有一本的折角，停在第一次见面那天。'}]);
     if(inRect(fx,fy,MOBJ.guest,8)){
       if(probe)return true;
       sfx('choice');flyHearts(innerWidth/2,innerHeight/2,2);
-      return startDialog([{who:'me',text:'「宾客留言簿」——翻开第一页，是 TA 写的：「谢谢你来，往后的故事一起写。」'},{who:'me',text:'（我也提笔，在下一行画了一颗小爱心。）'}]);
+      return startDialog([{who:'me',text:'「宾客留言簿」——翻开第一页，是 TA 写的：「谢谢你来，往后的故事一起写。」'},{who:'me',text:'（我也提笔，在下一行画了一颗小爱心。翻到后面，是亲友们写下的祝福…）'}],()=>{
+        const w=CONFIG.wishWall;
+        if(w&&w.show&&w.messages&&w.messages.length) showOverlay(wishWallHTML().replace(/^<hr>/,''),null,'合上留言簿 ▶');
+      });
     }
     for(const k of ['plantA','plantB','plantC','plantD'])
       if(inRect(fx,fy,MOBJ[k],6))return probe||startDialog([{who:'me',text:'盆栽被照顾得很好，叶子绿油油的。展厅里有了生气。'}]);
@@ -111,7 +123,8 @@ function interact(probe){
     if(inRect(fx,fy,HOBJ.tower,8))return probe||champagne();
     if(inRect(fx,fy,HOBJ.poleL,6)||inRect(fx,fy,HOBJ.poleR,6)){
       if(probe)return true;
-      sfx('quest');flyHearts(innerWidth/2,innerHeight/2,4);return toast('🎏 五月柱的彩带随风转了一圈');
+      if(game.danced)return toast('🎏 五月柱的彩带已经被你跳满，随风轻轻转着');
+      return startDance();
     }
     if(inRect(fx,fy,HOBJ.popperL,8)||inRect(fx,fy,HOBJ.popperR,8))return probe||popper();
     /* 婚纱照展板 */
@@ -129,6 +142,11 @@ function interact(probe){
       if(probe)return game.quest>=5&&!ceremonyDone;   // 仪式可开时才提示
       return tryCeremony();
     }
+  }
+  else if(game.scene==='mine'){
+    if((fx/TILE|0)===CRYSTAL_AT[0]&&(fy/TILE|0)===CRYSTAL_AT[1]&&!game.minedDeep)return probe||mineCrystal();
+    const mk=(fx/TILE|0)+','+(fy/TILE|0);
+    if(mineWalls[mk]&&!mineWalls[mk].mined)return probe||digMineWall(mk);
   }
   return false;
 }
@@ -218,11 +236,12 @@ function useWell(){
   }
   if(game.water>=3){
     game.wellWish++;
+    if(game.coins>0){ game.coins--; game.wellCoins=(game.wellCoins||0)+1; updateItemBar(); }   // 投币许愿(金币 sink)
     if(game.wellWish===3){
       sfx('coin');toast('🏆 隐藏彩蛋：井底的愿望');addHearts(1,'井底的愿望');
       return startDialog([{who:'me',text:'对着井许了第三次愿。井底好像传来回声：「祝你们百年好合」…谁在下面?!'}]);
     }
-    return startDialog([{who:'me',text:'水壶是满的。对着井许了个愿。（再许几次试试？）'}]);
+    return startDialog([{who:'me',text:game.wellCoins?'又投下一枚硬币，看它沉入井底，许了个小小的愿。':'水壶是满的，对着井许了个愿。（有硬币的话，投一枚许愿更灵哦）'}]);
   }
   game.water=3;sfx('water');updateItemBar();
   toast('💧 水壶已接满（3 次浇水）');
@@ -291,6 +310,7 @@ function talkCat(){
 /* —— 农场狗「旺财」：摸头 —— */
 function petDog(){
   sfx('blip');
+  game.dogPets=(game.dogPets||0)+1;
   if(!dog.petted){
     dog.petted=true;
     flyHearts(innerWidth/2,innerHeight/2,3);
@@ -298,6 +318,13 @@ function petDog(){
       {who:'me',text:'（蹲下来挠了挠它的下巴）它眯起眼睛，尾巴摇成了螺旋桨。'},
       {who:'me',text:'字牌上写着：「旺财 · 婚礼护卫队队长」。看来今天它也有重要任务。'},
     ],()=>{ addHearts(1,'旺财的认可'); toast('🐶 旺财允许你摸它的头了（随时可以再摸）'); });
+  }
+  if(game.dogPets===10&&!game.dogFetch){                    // 彩蛋⑥：摸狗执念
+    game.dogFetch=true;
+    return startDialog([
+      {who:'me',text:'旺财忽然一个激灵站起来，撒腿跑向花田——'},
+      {who:'me',text:'…叼回一朵沾着露水的向日葵，郑重地放在你脚边，尾巴摇成了螺旋桨。'},
+    ],()=>{ toast('🏆 隐藏彩蛋：旺财的礼物');addHearts(2,'旺财的礼物');flyHearts(innerWidth/2,innerHeight/2,5); });
   }
   flyHearts(innerWidth/2,innerHeight/2,2);
   startDialog([{who:'me',text:['汪！（它开心地拍了拍尾巴）','（它翻了个身，露出肚皮）这是最高级别的信任。','它把下巴搁在你的鞋面上，重量刚刚好。'][Math.random()*3|0]}]);
@@ -320,8 +347,12 @@ function talkChicken(){
            {who:'chicken',text:'咯咯咯咯——！（它欢快地啄食谷粒，然后神圣地蹲下…）'},
            {who:'me',text:'它下蛋了！热乎的！'});
          dlg.onDoneExtra=()=>{
-           game.eggs++;sfx('harvest');updateItemBar();showGet('🥚');
+           game.eggs++;game.feedTotal=(game.feedTotal||0)+1;sfx('harvest');updateItemBar();showGet('🥚');
            toast('🥚 获得鸡蛋 ×1（可以送TA、喂猫、或卖4金）');
+           if(game.feedTotal>=5&&!game.chickHatched){          // 彩蛋⑤：喂养累计孵出小鸡仔
+             game.chickHatched=true; spawnChick();
+             setTimeout(()=>{ sfx('quest');toast('🐣 喂养有功…鸡舍里孵出了一只毛茸茸的小鸡仔！');addHearts(1,'添丁进口'); },1400);
+           }
          };
        }else if(label.startsWith('「咯咯哒？')){
          game.chickenTalk++;
@@ -371,6 +402,28 @@ function mineRock(key){
   mines[key].t=game.time;                      // 进入重生倒计时
   if(Math.random()<0.62){ gainGem(rollGem()); }
   else{ game.coins++;sfx('coin');updateItemBar(); toast('⛏ 敲开了矿岩…只有一堆碎石（+1 金）。这附近还会再长出来'); }
+}
+/* —— 矿洞（玩法⑦）—— */
+function enterMine(){
+  gotoScene('mine', 10.5*TILE, 13*TILE);
+  setTimeout(()=>toast('⛏ 矿洞深处透出水晶脉的微光…用镐子往两侧挖（走到出口↑离开）'),700);
+}
+function digMineWall(k){
+  const w=mineWalls[k]; if(!w||w.mined)return;
+  if(curTool().key!=='pickaxe'){ sfx('blip'); return toast('矿墙很硬，需要用「镐子」开凿（切换装备栏）'); }
+  w.mined=true; showOver('tool','pickaxe',0.5); sfx('harvest');
+  if(w.gem==='diamond'){ gainGem(gemOf('diamond')); }
+  else if(Math.random()<0.7){ gainGem(rollGem()); }
+  else { game.coins+=2;sfx('coin');updateItemBar(); toast('⛏ 凿开一段矿墙…掉出些碎石（+2 金）'); }
+}
+function mineCrystal(){
+  if(curTool().key!=='pickaxe'){ sfx('blip'); return toast('这簇水晶脉极硬，需要用「镐子」开凿'); }
+  game.minedDeep=true;
+  showOver('tool','pickaxe',0.6); sfx('treasure'); confetti(50);
+  game.gems.diamond+=2; updateItemBar();
+  startDialog([{who:'me',text:'凿开矿洞最深处的水晶脉——两颗完整的钻石滚落出来！这里，藏着做婚戒最好的原石。'}],()=>{
+    toast('🏆 隐藏成就：深入矿脉 · 钻石 ×2');addHearts(1,'深入矿脉');
+  });
 }
 /* —— 清除路障(石头/杂草/树枝)；碎石头有小概率掉宝石 —— */
 function clearObstacle(key){
@@ -486,6 +539,8 @@ function shopRows(){
   <div class="trade-row"><div class="nm">💜 魔法肥料（催熟+金花）</div><div class="pr">5 金</div><button class="sdv-btn small" data-buy="fert">买</button></div>
   <div class="trade-row"><div class="nm">🎣 鱼竿${game.rod?'（已拥有）':''}</div><div class="pr">12 金</div>${game.rod?'':'<button class="sdv-btn small" data-buy="rod">买</button>'}</div>
   <div class="trade-row"><div class="nm">🪱 鱼饵 ×3（咬钩才消耗）</div><div class="pr">2 金</div><button class="sdv-btn small" data-buy="bait">买</button></div>
+  <div class="trade-row"><div class="nm">🎆 定制烟花（当场放一发）</div><div class="pr">10 金</div><button class="sdv-btn small" data-buy="fw">买</button></div>
+  <div class="trade-row"><div class="nm">🎀 旺财的项圈${game.dogCollar?'（已拥有·跟随中）':'（戴上后随你跑）'}</div><div class="pr">15 金</div>${game.dogCollar?'':'<button class="sdv-btn small" data-buy="collar">买</button>'}</div>
   <div class="body" style="text-align:center;font-size:12px;color:#8a5a2b;margin-top:6px">—— 收购 ——</div>
   ${fishSellRows()}
   ${['straw','blue'].filter(k=>game.cropInv[k]>0).map(k=>{
@@ -539,6 +594,15 @@ overlayInner.addEventListener('click',e=>{
   }else if(buy==='bait'){
     if(game.coins<2)return toast('金币不够…卖点东西吧');
     game.coins-=2;game.bait+=3;sfx('coin');toast('购买成功：鱼饵 +3');
+  }else if(buy==='fw'){
+    if(game.coins<10)return toast('金币不够…放一发烟花要 10 金');
+    game.coins-=10;game.fireworksBought=(game.fireworksBought||0)+1;sfx('pop');confetti(90);
+    flyHearts(innerWidth/2,innerHeight/2,3);toast('🎆 砰——！一发绚烂的烟花在鹈鹕镇上空绽放');
+  }else if(buy==='collar'){
+    if(game.dogCollar)return toast('旺财已经戴上项圈啦');
+    if(game.coins<15)return toast(`还差 ${15-game.coins} 金…卖点鱼/宝石凑凑`);
+    game.coins-=15;game.dogCollar=true;sfx('quest');showGet('🎀');
+    toast('🎀 给旺财系上了项圈！它现在会一路跟着你跑');
   }else if(sell&&sell.startsWith('fish:')){
     const key=sell.slice(5), sp=FISH_SPECIES.find(s=>s.key===key);
     /* 先卖普通品相，完美的留到最后（也许玩家想送人） */

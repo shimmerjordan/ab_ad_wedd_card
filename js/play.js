@@ -179,6 +179,14 @@ function endFishing(ok,msg){
   if(ok===null){ sfx('blip'); return; }                       // 主动收竿
   if(ok==='junk'){                                            // 杂物：直接拽上来
     sfx('blip');
+    if(fish.junk&&fish.junk.key==='ring'){                    // 彩蛋④：湖中戒指
+      game.ringCaught=true;
+      startDialog([
+        {who:'me',text:'钩上来一个亮闪闪的东西——一枚戒指？！湖底怎么会有戒指…'},
+        {who:partnerRole(),text:'（凑过来）等等，这不是我去年在湖边弄丢的那枚吗?! 竟然被你钓上来了！'},
+      ],()=>{ toast('🏆 隐藏彩蛋：湖中戒指');addHearts(2,'湖中戒指');flyHearts(innerWidth/2,innerHeight/2,4); });
+      return;
+    }
     if(!game.bootCaught&&Math.random()<0.35){
       game.bootCaught=true;
       startDialog([{who:'me',text:'钓上来一只旧靴子…等等，里面塞着一张被防水袋裹好的纸条！'}],()=>{
@@ -299,8 +307,15 @@ function drawBobber(){
  * ============================================================ */
 function update(dt){
   game.time+=dt;
+  if(game.mode==='play')game.playSec+=dt;
+  if(typeof tickAutoSave==='function')tickAutoSave();
+  if(game.mode==='bouquet'){ updateBouquet(dt); actA=actB=false; return; }
+  if(game.mode==='dance'){ updateDance(dt); actA=actB=false; return; }
   if(game.mode==='fish'){ updateFish(dt); actA=actB=false; return; }
-  if(game.mode!=='play'){ actA=actB=false; return; }
+  if(game.mode!=='play'){
+    if(game.mode==='dialog'&&actA&&typeof dlgClick==='function')dlgClick();   // A/空格/E 推进·快进对话
+    actA=actB=false; return;
+  }
   let mx=0,my=0;
   if(keys['arrowleft']||keys['a'])mx-=1; if(keys['arrowright']||keys['d'])mx+=1;
   if(keys['arrowup']||keys['w'])my-=1;   if(keys['arrowdown']||keys['s'])my+=1;
@@ -349,6 +364,17 @@ function update(dt){
       else ck.t=0;
     }
   }
+  /* 小鸡仔（彩蛋⑤）：更活泼地在运动场内乱跑 */
+  for(const ck of chicks){
+    ck.t-=dt;
+    if(ck.t<=0){ck.t=0.6+Math.random()*1.3;ck.dir=Math.random()*4|0;ck.pause=Math.random()<.25;}
+    if(!ck.pause&&game.scene==='world'){
+      const d=[[1,0],[-1,0],[0,1],[0,-1]][ck.dir],csp=20*dt;
+      const nx=ck.x+d[0]*csp,ny=ck.y+d[1]*csp;
+      if(nx>16.7*TILE&&nx<21.2*TILE&&ny>7.7*TILE&&ny<11.3*TILE){ck.x=nx;ck.y=ny;}
+      else ck.t=0;
+    }
+  }
   /* 鸭子：湖面缓慢游动（椭圆湖范围内挑目标点） */
   if(game.scene==='world')for(const dk of ducks){
     dk.t-=dt;
@@ -381,7 +407,137 @@ function update(dt){
       }
     }
   }
+  /* 旺财项圈（金币 sink）：戴上项圈后会跟着玩家跑 */
+  if(game.scene==='world'&&game.dogCollar){
+    const dx=player.x-dog.x, dy=player.y+6-dog.y, d=Math.hypot(dx,dy);
+    if(d>34){ dog.x+=dx/d*40*dt; dog.y+=dy/d*40*dt; dog.flip=dx<0; }
+  }
   partner.bob+=dt;
   updateCam();
   updateArrow();
+}
+
+/* ============================================================
+ * 抛捧花小游戏（终章）——新娘抛出捧花, 玩家左右移动接住
+ * ============================================================ */
+const bouquet={x:0,y:0,vx:0,vy:0,basket:0,tries:3,onDone:null};
+function throwBouquet(){
+  bouquet.x=VW*0.3+Math.random()*VW*0.4; bouquet.y=36;
+  bouquet.vx=(Math.random()*2-1)*45; bouquet.vy=-18;
+}
+function startBouquet(onDone){
+  game.mode='bouquet'; game.bouquetTried=true;
+  bouquet.onDone=onDone||null; bouquet.tries=3; bouquet.basket=VW/2;
+  throwBouquet();
+  toast('🎊 新娘转身抛出捧花！左右移动接住它');
+}
+/* 纯物理步进(可单测)：move∈[-1,1]；返回 fall|catch|miss */
+function bouquetStep(b,move,dt,W,H){
+  b.basket+=move*150*dt;
+  b.basket=Math.max(24,Math.min(W-24,b.basket));
+  b.vy+=190*dt; b.x+=b.vx*dt; b.y+=b.vy*dt;
+  if(b.x<10){b.x=10;b.vx=Math.abs(b.vx);}
+  if(b.x>W-10){b.x=W-10;b.vx=-Math.abs(b.vx);}
+  if(b.y>=H-70) return Math.abs(b.x-b.basket)<28?'catch':'miss';
+  return 'fall';
+}
+function updateBouquet(dt){
+  let mv=0;
+  if(keys['arrowleft']||keys['a'])mv-=1;
+  if(keys['arrowright']||keys['d'])mv+=1;
+  mv+=stick.dx;
+  const ev=bouquetStep(bouquet,mv,dt,VW,VH);
+  if(ev==='catch')endBouquet(true);
+  else if(ev==='miss'){
+    bouquet.tries--;
+    if(bouquet.tries>0){ sfx('blip');toast(`差一点！还有 ${bouquet.tries} 次机会`); throwBouquet(); }
+    else endBouquet(false);
+  }
+}
+function endBouquet(ok){
+  game.mode='play';
+  const cb=bouquet.onDone; bouquet.onDone=null;
+  if(ok){
+    game.bouquetCaught=true; sfx('quest');confetti(60);flyHearts(innerWidth/2,innerHeight/2,6);
+    toast('💐 接住啦！下一个幸福的就是你 · 成就「捧花之约」');
+    addHearts(1,'捧花之约');
+  }else toast('💐 捧花被别的宾客接走啦，心意最重要～');
+  setTimeout(()=>cb&&cb(),ok?1500:900);
+}
+function drawBouquetUI(){
+  ctx.fillStyle='rgba(20,10,25,.32)';ctx.fillRect(0,0,VW,VH);
+  const by=VH-70;
+  ctx.fillStyle='#b3661f';ctx.fillRect((bouquet.basket-22)|0,by,44,10);
+  ctx.fillStyle='#8c5a2b';ctx.fillRect((bouquet.basket-22)|0,by,44,3);
+  ctx.fillStyle='#e8d5a8';ctx.fillRect((bouquet.basket-3)|0,by-4,6,4);
+  const fx=bouquet.x|0, fy=bouquet.y|0;
+  ctx.fillStyle='#3f8a3c';ctx.fillRect(fx-1,fy,2,9);
+  ctx.fillStyle='#ff6fa5';for(const p of [[-3,-2],[3,-2],[0,-5],[-3,2],[3,2],[0,0]])ctx.fillRect(fx+p[0]-1,fy+p[1]-1,3,3);
+  ctx.fillStyle='#ffd84d';ctx.fillRect(fx-1,fy-2,2,2);
+  ctx.fillStyle='#fff';ctx.font='10px "Fusion Pixel 12px Proportional SC",monospace';ctx.textAlign='center';
+  ctx.fillText(`💐 接住捧花！剩 ${bouquet.tries} 次`,VW/2,26);
+}
+
+/* ============================================================
+ * 五月柱跳舞 QTE（终章）——依次按出提示的方向, 跳满得成就
+ * ============================================================ */
+const DANCE_DIRS=['up','down','left','right'];
+const dance={seq:[],idx:0,hits:0,cur:null,win:0,last:null,onDone:null};
+function startDance(onDone){
+  game.mode='dance';
+  dance.seq=Array.from({length:6},()=>DANCE_DIRS[Math.random()*4|0]);
+  dance.idx=0;dance.hits=0;dance.last=null;dance.onDone=onDone||null;
+  danceCue();
+  toast('🎏 跟着彩带的节奏, 按出提示的方向跳舞吧！');
+}
+function danceCue(){ dance.cur=dance.seq[dance.idx]; dance.win=1.8; }
+function danceAdvance(hit){
+  if(hit)dance.hits++; else sfx('blip');
+  dance.idx++;
+  if(dance.idx>=dance.seq.length)return endDance();
+  danceCue();
+}
+function danceInputDir(){
+  if(keys['arrowup']||keys['w']||stick.dy<-0.5)return 'up';
+  if(keys['arrowdown']||keys['s']||stick.dy>0.5)return 'down';
+  if(keys['arrowleft']||keys['a']||stick.dx<-0.5)return 'left';
+  if(keys['arrowright']||keys['d']||stick.dx>0.5)return 'right';
+  return null;
+}
+function updateDance(dt){
+  dance.win-=dt;
+  const dir=danceInputDir();
+  if(dir&&dir!==dance.last){
+    if(dir===dance.cur){ sfx('choice');flyHearts(innerWidth/2,innerHeight*0.4,1);danceAdvance(true); }
+    else danceAdvance(false);
+  }
+  dance.last=dir;
+  if(dance.win<=0)danceAdvance(false);
+}
+function endDance(){
+  game.mode='play';
+  const ok=dance.hits>=5;
+  if(ok){
+    game.danced=true; sfx('fanfare');confetti(60);flyHearts(innerWidth/2,innerHeight/2,6);
+    toast(`🎏 跳得真好（${dance.hits}/6）· 成就「舞动鹈鹕镇」`);
+    addHearts(1,'舞动鹈鹕镇');
+  }else toast(`🎏 差一点点（${dance.hits}/6）· 靠近五月柱再来一次？`);
+  const cb=dance.onDone;dance.onDone=null;cb&&cb();
+}
+function drawDanceUI(){
+  ctx.fillStyle='rgba(20,10,25,.30)';ctx.fillRect(0,0,VW,VH);
+  const cx=VW/2, cy=VH/2-10, s=22;
+  const A={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[dance.cur]||[0,0];
+  ctx.fillStyle=dance.win>0.5?'#ffd84d':'#ff8a5c';
+  ctx.beginPath();
+  ctx.moveTo(cx+A[0]*s, cy+A[1]*s);
+  ctx.lineTo(cx+A[0]*4-A[1]*s, cy+A[1]*4-A[0]*s);
+  ctx.lineTo(cx+A[0]*4+A[1]*s, cy+A[1]*4+A[0]*s);
+  ctx.closePath();ctx.fill();
+  for(let i=0;i<dance.seq.length;i++){
+    ctx.fillStyle=i<dance.idx?'#7ec850':(i===dance.idx?'#ffd84d':'rgba(255,255,255,.4)');
+    ctx.fillRect((cx-dance.seq.length*4+i*8)|0, cy+40, 5,5);
+  }
+  ctx.fillStyle='#fff';ctx.font='10px "Fusion Pixel 12px Proportional SC",monospace';ctx.textAlign='center';
+  ctx.fillText('🎏 按方向键 / 推摇杆跳舞',cx,30);
 }

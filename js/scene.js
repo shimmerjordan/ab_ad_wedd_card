@@ -129,6 +129,14 @@ function buildHall(){
   rect(g,12,7,13,H-1,'c');                       // 中央红毯主道(居中, 直达门口)
   return {w:W,h:H,g};
 }
+/* —— 矿洞内景 22x16（玩法⑦）：暗色石窟, 中央走廊直达深处水晶脉, 两侧散布可挖矿墙 —— */
+function buildMine(){
+  const W=22,H=16,g=grid(W,H,'w');
+  rect(g,0,0,W-1,2,'W'); hline(g,0,W-1,H-1,'W');
+  vline(g,0,0,H-1,'W'); vline(g,W-1,0,H-1,'W');
+  g[H-1][10]='w'; g[H-1][11]='w';               // 门口
+  return {w:W,h:H,g};
+}
 
 /* —— 建筑（img=星露谷立面素材, 底边对齐地基; 无图时回退参数化绘制） —— */
 const BUILDINGS = [
@@ -166,6 +174,7 @@ const WOBJ = {
   well:   {x:2*TILE,   y:8*TILE,  w:30, h:28},
   chest:  {x:18*TILE+2,y:9*TILE+2, w:14, h:12},   // 鸡舍运动场内的宝箱(跳进去)
   bush:   {x:3*TILE,   y:22*TILE,  w:16, h:14},   // 神秘草丛(跳3次彩蛋)
+  mineEntry:{x:3*TILE, y:18.5*TILE, w:28, h:20},  // 镇西矿洞入口(玩法⑦)
 };
 /* 户外装饰：门前干净盆栽(各家门口两侧, 小碰撞盒) + 湖边海滩装饰(无碰撞) */
 const WDECOR = [
@@ -273,6 +282,7 @@ const SCENES = {
   world:  Object.assign(buildWorld(),  {type:'out'}),
   museum: Object.assign(buildMuseum(), {type:'in', exit:{to:'world', x:21*TILE, y:21.2*TILE}}),
   hall:   Object.assign(buildHall(),  {type:'in', exit:{to:'world', x:17.5*TILE, y:37.2*TILE}}),
+  mine:   Object.assign(buildMine(),  {type:'in', exit:{to:'world', x:3.2*TILE, y:20.4*TILE}}),
 };
 /* 场景间寻路（指引箭头用） */
 function routeDoor(from,to){

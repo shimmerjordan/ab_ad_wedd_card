@@ -29,6 +29,7 @@ function openSettings(){
      <div class="set-row"><div class="lab">操作说明</div><button class="sdv-btn small" id="helpBtn">查看</button></div>
      <div class="set-row"><div class="lab">关于</div><button class="sdv-btn small" id="aboutBtn">GitHub 开源地址</button></div>
      <div class="set-row"><div class="lab">返回入口</div><button class="sdv-btn small" id="toGate">重新选择请帖</button></div>
+     <div class="set-row"><div class="lab">重新开始</div><button class="sdv-btn small danger" id="restartBtn">清除存档 · 从头玩</button></div>
      ${dbgBtns}
      <div id="verRow">
        <span id="verNum">星露谷婚礼请帖 ${VERSION}</span>
@@ -46,6 +47,13 @@ function openSettings(){
      🎣 钓鱼：按住A绿区上浮，松开下沉，罩住鱼攒进度<br>
      🦘 篱笆可以跳过去；某些角落藏着 6 个隐藏彩蛋…</div>`,openSettings,'返回 ▶');
   document.getElementById('toGate').onclick=backToGate;
+  { const rb=document.getElementById('restartBtn'); if(rb)rb.onclick=()=>{
+    overlay.style.display='none';
+    startDialog([{who:'me',text:'确定清除当前存档、从头开始这段旅程吗？',
+      choices:[['「确定，重新开始」'],['「先不了」']],
+      onPick:i=>{ if(i===0){ clearSave(); dlg.onDoneExtra=()=>location.reload(); } }}],
+      ()=>{ const cb=dlg.onDoneExtra;dlg.onDoneExtra=null;cb&&cb(); });
+  }; }
   document.getElementById('aboutBtn').onclick=()=>{
     sfx('quest');confetti(40);
     showOverlay(
@@ -232,9 +240,9 @@ refreshGuest();
   setTimeout(drawCards,600);
   setTimeout(drawCards,2000);
 }
-function startGame(role){
+function startGame(role,resume){
   ensureCtx();toggleBgm(true);
-  game.playerRole=role;
+  if(!resume){ game.playerRole=role; clearSave(); }
   partner.role=partnerRole();
   document.body.classList.remove('lux-bg');
   if(typeof luxFxStop==='function')luxFxStop();
@@ -251,14 +259,48 @@ function startGame(role){
     setTimeout(()=>{ if(!ph.classList.contains('gone')){ph.classList.add('gone');setTimeout(()=>ph.style.display='none',600);} },9000);
   }
   game.mode='play';
+  /* 彩蛋②深夜访问 / 彩蛋⑧纪念日（继续与新开都检测一次） */
+  try{
+    const now=new Date(), h=now.getHours();
+    if((h>=23||h<5)&&!game.nightSeen){ game.nightSeen=true; setTimeout(()=>toast('🌙 这么晚还在看请帖呀…早点休息，我们婚礼上见！'),2600); }
+    const md=String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const anv=(CONFIG.anniversaries||[]).find(a=>a&&a.date===md);
+    if(anv&&!game.annivSeen){ game.annivSeen=true; setTimeout(()=>showOverlay(`<h3>💗 今天是特别的日子</h3><div class="frag-card">${esc(anv.text)}</div>`,null,'❤ 收下'),3400); }
+  }catch(e){}
+  if(resume){
+    setQuest(game.quest);            // 刷新任务文案(不重置进度)
+    updateItemBar();
+    if(typeof renderToolbar==='function')renderToolbar();
+    updateCam();
+    setTimeout(()=>toast('⏳ 已恢复上次进度（在 ⚙ 设置里可重新开始）'),400);
+    return;
+  }
   setQuest(0);updateCam();
   if(!QS.get('nodlg'))setTimeout(()=>startDialog([
     {who:'me',text:`（天气真好。${nameFor(partnerRole())} 在东南边的花田等我——跟着金色箭头走吧。）`},
     {who:'me',text:'（镇上多了好几栋房子：杂货店、博物馆…南边还有座挂满彩旗的婚礼殿堂！）'},
   ]),350);
 }
+/* 继续上次旅程：恢复存档后进入游戏(不重置状态) */
+function continueGame(){
+  const s=lsGet(SAVE_KEY);
+  if(!s||!applySave(s)){ toast('存档已失效，将开始新旅程'); clearSave(); return; }
+  startGame((s.g&&s.g.playerRole)||'groom', true);
+}
 document.getElementById('pickGroom').addEventListener('click',()=>startGame('groom'));
 document.getElementById('pickBride').addEventListener('click',()=>startGame('bride'));
+/* 标题屏：有存档时置顶「继续上次旅程」 */
+if(typeof hasSave==='function'&&hasSave()){
+  const tt=document.getElementById('title'), pk=tt&&tt.querySelector('.pick');
+  if(tt&&pk){
+    const cb=document.createElement('button');
+    cb.className='sdv-btn'; cb.id='continueBtn';
+    cb.style.cssText='margin:2px auto 12px;display:block';
+    cb.textContent='▶ 继续上次旅程';
+    cb.onclick=continueGame;
+    tt.insertBefore(cb,pk);
+  }
+}
 document.getElementById('skipBtn').addEventListener('click',()=>{
   /* 直接查看请帖：看完关闭→以新郎身份正式开始游戏；另设「返回」回到角色选择 */
   game.vowIdx=game.vowIdx||0;
@@ -453,6 +495,31 @@ if(_q.get('show'))setTimeout(()=>{
     }
   }
 },650);
+
+/* —— 彩蛋③ Konami 秘技：↑↑↓↓←→←→ B A（桌面键盘）——
+ * 每步接受一组等价键；末尾 B/A 对应游戏内「跳」(Shift/X/B) 与「互动」(空格/E/Z/Enter/A)，与操作键位一致 */
+const KONAMI=[
+  ['arrowup'],['arrowup'],['arrowdown'],['arrowdown'],
+  ['arrowleft'],['arrowright'],['arrowleft'],['arrowright'],
+  ['b','x','shift'],              // B = 跳
+  ['a',' ','e','z','enter'],      // A = 互动
+];
+let _konI=0;
+addEventListener('keydown',e=>{
+  const k=(e.key||'').toLowerCase();
+  if(KONAMI[_konI].includes(k)) _konI++;
+  else if(KONAMI[0].includes(k)) _konI=1;   // 按错则回退，但若按的是起始键则从第 2 步续上
+  else _konI=0;
+  if(_konI>=KONAMI.length){ _konI=0; triggerKonami(); }
+});
+function triggerKonami(){
+  if(game.konami)return;
+  game.konami=true;
+  if(typeof ensureCtx==='function')ensureCtx();
+  sfx('fanfare'); confetti(120);
+  if(typeof addHearts==='function'&&game.mode!=='title')addHearts(1,'资深玩家');
+  toast('🎉 ↑↑↓↓←→←→BA · 资深玩家彩蛋解锁！漫天烟花为你们绽放');
+}
 
 /* —— 所有模块就绪后启动主循环 —— */
 requestAnimationFrame(loop);
