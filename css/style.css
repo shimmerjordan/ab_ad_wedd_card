@@ -308,6 +308,25 @@ canvas{image-rendering:pixelated;display:block}
 .couple-row canvas{display:block;width:96px;height:96px}
 .couple-row .nm{font-size:15px;margin-top:8px}
 .couple-row .ds{font-size:12px;color:#8a5a2b;line-height:1.7;margin-top:4px}
+/* —— 点击头像/合照查看大图 —— */
+.couple-photo .zoomable,.couple-row .frame.zoomable{position:relative;display:inline-block;cursor:zoom-in}
+.zoomable::after{content:"🔍";position:absolute;right:5px;bottom:5px;z-index:2;
+  font-size:11px;line-height:1;padding:2px 4px;border-radius:5px;
+  background:rgba(91,44,14,.82);color:#ffefc9;pointer-events:none}
+.zoomable:hover{filter:brightness(1.05)}
+.zoom-hint{font-size:12px;color:#8a5a2b;opacity:.85;margin:2px 0 10px;letter-spacing:.5px}
+#lightbox{position:fixed;inset:0;z-index:66;display:none;align-items:center;justify-content:center;
+  padding:24px;background:rgba(20,12,40,.9);cursor:zoom-out}
+#lightbox.on{display:flex;animation:lbFade .2s ease}
+.lb-inner{position:relative;max-width:94vw;max-height:90svh}
+#lightboxImg{display:block;max-width:94vw;max-height:86svh;object-fit:contain;
+  border:4px solid #8c4a16;border-radius:6px;background:#fff;
+  box-shadow:inset 0 0 0 3px #e0b44a,0 12px 34px rgba(0,0,0,.55)}
+#lightboxClose{position:absolute;top:-16px;right:-16px;width:40px;height:40px;border-radius:50%;
+  border:3px solid #5b2c0e;background:linear-gradient(180deg,#b3661f,#8c4a16);color:#ffefc9;
+  font-size:18px;line-height:1;cursor:pointer;box-shadow:0 3px 0 #5b2c0e}
+#lightboxClose:hover{filter:brightness(1.08)}
+@keyframes lbFade{from{opacity:0}to{opacity:1}}
 .seat-card{
   margin-top:12px;background:linear-gradient(180deg,#fff3cf,#ffe6a8);
   border:3px solid #c9952e;border-radius:4px;padding:12px;

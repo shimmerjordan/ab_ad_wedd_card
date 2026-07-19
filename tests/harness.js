@@ -39,6 +39,7 @@ function fakeEl(tag){
     appendChild(c){ this.children.push(c); return c; },
     removeChild(){}, remove(){}, insertBefore(c){ return c; },
     setAttribute(k,v){ this.attributes[k]=v; }, getAttribute(k){ return this.attributes[k]; },
+    removeAttribute(k){ delete this.attributes[k]; },
     addEventListener(){}, removeEventListener(){},
     setPointerCapture(){}, releasePointerCapture(){},
     getContext(){ this._ctx = this._ctx || fakeCtx(); return this._ctx; },

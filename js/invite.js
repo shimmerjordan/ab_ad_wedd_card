@@ -29,14 +29,29 @@ function contactsText(){
   }).filter(Boolean);
   return rows.join('<br>') || '—';
 }
+/* 头像大图源(自定义头像优先；无则回退像素肖像素材) */
+function avatarBig(who){
+  const v=who==='groom'?CONFIG.groomAvatar:CONFIG.brideAvatar;
+  if(v) return resolveImg(v);
+  const im=img(who==='groom'?'portGroom':'portBride');
+  return im&&im.src||'';
+}
+/* 新人相框：有大图源时挂 data-big，可点开查看大图 */
+function avatarFrame(who,cls){
+  const big=avatarBig(who);
+  const a=big?`class="frame zoomable" data-big="${esc(big)}"`:`class="frame"`;
+  return `<div ${a}><canvas class="${cls}" width="64" height="64"></canvas></div>`;
+}
 function coupleHTML(){
+  const cp=CONFIG.couplePhoto?resolveImg(CONFIG.couplePhoto):'';
   return `<h3>♥ 新人介绍 ♥</h3>`+
-  (CONFIG.couplePhoto?`<div class="couple-photo"><img src="${esc(resolveImg(CONFIG.couplePhoto))}" alt="合照"></div>`:'')+
-  `<div class="couple-row">
-    <div><div class="frame"><canvas class="pcg" width="64" height="64"></canvas></div>
+  (cp?`<div class="couple-photo"><span class="zoomable" data-big="${esc(cp)}"><img src="${esc(cp)}" alt="合照"></span></div>`:'')+
+  `<div class="zoom-hint">🔍 点头像或合照可看大图</div>
+  <div class="couple-row">
+    <div>${avatarFrame('groom','pcg')}
       <div class="nm">${CONFIG.groom}</div><div class="ds">${CONFIG.groomDesc}</div></div>
     <span class="px-heart"></span>
-    <div><div class="frame"><canvas class="pcb" width="64" height="64"></canvas></div>
+    <div>${avatarFrame('bride','pcb')}
       <div class="nm">${CONFIG.bride}</div><div class="ds">${CONFIG.brideDesc}</div></div>
   </div>`;
 }
@@ -75,6 +90,22 @@ function drawOverlayPortraits(){
   document.querySelectorAll('.pcg').forEach(c=>portraitInto(c,'groom'));
   document.querySelectorAll('.pcb').forEach(c=>portraitInto(c,'bride'));
 }
+/* ============================================================
+ * 点击头像 / 合照 → 查看大图（灯箱）
+ * ============================================================ */
+const lightbox=document.getElementById('lightbox');
+const lightboxImg=document.getElementById('lightboxImg');
+function openLightbox(src){ if(!src||!lightbox)return; lightboxImg.src=src; lightbox.classList.add('on'); }
+function closeLightbox(){ if(!lightbox)return; lightbox.classList.remove('on'); lightboxImg.removeAttribute('src'); }
+if(lightbox){
+  lightbox.addEventListener('click',closeLightbox);   // 点背景/大图/✕ 任意处关闭
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&lightbox.classList.contains('on'))closeLightbox(); });
+  /* 委托：浮层内任意 [data-big] 元素（头像相框 / 合照）点开大图 */
+  overlayInner.addEventListener('click',e=>{
+    const z=e.target.closest('[data-big]');
+    if(z&&z.dataset.big){ e.preventDefault(); openLightbox(z.dataset.big); }
+  });
+}
 /* —— 完整请帖·海报版 —— */
 /* 顶部：木牌大标题 + 花拱门新人合影(真素材) + 双对话气泡 */
 function posterHeroHTML(){
@@ -104,11 +135,11 @@ function posterHeroHTML(){
 /* 新人相框 + 新郎/新娘木牌标签 */
 function couplePosterHTML(){
   return `<div class="couple-row">
-    <div><div class="frame"><canvas class="pcg" width="64" height="64"></canvas></div>
+    <div>${avatarFrame('groom','pcg')}
       <div class="role-tag">新 郎</div>
       <div class="nm">${esc(CONFIG.groom)}</div><div class="ds">${CONFIG.groomDesc}</div></div>
     <span class="px-heart"></span>
-    <div><div class="frame"><canvas class="pcb" width="64" height="64"></canvas></div>
+    <div>${avatarFrame('bride','pcb')}
       <div class="role-tag">新 娘</div>
       <div class="nm">${esc(CONFIG.bride)}</div><div class="ds">${CONFIG.brideDesc}</div></div>
   </div>`;

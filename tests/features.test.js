@@ -124,3 +124,26 @@ test('giftEligible：默认锁定；全碎片+通关+成就≥15 解锁，14 仍
   G.fragGot = G.fragGot.slice(1);
   assert.strictEqual(g.giftEligible().ok, false, '缺记忆碎片应重新锁定');
 });
+
+test('新人卡片：头像/合照可点开大图 + 灯箱开关', () => {
+  const g = loadGame(['coupleHTML', 'couplePosterHTML', 'openLightbox', 'closeLightbox']);
+  const c = g.coupleHTML();
+  /* 合照 + 新郎 + 新娘 共 3 处带 data-big */
+  const bigs = [...c.matchAll(/data-big="([^"]+)"/g)].map(m => m[1]);
+  assert.strictEqual(bigs.length, 3, '应有 3 处可点大图');
+  assert.ok(bigs.some(u => /couplePhoto/.test(u)), '含合照');
+  assert.ok(bigs.some(u => /groomAvatar/.test(u)), '含新郎头像');
+  assert.ok(bigs.some(u => /brideAvatar/.test(u)), '含新娘头像');
+  assert.ok(/zoom-hint/.test(c), '有「点看大图」提示');
+  /* 合照大图源 === 缩略图 src（放大同一张，保持一致） */
+  const cp = c.match(/<span class="zoomable" data-big="([^"]+)"><img src="([^"]+)"/);
+  assert.strictEqual(cp[1], cp[2], '合照大图与缩略图同源');
+  /* 海报版两个头像也可点开 */
+  assert.strictEqual([...g.couplePosterHTML().matchAll(/data-big=/g)].length, 2);
+  /* 灯箱：open 加 .on、close 去 .on */
+  const lb = g.__sandbox.document.getElementById('lightbox');
+  g.openLightbox('assets/imgs/couplePhoto.png');
+  assert.ok(lb.classList.contains('on'), 'openLightbox 应显示灯箱');
+  g.closeLightbox();
+  assert.ok(!lb.classList.contains('on'), 'closeLightbox 应隐藏灯箱');
+});
