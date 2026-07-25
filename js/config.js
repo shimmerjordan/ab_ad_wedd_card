@@ -30,9 +30,9 @@ const CONFIG = {
     {label:'新娘', phone:'', email:'ruchenzhao@foxmail.com'},
   ],
   /* —— 图片：本地把文件放 assets/imgs/ 只填文件名(如 合照.jpg)，或直接填图床URL(https://…)；留空=用默认像素头像 —— */
-  groomAvatar: 'https://raw.githubusercontent.com/shimmerjordan/ab_ad_wedd_card/main/assets/imgs/groomAvatar.png',   // 星露谷版·新郎头像（相框/对话气泡）
-  brideAvatar: 'https://raw.githubusercontent.com/shimmerjordan/ab_ad_wedd_card/main/assets/imgs/brideAvatar.png',   // 星露谷版·新娘头像
-  couplePhoto: 'https://raw.githubusercontent.com/shimmerjordan/ab_ad_wedd_card/main/assets/imgs/couplePhoto.png',   // 星露谷版·「新人介绍」处的合照
+  groomAvatar: 'groomAvatar.png',   // 星露谷版·新郎头像（相框/对话气泡）—— 本地 assets/imgs/，同源可离线，勿用 GitHub/Gitee raw 外链
+  brideAvatar: 'brideAvatar.png',   // 星露谷版·新娘头像
+  couplePhoto: 'couplePhoto.png',   // 星露谷版·「新人介绍」处的合照
   archPhoto:   '',   // 星露谷版·请帖顶部「主婚纱照」(竖版)，嵌在木质相框+花藤里（留空=显示占位框）
   luxHero:     '',   // 老登版·开头的主婚纱照（留空=不显示）
   /* 海报顶部·两句对白气泡（新郎、新娘各一句） */
