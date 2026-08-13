@@ -91,16 +91,115 @@ function drawOverlayPortraits(){
   document.querySelectorAll('.pcb').forEach(c=>portraitInto(c,'bride'));
 }
 /* ============================================================
- * 点击头像 / 合照 → 查看大图（灯箱）
+ * 点击头像 / 合照 / 婚纱照 → 全屏看大图（灯箱）· 可放大到 200%，但不许下载
  * ============================================================ */
+/* 给「看图容器」上锁：能点开看、能放大看，但拿不走
+ *  · 禁存：右键「图片另存为」/ 安卓长按菜单 / iOS 长按存图 / 把图拖进聊天窗
+ *          —— 配合 css 里图片的 pointer-events:none，长按落在外层框上，浏览器就给不出「存图」
+ *  · 关掉浏览器原生缩放(gesture 系列事件 + 多指 touchmove + css touch-action:none)：
+ *    原生捏合没有上限，改由 attachZoom 自己算，才能把倍数卡在 200%
+ *  · 前端只挡得住「顺手保存」：开发者工具/抓包/截屏挡不住(图终究要下发到浏览器)，别放不能外流的图 */
+function lockMedia(el){
+  if(!el||el._locked)return; el._locked=true;
+  const stop=e=>e.preventDefault();
+  el.addEventListener('contextmenu',stop);        // 右键 / 长按菜单
+  el.addEventListener('dragstart',stop);          // 拖走图片
+  el.addEventListener('selectstart',stop);
+  ['gesturestart','gesturechange','gestureend'].forEach(t=>el.addEventListener(t,stop));  // iOS/Safari 原生双指
+  el.addEventListener('touchmove',e=>{ if(e.touches&&e.touches.length>1)e.preventDefault(); },{passive:false});
+}
+/* 全站兜底：可点开的照片(缩略图) + 两个灯箱一律禁右键/禁拖拽
+ * 注意作用域只到 NOSAVE 这几类元素——通关分享图 .share-img 不在其列，仍可长按保存/下载(那张就是给宾客转发的) */
+const NOSAVE='[data-big],[data-full],#lightbox,#luxBox';
+['contextmenu','dragstart'].forEach(t=>document.addEventListener(t,e=>{
+  if(e.target&&e.target.closest&&e.target.closest(NOSAVE)) e.preventDefault();
+}));
+/* —— 全屏看图的缩放：贴边显示(fit)算 100%，最多放到 ZOOM_MAX —— */
+const ZOOM_MAX=2;                                                   // 200% 上限
+const zoomClamp=sc=>Math.min(ZOOM_MAX,Math.max(1,sc||1));
+/* 放大后能拖多远：图片边缘不许被拖进屏幕里露出空隙；没超出屏幕就不许拖(返回 0) */
+const panLimit=(size,view,sc)=>Math.max(0,(size*sc-view)/2);
+/* 给灯箱装上缩放/拖动/双击/滚轮，捏合与滚轮都过 zoomClamp，所以永远超不过 200%
+ *  手势全绑在容器上(不绑图片)，图片才能保持 pointer-events:none 挡长按存图
+ *  未放大时：轻触/单击关闭；已放大时：轻触先缩回贴边(免得手滑关掉)，✕ 与 Esc 随时可关 */
+function attachZoom(box,im,close){
+  if(!box||!im||box._zoom)return;
+  let sc=1,tx=0,ty=0,pd=0,pmx=0,pmy=0,moved=false,clickT=null,badgeT=null;
+  const pts=new Map();
+  const badge=document.createElement('div'); badge.className='lb-zoom'; box.appendChild(badge);
+  const hint=()=>{ badge.textContent=Math.round(sc*100)+'%'; badge.classList.add('on');
+    if(badgeT)clearTimeout(badgeT); badgeT=setTimeout(()=>badge.classList.remove('on'),900); };
+  const apply=()=>{
+    const mx=panLimit(im.offsetWidth,innerWidth,sc), my=panLimit(im.offsetHeight,innerHeight,sc);
+    tx=Math.max(-mx,Math.min(mx,tx)); ty=Math.max(-my,Math.min(my,ty));
+    im.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;
+    box.classList.toggle('zoomed',sc>1.001);
+  };
+  const reset=anim=>{ im.style.transition=anim?'transform .2s ease':'none'; sc=1;tx=0;ty=0; apply(); };
+  /* 以 (cx,cy) 为锚点缩放：该点下的画面内容保持不动(捏合中心/鼠标位置不跑) */
+  const zoomTo=(next,cx,cy,anim)=>{
+    const s2=zoomClamp(next); if(s2===sc)return;
+    const bcx=innerWidth/2, bcy=innerHeight/2, k=s2/sc;   // 图片贴边居中 → 基准中心就是屏幕中心
+    tx=cx-bcx-(cx-bcx-tx)*k; ty=cy-bcy-(cy-bcy-ty)*k; sc=s2;
+    im.style.transition=anim?'transform .2s ease':'none'; apply(); hint();
+  };
+  /* 对外只留两个口子：reset(开/关灯箱时回到贴边) 与 zoom(截图/自测用；keep=1 让倍数提示常驻好截图) */
+  box._zoom={ reset:()=>reset(false),
+    zoom:(s,keep)=>{ zoomTo(s,innerWidth/2,innerHeight/2,false);
+      if(keep){ if(badgeT)clearTimeout(badgeT); badge.classList.add('on'); } } };
+  box.addEventListener('pointerdown',e=>{
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){ moved=false; pmx=e.clientX; pmy=e.clientY; }
+    else if(pts.size===2){ const[a,b]=[...pts.values()];
+      pd=Math.hypot(a.x-b.x,a.y-b.y); pmx=(a.x+b.x)/2; pmy=(a.y+b.y)/2; moved=true; }
+    /* 不用 setPointerCapture：容器铺满全屏，指针跑不出去；捕获反而会把 ✕ 的 click 重定向到容器 */
+  });
+  box.addEventListener('pointermove',e=>{
+    if(!pts.has(e.pointerId))return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size>=2){                                  // 双指捏合：缩放 + 跟着中点平移
+      const[a,b]=[...pts.values()];
+      const d=Math.hypot(a.x-b.x,a.y-b.y), mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      if(pd>0)zoomTo(sc*(d/pd),mx,my,false);
+      tx+=mx-pmx; ty+=my-pmy; apply();
+      pd=d; pmx=mx; pmy=my;
+    }else{                                            // 单指/鼠标：放大后可拖动
+      const dx=e.clientX-pmx, dy=e.clientY-pmy;
+      if(Math.abs(dx)>6||Math.abs(dy)>6)moved=true;
+      if(sc>1){ tx+=dx; ty+=dy; im.style.transition='none'; apply(); }
+      pmx=e.clientX; pmy=e.clientY;
+    }
+  });
+  const up=e=>{ pts.delete(e.pointerId); if(pts.size<2)pd=0;
+    if(pts.size===1){ const p=[...pts.values()][0]; pmx=p.x; pmy=p.y; } };
+  box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
+  box.addEventListener('wheel',e=>{ e.preventDefault();
+    zoomTo(sc*(e.deltaY<0?1.15:1/1.15),e.clientX,e.clientY,false); },{passive:false});
+  box.addEventListener('click',e=>{
+    if(e.target&&e.target.closest&&e.target.closest('button')){ close(); return; }   // ✕
+    if(moved){ moved=false; return; }                 // 刚拖过/捏过，不算点击
+    if(clickT){ clearTimeout(clickT); clickT=null; return; }   // 第二击 → 交给 dblclick 放大
+    clickT=setTimeout(()=>{ clickT=null; if(sc>1)reset(true); else close(); },230);
+  });
+  box.addEventListener('dblclick',e=>{                // 双击/双指轻点：贴边 ⇄ 200%
+    if(clickT){ clearTimeout(clickT); clickT=null; }
+    zoomTo(sc>1?1:ZOOM_MAX,e.clientX,e.clientY,true);
+  });
+  /* 转屏/地址栏收放会改变可视尺寸：只按新尺寸重新夹一次位移，不动倍数
+   * （别在这里 reset——手机地址栏一收起就会触发 resize，宾客刚放大就被弹回贴边） */
+  addEventListener('resize',apply);
+}
 const lightbox=document.getElementById('lightbox');
 const lightboxImg=document.getElementById('lightboxImg');
-function openLightbox(src){ if(!src||!lightbox)return; lightboxImg.src=src; lightbox.classList.add('on'); }
-function closeLightbox(){ if(!lightbox)return; lightbox.classList.remove('on'); lightboxImg.removeAttribute('src'); }
+function openLightbox(src){ if(!src||!lightbox)return;
+  lightboxImg.src=src; lightbox.classList.add('on'); if(lightbox._zoom)lightbox._zoom.reset(); }
+function closeLightbox(){ if(!lightbox)return;
+  lightbox.classList.remove('on'); lightboxImg.removeAttribute('src'); if(lightbox._zoom)lightbox._zoom.reset(); }
 if(lightbox){
-  lightbox.addEventListener('click',closeLightbox);   // 点背景/大图/✕ 任意处关闭
+  lockMedia(lightbox);
+  attachZoom(lightbox,lightboxImg,closeLightbox);     // 点击关闭/缩放都由它接管
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&lightbox.classList.contains('on'))closeLightbox(); });
-  /* 委托：浮层内任意 [data-big] 元素（头像相框 / 合照）点开大图 */
+  /* 委托：浮层内任意 [data-big] 元素（头像相框 / 合照 / 顶部主婚纱照 / 殿堂婚纱照）点开大图 */
   overlayInner.addEventListener('click',e=>{
     const z=e.target.closest('[data-big]');
     if(z&&z.dataset.big){ e.preventDefault(); openLightbox(z.dataset.big); }
@@ -109,6 +208,7 @@ if(lightbox){
 /* —— 完整请帖·海报版 —— */
 /* 顶部：木牌大标题 + 花拱门新人合影(真素材) + 双对话气泡 */
 function posterHeroHTML(){
+  const arch=CONFIG.archPhoto?esc(resolveImg(CONFIG.archPhoto)):'';   // 有图才给「点开看大图」入口
   return `<div class="poster-sky">
     <img class="sky-cloud a" src="assets/elem/svCloud.png" alt="">
     <img class="sky-cloud b" src="assets/elem/svCloud.png" alt="">
@@ -116,9 +216,9 @@ function posterHeroHTML(){
   </div>
   <div class="poster-sub">❀ ${esc(CONFIG.groom)} &amp; ${esc(CONFIG.bride)} 的${esc(CONFIG.eventName||'婚礼')}请帖 ❀</div>
   <div class="hero-photo">
-    <div class="hero-frame">
-      ${CONFIG.archPhoto
-        ? `<img src="${esc(resolveImg(CONFIG.archPhoto))}" alt="主婚纱照">`
+    <div class="hero-frame${arch?' zoomable':''}"${arch?` data-big="${arch}"`:''}>
+      ${arch
+        ? `<img src="${arch}" alt="主婚纱照" draggable="false">`
         : `<div class="hero-ph"><span class="o">❀</span><span class="t">主婚纱照</span></div>`}
     </div>
     <img class="hero-garland" src="assets/elem/garland.png" alt="">
@@ -127,6 +227,7 @@ function posterHeroHTML(){
     <img class="hero-sun l" src="assets/elem/sunflower.png" alt="">
     <img class="hero-sun r" src="assets/elem/sunflower.png" alt="">
   </div>
+  ${arch?`<div class="hero-zoom-tip"><span>🔍 点婚纱照看大图</span></div>`:''}
   <div class="chat-wrap">
     <div class="chat-bubble"><canvas class="chat-ava" data-port="groom" width="64" height="64"></canvas><div>${esc((CONFIG.posterLines||[])[0]||'')}</div></div>
     <div class="chat-bubble r"><canvas class="chat-ava" data-port="bride" width="64" height="64"></canvas><div>${esc((CONFIG.posterLines||[])[1]||'')}</div></div>

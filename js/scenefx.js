@@ -15,10 +15,13 @@ function showExhibit(i){
 }
 function showHallPhoto(i){
   const p=(RT.hallPhotos&&RT.hallPhotos[i])||{};
+  const src=p.img?esc(resolveImg(p.img)):'';
   sfx('choice');flyHearts(innerWidth/2,innerHeight/2,2);
+  /* 展板里是缩略图，点一下用灯箱看全图(不可下载/不可缩放)；加载失败时把整个可点区换成提示，免得点开一片空白 */
   showOverlay(
     `<h3>💍 ${esc(p.title||('婚纱照 '+(i+1)))}</h3>
-     ${p.img?`<img class="exhibit-img" src="${esc(resolveImg(p.img))}" onerror="this.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片未找到：把婚纱照放到 assets/imgs/ 并在 DEBUG 里填文件名）</div>'">`
+     ${src?`<span class="zoomable exhibit-zoom" data-big="${src}"><img class="exhibit-img" src="${src}" alt="${esc(p.title||'婚纱照')}" draggable="false" onerror="this.parentNode.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片未找到：把婚纱照放到 assets/imgs/ 并在 DEBUG 里填文件名）</div>'"></span>
+       <div class="zoom-hint">🔍 点图片看大图</div>`
             :`<div style="font-size:13px;color:#8a5a2b">把你们的婚纱照放进 <b>assets/imgs/</b>，在 ⚙ DEBUG「婚纱照展板」里填文件名即可显示在这里。</div>`}
      <div class="frag-card">${esc(p.text||'')}</div>`,
     null,'看完了 ▶');

@@ -1,7 +1,7 @@
 /* 星露谷婚礼请帖 · Service Worker（离线缓存，拓展③）
  * 策略：核心文件安装时预缓存；其余同源资源(素材图/字体)运行时按需缓存(cache-first)。
  * 跨源请求(CDN 字体/图床)不拦截，交给浏览器默认处理。 */
-const CACHE = 'wedd-v2';   // 改头像为本地图 → bump 版本，强制已访问宾客更新 config.js/缓存
+const CACHE = 'wedd-v4';   // 婚纱照全屏看图(可放大 200%/禁下载) → bump 版本，强制已访问宾客更新 js/css 缓存
 const CORE = [
   './', './index.html', './css/style.css',
   './js/config.js', './js/assets.js', './js/scene.js', './js/core.js', './js/play.js',

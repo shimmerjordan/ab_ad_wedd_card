@@ -39,17 +39,25 @@ function drawMuseumInt(ents){
     ctx.drawImage(im,cx_-64-16-6-cam.x|0,(3.9*TILE-im.height)-cam.y|0);
     ctx.drawImage(im,cx_+64+6-cam.x|0,(3.9*TILE-im.height)-cam.y|0);
   }});
-  /* 油画展位 1-4（上墙, 矿架两侧） */
+  /* 油画展位 1-4（上墙, 矿架两侧）：配了照片就把照片贴进画框内区(油画当相框)，没配图仍是原来的装饰画 */
   EX_WALL_PX.forEach(([ex_,ey_],i)=>{
     const px=ex_-cam.x|0, py=ey_-cam.y|0;
-    const pk=img(MUSEUM_PAINTS[i]), has=!!RT.museum[i];
+    const key=MUSEUM_PAINTS[i], pk=img(key), has=!!RT.museum[i];
     ents.push({y:-996,draw(){
-      if(pk){ ctx.drawImage(pk,px,py); }
-      else{
+      const ph=museumPhotoImg(i);
+      if(pk){
+        ctx.drawImage(pk,px,py);
+        /* 兜底内缩(素材换了但没登记 ART_BOX 时)：左右各留 3px 框，底部多留 5px 给素材自带投影 */
+        if(ph){ const b=MUSEUM_ART_BOX[key]||[3,5,pk.width-6,pk.height-11];
+          pixelCover(ph,px+b[0],py+b[1],b[2],b[3]); }
+      }else{                                   // 素材缺失时的程序化画框
         ctx.fillStyle='#6e4218';ctx.fillRect(px-2,py-2,30,26);
         ctx.fillStyle='#fdf3dc';ctx.fillRect(px,py,26,22);
-        ctx.fillStyle=['#ff9eb5','#7dc4ff','#ffd84d','#5a6fb0'][i];
-        ctx.fillRect(px+3,py+3,20,14);
+        if(ph) pixelCover(ph,px+2,py+2,22,18);
+        else{
+          ctx.fillStyle=['#ff9eb5','#7dc4ff','#ffd84d','#5a6fb0'][i];
+          ctx.fillRect(px+3,py+3,20,14);
+        }
       }
       if(has&&(game.time*2|0)%2){ctx.fillStyle='rgba(255,255,255,.8)';ctx.fillRect(px+2,py-4,2,2);}
     }});
@@ -70,8 +78,11 @@ function drawMuseumInt(ents){
       /* 玻璃罩主体（半透明青白） */
       const gx=cx+3,gy=py-6,gw=30,gh=30;
       ctx.fillStyle='rgba(150,205,232,.34)';ctx.fillRect(gx,gy,gw,gh);
-      /* 展品（布展则金色发光小物，未布展则空台提示） */
-      if(has){
+      /* 展品（配了照片→立个小相框；只有文字→金色发光小物；未布展→空台提示） */
+      const ph=has?museumPhotoImg(4+i):null;
+      if(ph){
+        drawCasePhoto(ph,gx,gy,gh);
+      }else if(has){
         ctx.fillStyle='#7a4a1e';ctx.fillRect(gx+9,gy+gh-8,12,4);            // 展品底托
         ctx.fillStyle='#ffd84d';ctx.fillRect(gx+10,gy+gh-18,10,11);          // 金色展品
         ctx.fillStyle='#ffec8a';ctx.fillRect(gx+11,gy+gh-17,3,9);
@@ -116,11 +127,16 @@ function drawMuseumInt(ents){
     ctx.drawImage(im,(26*TILE-im.width)/2-cam.x|0,7.8*TILE-cam.y|0);
   }});
 }
-/* 婚纱照懒加载缓存(图片在 assets/imgs/, 不在素材清单里) */
-function hallPhotoImg(idx){
-  const o=RT.hallPhotos&&RT.hallPhotos[idx]; if(!o||!o.img) return null;
-  const im=loadPhoto(resolveImg(o.img));   // 共享缓存(assets.js)
-  return im._ok?im:null;
+/* —— 场景内照片预览：殿堂婚纱照展板 + 博物馆展品 共用这三个工具 —— */
+/* 懒加载缓存(这些图在 assets/imgs/, 不在素材清单里)；没配图/还没加载好/加载失败都返回 null */
+function scenePhoto(o){ if(!o||!o.img)return null; const im=loadPhoto(resolveImg(o.img)); return im._ok?im:null; }
+function hallPhotoImg(idx){ return scenePhoto(RT.hallPhotos&&RT.hallPhotos[idx]); }
+function museumPhotoImg(idx){ return scenePhoto(RT.museum&&RT.museum[idx]); }
+/* 等比裁剪(cover)把照片铺进 (x,y,w,h)，关平滑 → 像素风缩略图 */
+function pixelCover(im,x,y,w,h){
+  const s=Math.max(w/im.width,h/im.height), sw=w/s, sh=h/s;
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh, x,y,w,h);
 }
 /* 立式婚纱照展板(木相框+画架腿; 有图显示缩略图, 无图显示爱心占位) */
 function drawPhotoBoard(px,py,idx){
@@ -131,16 +147,24 @@ function drawPhotoBoard(px,py,idx){
   ctx.fillStyle='#e0b44a';ctx.fillRect(px+2,py-40,32,2);                 // 金内边
   const im=hallPhotoImg(idx);
   if(im){
-    ctx.imageSmoothingEnabled=false;
-    // 等比裁剪填入 30x30 相框
-    const s=Math.max(30/im.width,30/im.height), sw=30/s, sh=30/s;
-    ctx.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh, px+3,py-38,30,30);
+    pixelCover(im,px+3,py-38,30,30);                                     // 等比裁剪填入 30x30 相框
   }else{
     ctx.fillStyle='#f3e8d6';ctx.fillRect(px+3,py-38,30,30);
     ctx.fillStyle='#e0457b';                                            // 爱心占位
     ctx.fillRect(px+13,py-28,3,3);ctx.fillRect(px+18,py-28,3,3);ctx.fillRect(px+12,py-25,11,3);ctx.fillRect(px+14,py-22,7,3);ctx.fillRect(px+16,py-19,3,3);
     ctx.fillStyle='#b48a5a';ctx.font='7px monospace';ctx.textAlign='center';ctx.fillText('婚纱照',px+18,py-9);
   }
+}
+/* 玻璃展柜里的照片预览：小木相框(金内边)+底托，正好立在展柜底座上；外面的玻璃高光会盖在它上面
+ * 尺寸相对 30x30 玻璃罩算：左右各留 4px，底托落到罩底 → 换玻璃罩尺寸时不用改这里 */
+function drawCasePhoto(im,gx,gy,gh){
+  const w=22,h=18, x=gx+4, y=gy+gh-h-4;
+  ctx.fillStyle='#5b2c0e';ctx.fillRect(x-1,y-1,w+2,h+2);       // 外描边
+  ctx.fillStyle='#8c5a2b';ctx.fillRect(x,y,w,h);               // 木框
+  ctx.fillStyle='#e0b44a';ctx.fillRect(x+1,y+1,w-2,h-2);       // 金内边
+  pixelCover(im,x+2,y+2,w-4,h-4);                              // 照片(18x14)
+  ctx.fillStyle='#7a4a1e';ctx.fillRect(x+8,y+h,6,3);           // 底托
+  ctx.fillStyle='#5b2c0e';ctx.fillRect(x+7,y+h+3,8,1);
 }
 /* —— 殿堂内景陈设(舞台居中 x12.5, 左右对称) —— */
 function drawHallInt(ents){

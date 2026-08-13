@@ -266,6 +266,9 @@ const HFEST=[
 const EX_WALL_PX=[[26,8],[74,8],[296,8],[344,8]];
 const EX_TBL=[[3,5],[9,5],[15,5],[21,5],[3,10],[9,10],[15,10],[21,10]];
 const MUSEUM_PAINTS=['paintBoat','paintHills','paintSunset','paintNight'];
+/* 四幅上墙油画的「画框内区」[左,上,宽,高]：逐像素量素材得出(四幅框宽不一样，不能用同一套内缩)。
+ * 展品配了照片时，照片就贴进这块，油画本身当相框用 → 上墙排布与画框风格都不变 */
+const MUSEUM_ART_BOX={paintBoat:[3,6,41,20],paintHills:[3,5,41,20],paintSunset:[3,4,25,22],paintNight:[3,4,24,20]};
 /* 博物馆家具(贴地摆放, 带碰撞)；书架/留言台为程序化绘制(切图始终完整) */
 const MOBJ = {
   bookL:{x:4.6*TILE, y:15*TILE,   w:38, h:40, proc:'bookcase'},

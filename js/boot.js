@@ -374,10 +374,11 @@ function luxFxStart(){
 function luxFxStop(){ if(_luxFxRAF)cancelAnimationFrame(_luxFxRAF); _luxFxRAF=null; if(_luxFxResize){removeEventListener('resize',_luxFxResize);_luxFxResize=null;} }
 function buildLux(){
   const c=CONFIG, R=RT.hallPhotos&&RT.hallPhotos.length?RT.hallPhotos:(c.hallPhotos||[]);
+  const heroSrc=c.luxHero?esc(resolveImg(c.luxHero)):'';   // 有图才给「轻触看大图」入口
   const gallery=R.map((p,i)=>{
     const src=p&&p.img?esc(resolveImg(p.img)):'';
     return `<figure class="lux-photo" ${src?`data-full="${src}"`:''}>
-      ${src?`<img src="${src}" alt="">`:`<div class="lux-photo-ph">婚纱照 ${i+1}</div>`}
+      ${src?`<img src="${src}" alt="" draggable="false">`:`<div class="lux-photo-ph">婚纱照 ${i+1}</div>`}
       ${p&&p.title?`<figcaption>${esc(p.title)}</figcaption>`:''}</figure>`;
   }).join('');
   const sched=(c.schedule||[]).map(([t,w])=>`<div class="lux-tl"><span class="lux-tl-t">${esc(t)}</span><span class="lux-tl-w">${esc(w)}</span></div>`).join('');
@@ -387,9 +388,10 @@ function buildLux(){
       <h1 class="lux-names">${esc(c.groom)}<span class="amp">&amp;</span>${esc(c.bride)}</h1>
       <div class="lux-date">${esc(c.dateText)}</div>
       <div class="lux-divider"><span>❦</span></div>
-      <div class="lux-hero-photo">${c.luxHero
-        ? `<img src="${esc(resolveImg(c.luxHero))}" alt="">`
+      <div class="lux-hero-photo"${heroSrc?` data-full="${heroSrc}"`:''}>${heroSrc
+        ? `<img src="${heroSrc}" alt="" draggable="false">`
         : `<div class="lux-hero-ph"><span class="orn">❦</span><span class="t">主 婚 纱 照</span></div>`}</div>
+      ${heroSrc?`<div class="lux-tap">轻触照片 · 查看大图</div>`:''}
     </header>
     <section class="lux-sec reveal"><p class="lux-letter">${c.luxLetter||c.letterHTML}</p>
       <div class="lux-sign">— ${esc(c.groom)} &amp; ${esc(c.bride)} 敬上</div></section>
@@ -418,9 +420,10 @@ function buildLux(){
       <button class="lux-back" id="luxBack">← 返回入口</button></footer>`;
   const rb=document.getElementById('luxRsvp'); if(rb)rb.onclick=openRsvp;
   const bk=document.getElementById('luxBack'); if(bk)bk.onclick=()=>{ luxFxStop(); luxEl.style.display='none'; gateEl.style.display='flex'; };
-  /* 婚纱照：点击放大 + 指针 3D 倾斜(互动感) */
+  /* 婚纱照(顶部主图 + 画廊)：点开看大图 */
+  luxEl.querySelectorAll('[data-full]').forEach(f=>{ f.onclick=()=>luxLightbox(f.dataset.full); });
+  /* 画廊图另加指针 3D 倾斜(互动感)；主图压顶不动，免得跟入场动画打架 */
   luxEl.querySelectorAll('.lux-photo').forEach(f=>{
-    if(f.dataset.full) f.onclick=()=>luxLightbox(f.dataset.full);
     f.addEventListener('pointermove',e=>{ const r=f.getBoundingClientRect(); const px=(e.clientX-r.left)/r.width-.5, py=(e.clientY-r.top)/r.height-.5;
       f.style.transform=`rotateY(${px*11}deg) rotateX(${-py*11}deg) translateZ(8px)`; });
     f.addEventListener('pointerleave',()=>{ f.style.transform=''; });
@@ -435,13 +438,26 @@ function luxReveal(){
   /* 兜底：若观察器未触发(极端情况)，2s 后强制显示所有区块, 内容永不卡在隐藏态 */
   setTimeout(()=>luxEl.querySelectorAll('.reveal:not(.in)').forEach(el=>el.classList.add('in')),2000);
 }
-function luxLightbox(src){ const b=document.getElementById('luxBox'); document.getElementById('luxBoxImg').src=src; b.style.display='flex'; }
-document.getElementById('luxBoxClose').onclick=()=>{document.getElementById('luxBox').style.display='none';};
-document.getElementById('luxBox').onclick=e=>{ if(e.target.id==='luxBox')document.getElementById('luxBox').style.display='none'; };
+/* 老登版灯箱：与星露谷版同一套规则——全屏看、可放大到 200%、不许下载(lockMedia/attachZoom 见 invite.js) */
+function luxLightbox(src){ if(!src)return; const b=document.getElementById('luxBox');
+  document.getElementById('luxBoxImg').src=src; b.style.display='flex'; if(b._zoom)b._zoom.reset(); }
+function luxBoxHide(){ const b=document.getElementById('luxBox'); b.style.display='none';
+  document.getElementById('luxBoxImg').removeAttribute('src'); if(b._zoom)b._zoom.reset(); }
+{
+  const lb=document.getElementById('luxBox');
+  lockMedia(lb);
+  attachZoom(lb,document.getElementById('luxBoxImg'),luxBoxHide);   // 点击关闭/缩放都由它接管(含 ✕)
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&lb.style.display==='flex')luxBoxHide(); });
+}
 
 /* 测试钩子 */
 const _q=QS;
-if(_q.get('lux'))setTimeout(()=>{ gateEl.style.display='none'; document.getElementById('title').style.display='none'; openLux(); },200);
+/* ?lux=1 直开老登版；再带 &big=1 摊开它的灯箱，&zoom=300 可验证 200% 上限(截图用) */
+if(_q.get('lux'))setTimeout(()=>{ gateEl.style.display='none'; document.getElementById('title').style.display='none'; openLux();
+  if(_q.get('big'))setTimeout(()=>{ luxLightbox(resolveImg(CONFIG.luxHero));
+    const b=document.getElementById('luxBox');
+    if(_q.get('zoom'))setTimeout(()=>b._zoom.zoom(+_q.get('zoom')/100,1),500);
+  },300); },200);
 if(_q.get('auto'))setTimeout(()=>startGame(_q.get('auto')==='bride'?'bride':'groom'),200);
 if(_q.get('at')){const[ax,ay]=_q.get('at').split(',').map(Number);setTimeout(()=>{player.x=ax*TILE;player.y=ay*TILE;updateCam();},350);}
 if(_q.get('scene'))setTimeout(()=>{game.scene=_q.get('scene');updateCam();},340);
@@ -478,6 +494,11 @@ if(_q.get('show'))setTimeout(()=>{
   else if(s==='info')showOverlay(infoHTML());
   else if(s==='couple'){showOverlay(coupleHTML());drawOverlayPortraits();}
   else if(s==='letter')showOverlay(letterHTML());
+  else if(s==='photo')showHallPhoto(0);            // 殿堂婚纱照展板浮层(截图用)
+  else if(s==='big'){                              // 直接摊开灯箱(截图用)；再带 &zoom=300 可验证 200% 上限
+    openLightbox(resolveImg(CONFIG.archPhoto));
+    if(_q.get('zoom'))setTimeout(()=>lightbox._zoom.zoom(+_q.get('zoom')/100,1),500);
+  }
   else if(s==='settings')openSettings();
   else if(s==='shop')openShop();
   else if(s==='fish'){

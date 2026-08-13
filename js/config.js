@@ -33,8 +33,8 @@ const CONFIG = {
   groomAvatar: 'groomAvatar.png',   // 星露谷版·新郎头像（相框/对话气泡）—— 本地 assets/imgs/，同源可离线，勿用 GitHub/Gitee raw 外链
   brideAvatar: 'brideAvatar.png',   // 星露谷版·新娘头像
   couplePhoto: 'couplePhoto.png',   // 星露谷版·「新人介绍」处的合照
-  archPhoto:   '',   // 星露谷版·请帖顶部「主婚纱照」(竖版)，嵌在木质相框+花藤里（留空=显示占位框）
-  luxHero:     '',   // 老登版·开头的主婚纱照（留空=不显示）
+  archPhoto:   'ComfyUI_00068_.png',   // 星露谷版·请帖顶部「主婚纱照」(竖版)，嵌在木质相框+花藤里（留空=显示占位框）
+  luxHero:     'DSC09712_鞠桥丹,赵芮晨(入册).jpg',   // 老登版·开头的主婚纱照（留空=不显示）
   /* 海报顶部·两句对白气泡（新郎、新娘各一句） */
   posterLines: ['人生从此，将展开新的一页 ❀', '……而往后的路，必定是光明的！'],
   /* 「典雅请帖」专用邀请词（低调奢华版；留空则沿用上面的 letterHTML） */
@@ -126,9 +126,9 @@ const CONFIG = {
   /* 婚纱照（★老登版画廊 + 星露谷殿堂展板 共用）：
    *  img 填 assets/imgs/ 下的文件名(如 婚纱照1.jpg)，或直接填图床URL(https://…)；也可在 DEBUG 里可视化配置。 */
   hallPhotos: [
-    {title:'婚纱照 · 一', text:'往后余生，愿我们天天开怀大笑，把日子过成蜜！', img:''},
-    {title:'婚纱照 · 二', text:'每一张照片都在偷偷炫耀：看，这就是我最爱的人！', img:''},
-    {title:'婚纱照 · 三', text:'愿往后的每个清晨，一睁眼就能看见你的笑脸～', img:''},
+    {title:'婚纱照 · 一', text:'往后余生，愿我们天天开怀大笑，把日子过成蜜！', img:'img_v3_0214g_2a4473aa-105c-405c-86b3-39a8ac296e7g.jpg'},
+    {title:'婚纱照 · 二', text:'每一张照片都在偷偷炫耀：看，这就是我最爱的人！', img:'img_v3_0214g_cc4c8f42-c285-4bfc-abc0-849bdfd385eg.jpg'},
+    {title:'婚纱照 · 三', text:'愿往后的每个清晨，一睁眼就能看见你的笑脸～', img:'horseman.png'},
     {title:'婚纱照 · 四', text:'谢谢你选择我，往后的热闹与幸福，通通交给我啦！', img:''},
   ],
 };

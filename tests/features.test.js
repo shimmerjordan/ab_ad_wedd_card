@@ -147,3 +147,62 @@ test('新人卡片：头像/合照可点开大图 + 灯箱开关', () => {
   g.closeLightbox();
   assert.ok(!lb.classList.contains('on'), 'closeLightbox 应隐藏灯箱');
 });
+
+test('婚纱照可点开看大图：archPhoto / luxHero / hallPhotos', () => {
+  const g = loadGame(['posterHeroHTML', 'showHallPhoto', 'buildLux', 'lockMedia', 'CONFIG', 'RT']);
+  const doc = g.__sandbox.document;
+
+  /* ① 星露谷版·顶部主婚纱照 archPhoto：相框可点，且大图与缩略图同源 */
+  const hero = g.posterHeroHTML();
+  const m = hero.match(/class="hero-frame zoomable" data-big="([^"]+)"/);
+  assert.ok(m, 'archPhoto 相框应挂 data-big');
+  assert.strictEqual(m[1], 'assets/imgs/' + g.CONFIG.archPhoto, '大图指向 assets/imgs/ 下的原图');
+  assert.ok(hero.includes(`<img src="${m[1]}"`), '缩略图与大图同源');
+  assert.ok(/hero-zoom-tip/.test(hero), '有「点看大图」提示');
+
+  /* ② 老登版·顶部主婚纱照 luxHero + 画廊 hallPhotos 都可点 */
+  g.buildLux();
+  const lux = doc.getElementById('luxInner').innerHTML;
+  assert.ok(/class="lux-hero-photo" data-full="assets\/imgs\/[^"]+"/.test(lux), 'luxHero 应挂 data-full');
+  assert.ok(/lux-tap/.test(lux), '有「轻触看大图」提示');
+  const withImg = (g.RT.hallPhotos || []).filter(p => p && p.img).length;
+  assert.strictEqual([...lux.matchAll(/data-full="/g)].length, withImg + 1,
+    '主图 + 每张有图的画廊照各一个可点入口');
+
+  /* ③ 星露谷版·殿堂婚纱照展板：有图才给入口，没图不给假入口 */
+  const first = (g.RT.hallPhotos || []).findIndex(p => p && p.img);
+  g.showHallPhoto(first);
+  const ov = doc.getElementById('overlayInner').innerHTML;
+  const h = ov.match(/class="zoomable exhibit-zoom" data-big="([^"]+)"/);
+  assert.ok(h, '展板大图应挂 data-big');
+  assert.strictEqual(h[1], 'assets/imgs/' + g.RT.hallPhotos[first].img);
+  assert.ok(ov.includes(`<img class="exhibit-img" src="${h[1]}"`), '展板缩略图与大图同源');
+  /* 加载失败要换掉整个可点区(而非只换 img)，否则留下一个点开全黑的空壳 */
+  assert.ok(/onerror="this\.parentNode\.outerHTML=/.test(ov), 'onerror 应替换整个可点区');
+  const none = (g.RT.hallPhotos || []).findIndex(p => !p || !p.img);
+  g.showHallPhoto(none);
+  assert.ok(!/data-big/.test(doc.getElementById('overlayInner').innerHTML), '没配图的展板不给大图入口');
+
+  /* ④ 两个灯箱都上锁(禁右键/长按存图)且装了缩放，重复调用幂等 */
+  const box = doc.getElementById('lightbox'), luxBox = doc.getElementById('luxBox');
+  assert.strictEqual(box._locked, true, '灯箱应已上锁');
+  g.lockMedia(box);
+  assert.strictEqual(box._locked, true, 'lockMedia 幂等');
+  assert.strictEqual(luxBox._locked, true, '老登版灯箱也应上锁');
+  assert.ok(box._zoom && luxBox._zoom, '两个灯箱都应装上缩放');
+});
+
+test('全屏看图缩放：贴边 100% 起步，上限 200%，未溢出屏幕不许拖', () => {
+  const g = loadGame(['zoomClamp', 'panLimit', 'ZOOM_MAX']);
+  assert.strictEqual(g.ZOOM_MAX, 2, '上限 200%');
+  /* 缩放钳制：不许小于贴边、不许大于 200% */
+  assert.strictEqual(g.zoomClamp(1.5), 1.5, '区间内原样放行');
+  assert.strictEqual(g.zoomClamp(0.4), 1, '缩不到贴边以下');
+  assert.strictEqual(g.zoomClamp(2.7), 2, '捏到多大都夹回 200%');
+  assert.strictEqual(g.zoomClamp(1e9), 2, '极端值也夹回 200%');
+  assert.strictEqual(g.zoomClamp(undefined), 1, '无值按贴边算');
+  /* 拖动范围：图片放大后超出屏幕的部分才可拖，且左右对称 */
+  assert.strictEqual(g.panLimit(400, 430, 2), 185, '400×2=800 超出 430 → 可拖 ±185');
+  assert.strictEqual(g.panLimit(400, 430, 1), 0, '贴边时不许拖');
+  assert.strictEqual(g.panLimit(300, 430, 1.2), 0, '放大后仍没占满屏幕 → 不许拖');
+});
