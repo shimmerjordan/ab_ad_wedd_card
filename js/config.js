@@ -129,7 +129,7 @@ const CONFIG = {
     {title:'婚纱照 · 一', text:'往后余生，愿我们天天开怀大笑，把日子过成蜜！', img:'img_v3_0214g_2a4473aa-105c-405c-86b3-39a8ac296e7g.jpg'},
     {title:'婚纱照 · 二', text:'每一张照片都在偷偷炫耀：看，这就是我最爱的人！', img:'img_v3_0214g_cc4c8f42-c285-4bfc-abc0-849bdfd385eg.jpg'},
     {title:'婚纱照 · 三', text:'愿往后的每个清晨，一睁眼就能看见你的笑脸～', img:'horseman.png'},
-    {title:'婚纱照 · 四', text:'谢谢你选择我，往后的热闹与幸福，通通交给我啦！', img:''},
+    {title:'婚纱照 · 四', text:'谢谢你选择我，往后的热闹与幸福，通通交给我啦！', img:'ComfyUI_00112_.png'},
   ],
 };
 /* —— 由 weddingISO + lunar + timeNote 自动推导显示用字段（无需手填，杜绝重复/不一致）—— */
