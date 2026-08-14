@@ -240,10 +240,8 @@ refreshGuest();
   setTimeout(drawCards,600);
   setTimeout(drawCards,2000);
 }
-function startGame(role,resume){
-  ensureCtx();toggleBgm(true);
-  if(!resume){ game.playerRole=role; clearSave(); }
-  partner.role=partnerRole();
+/* 只负责把游戏界面显示出来 —— 路由处理 /play 时调它，点开始和按前进/后退键共用同一条路径 */
+function showPlayScreen(){
   document.body.classList.remove('lux-bg');
   if(typeof luxFxStop==='function')luxFxStop();
   document.getElementById('gate').style.display='none';
@@ -253,6 +251,16 @@ function startGame(role,resume){
   if(matchMedia('(pointer:coarse)').matches){
     document.getElementById('padL').style.display='block';
     document.getElementById('btns').style.display='flex';
+  }
+  if(game.mode==='title')game.mode='play';
+}
+function startGame(role,resume){
+  preloadAssets();               // 兜底：任何路径进游戏都确保像素素材已在路上
+  ensureCtx();toggleBgm(true);
+  if(!resume){ game.playerRole=role; clearSave(); }
+  partner.role=partnerRole();
+  routeGo('/play');              // → showPlayScreen 把界面切过去
+  if(matchMedia('(pointer:coarse)').matches){
     const ph=document.getElementById('padHint');
     ph.style.display='flex';
     setTimeout(()=>toast('👈 屏幕左下角拖动 = 移动 · 右下 A 互动 / B 跳'),900);
@@ -340,14 +348,22 @@ if(!matchMedia('(prefers-reduced-motion:reduce)').matches){
     gateEl.appendChild(m); }
 }
 /* 离场淡出：先把目标页(标题/请帖)显示在入口之下, 再淡出入口露出它——
- * 全程目标页都是不透明的, 绝不会露出底层绿色画布 */
-function gateLeave(show){ show&&show(); gateEl.classList.add('fade');
-  setTimeout(()=>{ gateEl.style.display='none'; gateEl.classList.remove('fade'); },440); }
-/* 我是18岁 → 进入星露谷像素请帖(确保露出标题屏, 即使之前进过老登版被隐藏) */
-document.getElementById('gate18').onclick=()=>{ sfx&&sfx('blip'); document.body.classList.remove('lux-bg');
-  luxEl.style.display='none'; gateLeave(()=>{ document.getElementById('title').style.display='flex'; }); };
+ * 全程目标页都是不透明的, 绝不会露出底层绿色画布。
+ * 淡出还没走完就按了后退键的话, 别把刚回来的入口页又藏掉 —— 所以收尾时再确认一次路由位置 */
+function gateLeave(show){
+  show&&show();
+  /* 直开 #/lux、#/sdv 或按后退/前进键过来时, 入口页压根没露过面, 没什么可淡出的 —— 直接收起 */
+  if(!gateEl.style.display||gateEl.style.display==='none'){ gateEl.style.display='none'; return; }
+  gateEl.classList.add('fade');
+  setTimeout(()=>{ if(routePath()!=='/')gateEl.style.display='none'; gateEl.classList.remove('fade'); },440);
+}
+/* 两颗按钮只负责「去哪」，真正的显示切换交给路由(见文件末尾 routeInit)，
+ * 这样点按钮和按后退键走的是同一条路径，不会有两套显隐逻辑对不上 */
+document.getElementById('gate18').onclick=()=>{ sfx&&sfx('blip'); preloadAssets(); routeGo('/sdv'); };
+/* 鼠标悬停/手指按下就开始预热：等淡出动画那 440ms 已经在下素材了 */
+['pointerenter','pointerdown'].forEach(ev=>document.getElementById('gate18').addEventListener(ev,preloadAssets,{once:true,passive:true}));
 /* 我是老登 → 进入典雅请帖 */
-document.getElementById('gateOld').onclick=()=>{ sfx&&sfx('blip'); document.getElementById('title').style.display='none'; gateLeave(openLux); };
+document.getElementById('gateOld').onclick=()=>{ sfx&&sfx('blip'); routeGo('/lux'); };
 function openLux(){ buildLux(); luxEl.style.display='block'; luxEl.scrollTop=0; luxReveal(); luxFxStart(); }
 /* 暗夜流光：金色粒子星座背景(科技感, 低调) */
 let _luxFxRAF=null, _luxFxResize=null;
@@ -419,7 +435,7 @@ function buildLux(){
       <div class="lux-foot-date">${esc(c.dateText)}</div>
       <button class="lux-back" id="luxBack">← 返回入口</button></footer>`;
   const rb=document.getElementById('luxRsvp'); if(rb)rb.onclick=openRsvp;
-  const bk=document.getElementById('luxBack'); if(bk)bk.onclick=()=>{ luxFxStop(); luxEl.style.display='none'; gateEl.style.display='flex'; };
+  const bk=document.getElementById('luxBack'); if(bk)bk.onclick=()=>routeGo('/');
   /* 婚纱照(顶部主图 + 画廊)：点开看大图 */
   luxEl.querySelectorAll('[data-full]').forEach(f=>{ f.onclick=()=>luxLightbox(f.dataset.full); });
   /* 画廊图另加指针 3D 倾斜(互动感)；主图压顶不动，免得跟入场动画打架 */
@@ -440,9 +456,13 @@ function luxReveal(){
 }
 /* 老登版灯箱：与星露谷版同一套规则——全屏看、可放大到 200%、不许下载(lockMedia/attachZoom 见 invite.js) */
 function luxLightbox(src){ if(!src)return; const b=document.getElementById('luxBox');
-  document.getElementById('luxBoxImg').src=src; b.style.display='flex'; if(b._zoom)b._zoom.reset(); }
-function luxBoxHide(){ const b=document.getElementById('luxBox'); b.style.display='none';
-  document.getElementById('luxBoxImg').removeAttribute('src'); if(b._zoom)b._zoom.reset(); }
+  document.getElementById('luxBoxImg').src=src; b.style.display='flex'; if(b._zoom)b._zoom.reset();
+  routeOverlayOpen(()=>luxBoxHide(true)); }
+function luxBoxHide(fromBack){ const b=document.getElementById('luxBox');
+  if(b.style.display==='none'||!b.style.display)return;
+  b.style.display='none';
+  document.getElementById('luxBoxImg').removeAttribute('src'); if(b._zoom)b._zoom.reset();
+  if(!fromBack)routeOverlayClosed(); }
 {
   const lb=document.getElementById('luxBox');
   lockMedia(lb);
@@ -450,14 +470,51 @@ function luxBoxHide(){ const b=document.getElementById('luxBox'); b.style.displa
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&lb.style.display==='flex')luxBoxHide(); });
 }
 
+/* ============================================================
+ * 路由：四个顶层界面的显示切换全部收口在这里。
+ * 点按钮、按后退键、直接改地址栏，走的都是同一条路径 —— 不会出现两套显隐逻辑对不上。
+ * ============================================================ */
+/* 离开游戏时把 HUD/摇杆/浮层一并收走，免得盖在入口页或请帖上 */
+function hideGameChrome(){
+  ['hud','padL','btns','toolBar','padHint','fishHint','overlay','dialog'].forEach(id=>{
+    const e=document.getElementById(id); if(e)e.style.display='none'; });
+}
+function showGateScreen(){
+  if(typeof luxFxStop==='function')luxFxStop();
+  document.body.classList.add('lux-bg');
+  hideGameChrome();
+  luxEl.style.display='none';
+  document.getElementById('title').style.display='none';
+  gateEl.classList.remove('fade'); gateEl.style.display='flex';
+  game.mode='title';
+}
+function showTitleScreen(){
+  if(typeof luxFxStop==='function')luxFxStop();
+  document.body.classList.remove('lux-bg');
+  hideGameChrome();
+  luxEl.style.display='none';
+  gateLeave(()=>{ document.getElementById('title').style.display='flex'; });
+  game.mode='title';
+}
+function showLuxScreen(){
+  document.body.classList.add('lux-bg');
+  hideGameChrome();
+  document.getElementById('title').style.display='none';
+  gateLeave(openLux);
+  game.mode='title';
+}
+routeInit({ gate:showGateScreen, title:showTitleScreen, play:showPlayScreen, lux:showLuxScreen });
+
 /* 测试钩子 */
 const _q=QS;
-/* ?lux=1 直开老登版；再带 &big=1 摊开它的灯箱，&zoom=300 可验证 200% 上限(截图用) */
-if(_q.get('lux'))setTimeout(()=>{ gateEl.style.display='none'; document.getElementById('title').style.display='none'; openLux();
-  if(_q.get('big'))setTimeout(()=>{ luxLightbox(resolveImg(CONFIG.luxHero));
-    const b=document.getElementById('luxBox');
-    if(_q.get('zoom'))setTimeout(()=>b._zoom.zoom(+_q.get('zoom')/100,1),500);
-  },300); },200);
+/* 直达参数(截图/调试/深链)会跳过入口门直接进像素世界 → 立刻开始拉素材 */
+if(['auto','scene','q','at','show','dlg','hearts','gems','crop','donated','hen'].some(k=>_q.get(k)))preloadAssets();
+/* ?lux=1 直开老登版 —— 界面切换已由 routeInit 的老链接改写接管(→ #/lux)，这里只剩灯箱调试：
+ * &big=1 摊开它的灯箱，&zoom=300 可验证 200% 上限(截图用) */
+if(_q.get('lux')&&_q.get('big'))setTimeout(()=>{ luxLightbox(resolveImg(CONFIG.luxHero));
+  const b=document.getElementById('luxBox');
+  if(_q.get('zoom'))setTimeout(()=>b._zoom.zoom(+_q.get('zoom')/100,1),500);
+},500);
 if(_q.get('auto'))setTimeout(()=>startGame(_q.get('auto')==='bride'?'bride':'groom'),200);
 if(_q.get('at')){const[ax,ay]=_q.get('at').split(',').map(Number);setTimeout(()=>{player.x=ax*TILE;player.y=ay*TILE;updateCam();},350);}
 if(_q.get('scene'))setTimeout(()=>{game.scene=_q.get('scene');updateCam();},340);

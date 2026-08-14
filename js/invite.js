@@ -12,12 +12,18 @@ function showOverlay(html,onClose,btnText){
   overlayOnClose=onClose||null;
   overlayInner.innerHTML=html+`<div class="center ok"><button class="sdv-btn" id="ovOk">${btnText||'继续 ▶'}</button></div>`;
   overlay.style.display='flex';
-  document.getElementById('ovOk').onclick=()=>{
-    overlay.style.display='none';
-    game.mode='play';
-    const cb=overlayOnClose;overlayOnClose=null;
-    cb&&cb();
-  };
+  /* 手机返回键要能关掉它（见 router.js 的浮层栈）；点「继续 ▶」和按返回走的是同一个 closeOverlay */
+  routeOverlayOpen(()=>closeOverlay(true));
+  document.getElementById('ovOk').onclick=()=>closeOverlay(false);
+}
+/* fromBack=true 表示是返回键触发的，台阶已经被 popstate 消费掉了，不用再撤 */
+function closeOverlay(fromBack){
+  if(overlay.style.display==='none')return;
+  overlay.style.display='none';
+  game.mode='play';
+  if(!fromBack)routeOverlayClosed();
+  const cb=overlayOnClose;overlayOnClose=null;
+  cb&&cb();
 }
 /* 联系方式：手机→tel: / 邮箱→mailto:，留空的不显示(支持多人) */
 function contactsText(){
@@ -192,9 +198,11 @@ function attachZoom(box,im,close){
 const lightbox=document.getElementById('lightbox');
 const lightboxImg=document.getElementById('lightboxImg');
 function openLightbox(src){ if(!src||!lightbox)return;
-  lightboxImg.src=src; lightbox.classList.add('on'); if(lightbox._zoom)lightbox._zoom.reset(); }
-function closeLightbox(){ if(!lightbox)return;
-  lightbox.classList.remove('on'); lightboxImg.removeAttribute('src'); if(lightbox._zoom)lightbox._zoom.reset(); }
+  lightboxImg.src=src; lightbox.classList.add('on'); if(lightbox._zoom)lightbox._zoom.reset();
+  routeOverlayOpen(()=>closeLightbox(true)); }
+function closeLightbox(fromBack){ if(!lightbox||!lightbox.classList.contains('on'))return;
+  lightbox.classList.remove('on'); lightboxImg.removeAttribute('src'); if(lightbox._zoom)lightbox._zoom.reset();
+  if(!fromBack)routeOverlayClosed(); }
 if(lightbox){
   lockMedia(lightbox);
   attachZoom(lightbox,lightboxImg,closeLightbox);     // 点击关闭/缩放都由它接管
@@ -287,11 +295,15 @@ function showRsvpFrame(url){
       <div class="rsvp-fallback">表单没显示？<a id="rsvpOpenNew" target="_blank" rel="noopener">点此在新窗口打开 ▶</a></div>
     </div>`;
     document.body.appendChild(m);
-    m.querySelector('#rsvpClose').onclick=()=>{ m.style.display='none'; m.querySelector('#rsvpIframe').src='about:blank'; };
+    m._hide=fromBack=>{ if(m.style.display==='none')return;
+      m.style.display='none'; m.querySelector('#rsvpIframe').src='about:blank';
+      if(!fromBack)routeOverlayClosed(); };
+    m.querySelector('#rsvpClose').onclick=()=>m._hide(false);
   }
   m.querySelector('#rsvpIframe').src=url;
   m.querySelector('#rsvpOpenNew').href=url;
   m.style.display='flex';
+  routeOverlayOpen(()=>m._hide(true));   // 返回键也能关掉回执表单
 }
 const target=new Date(CONFIG.weddingISO).getTime();
 const pad2=n=>String(n).padStart(2,'0');
@@ -380,7 +392,7 @@ function maybeFrag(prob,after){
   sfx('quest');
   showOverlay(
     `<h3>💫 收获了一片记忆碎片</h3>
-     ${f.img?`<img class="exhibit-img" src="${esc(resolveImg(f.img))}" onerror="this.style.display='none'">`:''}
+     ${f.img?`<img class="exhibit-img" decoding="async" src="${esc(resolveImg(f.img))}" onerror="this.style.display='none'">`:''}
      <div class="frag-card">${esc(f.text)}</div>
      <div class="center" style="margin-top:8px;font-size:12px;color:#8a5a2b">已收集 ${game.fragGot.length} / ${RT.frags.length} · 在 📜 里可回看</div>`,
     after,'收下 ♥');

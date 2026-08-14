@@ -10,7 +10,7 @@ const CORE = [
   './', './index.html', './css/style.css',
   './js/config.js', './js/assets.js', './js/scene.js', './js/core.js', './js/play.js',
   './js/render.js', './js/interior.js', './js/hud.js', './js/invite.js', './js/interact.js',
-  './js/scenefx.js', './js/boot.js', './manifest.json',
+  './js/scenefx.js', './js/router.js', './js/boot.js', './manifest.json',
   './assets/fonts/serif-sc.woff2',          // 入口页首屏字体，跟 CSS 一起预缓存
 ];
 self.addEventListener('install', e => {
