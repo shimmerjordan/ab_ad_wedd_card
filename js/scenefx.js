@@ -9,7 +9,7 @@ function showExhibit(i){
   sfx('choice');
   showOverlay(
     `<h3>🖼 ${esc(ex.title||('展品 '+(i+1)))}</h3>
-     ${ex.img?`<img class="exhibit-img" src="${esc(resolveImg(ex.img))}" onerror="this.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片加载失败：assets/imgs/ 下没找到）</div>'">`:''}
+     ${ex.img?`<img class="exhibit-img" decoding="async" src="${esc(resolveImg(ex.img))}" onerror="this.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片加载失败：assets/imgs/ 下没找到）</div>'">`:''}
      <div class="frag-card">${esc(ex.text||'')}</div>`,
     ()=>{ if(game.quest===4)museumQuestCheck(); },'看完了 ▶');
 }
@@ -20,7 +20,7 @@ function showHallPhoto(i){
   /* 展板里是缩略图，点一下用灯箱看全图(不可下载/不可缩放)；加载失败时把整个可点区换成提示，免得点开一片空白 */
   showOverlay(
     `<h3>💍 ${esc(p.title||('婚纱照 '+(i+1)))}</h3>
-     ${src?`<span class="zoomable exhibit-zoom" data-big="${src}"><img class="exhibit-img" src="${src}" alt="${esc(p.title||'婚纱照')}" draggable="false" onerror="this.parentNode.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片未找到：把婚纱照放到 assets/imgs/ 并在 DEBUG 里填文件名）</div>'"></span>
+     ${src?`<span class="zoomable exhibit-zoom" data-big="${src}"><img class="exhibit-img" decoding="async" src="${src}" alt="${esc(p.title||'婚纱照')}" draggable="false" onerror="this.parentNode.outerHTML='<div style=\\'font-size:12px;color:#8a5a2b\\'>（图片未找到：把婚纱照放到 assets/imgs/ 并在 DEBUG 里填文件名）</div>'"></span>
        <div class="zoom-hint">🔍 点图片看大图</div>`
             :`<div style="font-size:13px;color:#8a5a2b">把你们的婚纱照放进 <b>assets/imgs/</b>，在 ⚙ DEBUG「婚纱照展板」里填文件名即可显示在这里。</div>`}
      <div class="frag-card">${esc(p.text||'')}</div>`,
@@ -129,13 +129,15 @@ function finalSummary(opt){
     wishWallHTML()+
     rsvpHTML()+
     scoreCardHTML()+
-    `<div class="body center" style="text-align:center;margin-top:14px;font-size:13px;color:#8a5a2b">
+    `<div class="body center poster-end">
       你的誓言：「${CONFIG.vowChoices[game.vowIdx][0].replace(/[「」]/g,'')}」
       ${achHTML()}
       <br>💫 记忆碎片 ${game.fragGot.length}/${RT.frags.length}
     </div>`+
-    `<div class="poster-foot"><b>${esc(CONFIG.groom)}</b> <span class="px-heart"></span> <b>${esc(CONFIG.bride)}</b> · ${esc(CONFIG.dateText)}
-      <br><button class="sdv-btn ghost" style="color:#8a5a2b;border-color:#8a5a2b;margin-top:12px" id="finGate">↩ 返回入口（重新选择请帖）</button></div>`+
+    `<div class="poster-foot">
+      <div class="pf-names"><b>${esc(CONFIG.groom)}</b> <span class="px-heart"></span> <b>${esc(CONFIG.bride)}</b></div>
+      <div class="pf-date">${esc(CONFIG.dateText)}</div>
+      <button class="sdv-btn ghost" style="color:#8a5a2b;border-color:#8a5a2b;margin-top:12px" id="finGate">↩ 返回入口（重新选择请帖）</button></div>`+
     `</div>`+back,
     opt.onClose||null, opt.btnText||'回到游戏 ▶');
   drawPosterArt();
@@ -169,7 +171,7 @@ document.getElementById('bookBtn').addEventListener('click',()=>{
   document.getElementById('revealAll').onclick=()=>{game.vowIdx=game.vowIdx||0;finalSummary();};
   overlayInner.querySelectorAll('[data-frag]').forEach(el=>el.onclick=()=>{
     const f=RT.frags[+el.dataset.frag];
-    showOverlay(`<h3>💫 记忆碎片</h3>${f.img?`<img class="exhibit-img" src="${esc(resolveImg(f.img))}">`:''}<div class="frag-card">${esc(f.text)}</div>`,null,'返回 ▶');
+    showOverlay(`<h3>💫 记忆碎片</h3>${f.img?`<img class="exhibit-img" decoding="async" src="${esc(resolveImg(f.img))}">`:''}<div class="frag-card">${esc(f.text)}</div>`,null,'返回 ▶');
   });
 });
 

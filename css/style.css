@@ -1,15 +1,13 @@
-/* —— 中文像素字体·自托管（Fusion Pixel 12px Proportional, © TakWolf, OFL）——
- *  修复此前 jsDelivr @fontsource 无中文子集导致中文回退系统字体的问题；国内可靠、离线可用。
- *  latin 子集覆盖 ASCII/数字/符号，zh_hans 子集兜底其余(中文及标点)。 */
-@font-face{
-  font-family:'Fusion Pixel 12px Proportional SC'; font-style:normal; font-weight:400; font-display:swap;
-  src:url(../assets/fonts/fusion-pixel-latin.woff2) format('woff2');
-  unicode-range:U+0000-00FF,U+0100-024F,U+2000-206F,U+2190-21FF,U+2460-24FF;
-}
-@font-face{
-  font-family:'Fusion Pixel 12px Proportional SC'; font-style:normal; font-weight:400; font-display:swap;
-  src:url(../assets/fonts/fusion-pixel-sc.woff2) format('woff2');
-}
+/* —— 字体·全部自托管+真子集化（国内直连可靠, 离线可用, 不依赖任何 CDN）——
+ *  1) 像素正文 Fusion Pixel 12px Proportional (© TakWolf, OFL)
+ *  2) 入口页/老登版衬线 Noto Serif CJK SC (© Google, OFL) —— 原先走 fonts.googleapis.com,
+ *     国内被墙, 而且是 <head> 里的阻塞样式表, 首屏要一直白屏等它超时, 现已彻底移除。
+ *  三个 woff2 都是 `python3 tools/build-fonts.py` 按仓库真实用字裁出来的(全量 1.39MB → 380KB)；
+ *  改了 config.js 文案后重跑一次即可。子集里没有的生僻字会逐字回退系统字体, 不会出方块。
+ *
+ *  ★ @font-face 三条声明不在这里, 在 index.html 的 <head> 里由一小段 http(s) 判断注入 ——
+ *    file:// 直开时页面 origin 是 null, 字体请求一律走 CORS 被浏览器拒绝, 声明留在这里
+ *    只会让控制台刷红字且拿不到字体。注入没有额外请求, 首屏发现时机与写在这里一致。 */
 :root{
   --wood-dark:#5b2c0e; --wood:#8c4615; --wood-light:#b3661f;
   --orange:#e8943a; --cream:#ffe6b0; --cream-deep:#f6d291;
@@ -63,8 +61,11 @@ canvas{image-rendering:pixelated;display:block}
 @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 
 /* ============ 标题屏 ============ */
+/* 默认隐藏：入口门在它上面(z-index 70)，以前它一直垫在底下渲染 ——
+ * 40 颗星星白跑动画，还把 190KB 中文像素字体在入口页就拉下来了。
+ * 进星露谷的各个入口(gate18 / 从请帖返回)都会显式 style.display='flex'，内联样式优先级更高。 */
 #title{
-  position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+  position:fixed;inset:0;z-index:50;display:none;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;padding:20px;
   background:linear-gradient(180deg,var(--night1),var(--night2) 60%,var(--night3));
 }
@@ -83,7 +84,15 @@ canvas{image-rendering:pixelated;display:block}
   padding:14px 18px;cursor:pointer;transition:transform .12s, border-color .12s, background .12s;
 }
 .char-card:active{transform:scale(.94)}
-.char-card canvas{width:64px;height:128px;display:block;margin:0 auto}
+/* 角色卡里放的是 config 里那两张头像照片，沿用请帖相框的木框+白衬纸+金内圈，
+   免得白底头像直接浮在夜色背景上 */
+.char-card .cc-frame{display:inline-block;position:relative;padding:6px;border-radius:5px;background:#fff;
+  border:3px solid #5b2c0e;box-shadow:0 4px 0 rgba(0,0,0,.32), inset 0 2px 0 rgba(255,255,255,.5)}
+.char-card .cc-frame::after{content:"";position:absolute;inset:6px;border:1px solid rgba(224,180,74,.9);
+  border-radius:2px;pointer-events:none}
+.char-card canvas{width:88px;height:100px;display:block;margin:0 auto;border-radius:2px}
+.char-card canvas.photo{image-rendering:auto}   /* 真实照片交给浏览器平滑缩放，不走像素化 */
+.char-card:hover .cc-frame{border-color:#8c4a16;box-shadow:0 4px 0 rgba(0,0,0,.32), 0 0 14px rgba(255,215,137,.45)}
 .char-card .nm{color:#ffe9a8;font-size:15px;margin-top:8px;letter-spacing:2px}
 .char-card:hover{border-color:#ffd789;background:rgba(255,240,210,.16)}
 #title .tip{color:#9b87c4;font-size:11px;margin-top:16px;line-height:1.9;position:relative}
@@ -454,10 +463,18 @@ canvas{image-rendering:pixelated;display:block}
 .rsvp-fallback{text-align:center;font-size:12px;color:#e8d6a8}
 .rsvp-fallback a{color:#ffe07a;text-decoration:underline;cursor:pointer}
 
-/* 收尾·简洁落款 */
-.poster-foot{margin-top:16px;font-size:13px;letter-spacing:2px;color:#a3572b;text-align:center;
-  border-top:2px dotted rgba(140,70,21,.4);padding-top:12px}
+/* 收尾·简洁落款：姓名❤姓名 一行、日期一行，各自呼吸。
+ * 海报底衬是 panorama 全景图(fixed)，滚到最后正好是绿色山峦 —— 结尾这两块必须垫张纸，
+ * 否则红字/褐字全糊在绿山上(实测对比度不足 3:1)。垫纸后 ≥4.6:1。 */
+.poster-end{margin-top:14px;padding:14px 14px 4px;text-align:center;font-size:13px;color:#8a5a2b;
+  background:rgba(255,240,205,.94);border-radius:6px 6px 0 0}
+.poster-foot{margin-top:0;font-size:13px;letter-spacing:2px;color:#a3572b;text-align:center;
+  background:rgba(255,240,205,.94);border-radius:0 0 6px 6px;
+  border-top:2px dotted rgba(140,70,21,.4);padding:14px 14px 16px}
 .poster-foot b{color:var(--red);letter-spacing:1px}
+.poster-foot .pf-names{font-size:16px;letter-spacing:3px;line-height:1.5}
+.poster-foot .pf-names .px-heart{margin:0 6px}
+.poster-foot .pf-date{margin-top:7px;font-size:12px;letter-spacing:4px;color:#a3572b}
 
 /* ============ 交易 / 钓鱼 ============ */
 .trade-row{display:flex;align-items:center;gap:10px;padding:9px 2px;text-align:left;font-size:14px}
@@ -555,7 +572,7 @@ body.debug #dbgExit{display:inline-block}
 :root{ --lux-bg:#f4efe6; --lux-bg2:#ece4d6; --lux-ink:#2e2a23; --lux-soft:#6b6253; --lux-gold:#b08d57; --lux-gold2:#caa86a; --lux-line:rgba(176,141,87,.35); }
 body.lux-bg{ background:var(--lux-bg); }   /* 入口/典雅页时给 body 垫米色底, 杜绝任何视口缝隙露出深色 */
 #gate,#lux{ position:fixed; inset:0; display:none; color:var(--lux-ink);
-  font-family:"Noto Serif SC","Source Han Serif SC","Songti SC",STSong,"SimSun",serif; }
+  font-family:"Wedding Serif SC","Noto Serif SC","Source Han Serif SC","Songti SC",STSong,"SimSun",serif; }
 #gate{ z-index:70; display:flex; align-items:center; justify-content:center; padding:24px; transition:opacity .45s ease;
   background:radial-gradient(120% 90% at 50% 16%, #faf6ee 0%, var(--lux-bg) 55%, var(--lux-bg2) 100%); }
 #gate.fade{ opacity:0; }
@@ -581,8 +598,33 @@ body.lux-bg{ background:var(--lux-bg); }   /* 入口/典雅页时给 body 垫米
   background:#fffdf8; border:1px solid var(--lux-line); border-radius:2px; color:var(--lux-ink);
   font-family:inherit; text-align:center; transition:.18s; }
 .gate-btn:hover{ border-color:var(--lux-gold); box-shadow:0 8px 26px rgba(176,141,87,.22); transform:translateY(-1px); }
-.gate-btn .gb-main{ display:block; font-size:19px; letter-spacing:2px; }
-.gate-btn .gb-sub{ display:block; font-size:11px; color:var(--lux-soft); letter-spacing:1px; margin-top:6px; }
+.gate-btn .gb-main{ display:block; font-size:19px; letter-spacing:2px; position:relative; z-index:1; }
+.gate-btn .gb-sub{ display:block; font-size:11px; color:var(--lux-soft); letter-spacing:1px; margin-top:6px; position:relative; z-index:1; }
+/* 小孩桌：像素花瓣飘落 —— 与老登版的金色流光对仗, 一边是春日花田, 一边是暗夜流光。
+ * 花瓣只落在左右两侧, 中间让给文字(靠 --x 布点, 不用遮罩, 免得半空消失) */
+.gate-btn.sdv{ position:relative; overflow:hidden; background:linear-gradient(180deg,#fffdf8 0%,#fdf5e6 100%); }
+.gate-btn.sdv:hover{ border-color:#cf9a62; box-shadow:0 10px 30px rgba(198,140,80,.22); }
+.gate-btn.sdv .gb-petals{ position:absolute; inset:0; overflow:hidden; pointer-events:none; opacity:.9; transition:opacity .25s ease; }
+.gate-btn.sdv:hover .gb-petals{ opacity:1; }
+.gate-btn.sdv .gb-petals i{
+  position:absolute; left:var(--x); top:0; width:var(--s); height:var(--s); image-rendering:pixelated;
+  background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 7" shape-rendering="crispEdges"><path fill="%23eda0be" d="M2 0h4v1H2zM1 1h6v1H1zM0 2h8v2H0zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z"/><path fill="%23ffd9e6" d="M2 1h2v1H2zM1 2h3v1H1z"/></svg>') no-repeat center/contain;
+  animation:gbPetal 7.6s var(--d) linear infinite;
+}
+/* 两片换成暖橙(星露谷春天的野花不止一种颜色) */
+.gate-btn.sdv .gb-petals i:nth-child(3){ filter:hue-rotate(-26deg) saturate(1.15); animation-duration:9.2s; }
+.gate-btn.sdv .gb-petals i:nth-child(5){ filter:hue-rotate(-14deg); animation-duration:8.4s; }
+@keyframes gbPetal{
+  0%   { transform:translate3d(0,-14px,0) rotate(0deg); opacity:0 }
+  14%  { opacity:1 }
+  50%  { transform:translate3d(calc(var(--r) * .55),46px,0) rotate(168deg) }
+  86%  { opacity:1 }
+  100% { transform:translate3d(var(--r),104px,0) rotate(322deg); opacity:0 }
+}
+/* 减少动态效果：不飘了, 改成静静躺在按钮里的几片落花 */
+@media (prefers-reduced-motion:reduce){
+  .gate-btn.sdv .gb-petals i{ animation:none; top:var(--y); opacity:.5; }
+}
 .gate-btn.alt{ position:relative; overflow:hidden; background:linear-gradient(180deg,#2c2722,#211d18); color:#f0e7d6; border-color:#3a332b; }
 .gate-btn.alt .gb-sub{ color:#bfa987; }
 .gate-btn.alt::after{ content:""; position:absolute; top:0; left:-60%; width:38%; height:100%; background:linear-gradient(100deg,transparent,rgba(243,220,160,.32),transparent); transform:skewX(-20deg); animation:sweep 3.6s ease-in-out infinite; }

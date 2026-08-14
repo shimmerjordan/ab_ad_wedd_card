@@ -154,12 +154,30 @@ const PAINT_KEYS=['paintJelly','paintGreen','paintCity','paintBoat','paintBeach'
 const CAT_F={ walkRow:1, sleepY:224, sitY:0 };
 /* 素材版本号：更新素材后 +1，强制宾客浏览器绕过旧缓存（file:// 直开不加参数） */
 const ASSET_VER='3';
-for(const k in ASSET_MANIFEST){
-  const im=new Image();
-  im.onload=()=>{im._ok=true;};
-  im.onerror=()=>{im._ok=false;};
-  im.src=ASSET_MANIFEST[k]+(location.protocol==='file:'?'':'?v='+ASSET_VER);
-  IMGS[k]=im;
+/* 这 150 张像素素材共 ~2MB，只有星露谷版用得到。
+ * 以前在脚本解析时就整批发出去，正好卡在入口页最需要带宽的时候(老登版宾客更是白下)。
+ * 改成进像素世界前一刻才拉：入口门点「小孩桌」/ startGame / 各类直达参数都会触发(见 boot.js)。
+ * 没加载完就用到时 img() 返回 null，渲染层本来就会回退到程序化像素画，画面不会缺块。 */
+let _assetsStarted=false;
+function preloadAssets(){
+  if(_assetsStarted)return; _assetsStarted=true;
+  /* 中文像素字体同理：只有像素世界用得到，跟素材一起在「进门前一刻」开拉，
+   * 老登版宾客一个字节都不下（入口页/典雅请帖用的是自托管衬线子集）。
+   * file:// 直开时 origin 是 null，字体请求必被 CORS 拒绝，索性别发（与 index.html 里的判断一致）。 */
+  if(location.protocol!=='file:'&&typeof document!=='undefined'&&document.head&&document.createElement){
+    const l=document.createElement('link');
+    l.rel='preload'; l.as='font'; l.type='font/woff2'; l.crossOrigin='anonymous';
+    l.href='assets/fonts/fusion-pixel-sc.woff2';
+    document.head.appendChild(l);
+  }
+  const q=location.protocol==='file:'?'':'?v='+ASSET_VER;
+  for(const k in ASSET_MANIFEST){
+    const im=new Image();
+    im.onload=()=>{im._ok=true;};
+    im.onerror=()=>{im._ok=false;};
+    im.src=ASSET_MANIFEST[k]+q;
+    IMGS[k]=im;
+  }
 }
 function img(k){ const im=IMGS[k]; return im&&im._ok?im:null; }
 
@@ -180,13 +198,9 @@ function portraitInto(canvas, who){
   c.imageSmoothingEnabled=false;
   c.clearRect(0,0,canvas.width,canvas.height);
   if(who==='groom'||who==='bride'){
-    /* 自定义头像(config.groomAvatar/brideAvatar：assets/imgs 文件名或图床URL)优先 */
-    const custom=who==='groom'?CONFIG.groomAvatar:CONFIG.brideAvatar;
-    if(custom){
-      const cim=loadPhoto(resolveImg(custom));
-      if(cim._ok){ coverDraw(c,cim,0,0,canvas.width,canvas.height); return; }
-      cim.addEventListener('load',()=>portraitInto(canvas,who),{once:true});   // 加载完成后重绘
-    }
+    /* 自定义头像(config.groomAvatar/brideAvatar：assets/imgs 文件名或图床URL)优先；
+     * 照片还在路上就留白等它，不先闪一张默认像素头像 */
+    if(avatarPhotoInto(canvas,who,()=>portraitInto(canvas,who))) return;
     const im=img(who==='groom'?'portGroom':'portBride');
     if(im){ c.drawImage(im,0,0,64,64,0,0,64,64); return; }
     c.save(); c.translate(4,0); c.scale(4,4);
@@ -210,12 +224,18 @@ function portraitInto(canvas, who){
 }
 /* 标题屏角色卡（16x32 画布） */
 function titleCardInto(canvas, role){
-  const c=canvas.getContext('2d');
+  const c=canvas.getContext('2d'), W=canvas.width, H=canvas.height;
+  c.clearRect(0,0,W,H);
+  /* 用 config 里的 groomAvatar/brideAvatar（与请帖相框同一份照片）；照片没到就留白 */
+  if(avatarPhotoInto(canvas,role,()=>titleCardInto(canvas,role))) return;
+  /* 只有没配照片 / 照片加载失败才走这里：星露谷行走图 → 程序化像素画，等比放大居中 */
+  if(canvas.classList)canvas.classList.remove('photo');
   c.imageSmoothingEnabled=false;
-  c.clearRect(0,0,canvas.width,canvas.height);
   const im=charImgFor(role);
-  if(im){ c.drawImage(im,0,0,16,32,0,0,16,32); return; }
-  blit(c, SPRITES[role].down.A, 2, 16, false);
+  if(im){ const s=Math.max(1,Math.floor(H/32)); c.drawImage(im,0,0,16,32,(W-16*s)/2|0,(H-32*s)/2|0,16*s,32*s); return; }
+  const s=Math.max(1,Math.floor(H/16));
+  c.save(); c.translate((W-12*s)/2|0,(H-16*s)/2|0); c.scale(s,s);
+  blit(c, SPRITES[role].down.A, 0, 0, false); c.restore();
 }
 
 /* 个人照片解析：纯文件名 → assets/imgs/<名>；URL/dataURL 原样 */
@@ -228,8 +248,28 @@ function resolveImg(v){
 const _photoCache={};
 function loadPhoto(src){
   let im=_photoCache[src];
-  if(!im){ im=new Image(); im._ok=false; im.onload=()=>im._ok=true; im.onerror=()=>im._ok=false; im.src=src; _photoCache[src]=im; }
+  if(!im){ im=new Image(); im._ok=false; im._failed=false;
+    im.onload=()=>im._ok=true; im.onerror=()=>{im._ok=false;im._failed=true;};
+    im.src=src; _photoCache[src]=im; }
   return im;
+}
+/* 头像统一入口：配了照片就只认照片 —— 还在路上时留白等它，绝不先闪一张默认像素头像。
+ * 返回 true = 这一帧已经处理完(画好了照片, 或正在等), 调用方不要再画回退图。
+ * 只有照片真的加载失败(文件名写错/文件没了)才交还给回退图，免得留一个空框看不出问题。 */
+function avatarPhotoInto(canvas, who, redraw){
+  const custom=who==='groom'?CONFIG.groomAvatar:(who==='bride'?CONFIG.brideAvatar:'');
+  if(!custom) return false;
+  const c=canvas.getContext('2d'), im=loadPhoto(resolveImg(custom));
+  if(im._ok){ if(canvas.classList)canvas.classList.add('photo'); coverDraw(c,im,0,0,canvas.width,canvas.height); return true; }
+  if(im._failed) return false;
+  if(!im._waiters)im._waiters=new Set();
+  if(!im._waiters.has(canvas)){ im._waiters.add(canvas);
+    const again=()=>redraw();
+    im.addEventListener('load',again,{once:true});
+    im.addEventListener('error',again,{once:true});
+  }
+  if(canvas.classList)canvas.classList.add('photo');   // 留白等照片，别画默认头像
+  return true;
 }
 /* 等比裁剪铺满目标矩形(cover) */
 function coverDraw(c,im,x,y,w,h){

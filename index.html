@@ -5,14 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>阿丹阿炳婚礼请柬</title>
 <meta name="theme-color" content="#8c4615">
-<link rel="manifest" href="manifest.json">
+<!-- 显式声明图标，否则浏览器每次都去探 /favicon.ico 吃一个 404 + 一次往返 -->
+<link rel="icon" href="assets/elem/svLogo.png">
 <link rel="apple-touch-icon" href="assets/elem/svLogo.png">
-<!-- 中文像素字体：已自托管到 assets/fonts/（@font-face 见 css/style.css 顶部），国内可靠·离线可用，不再依赖 CDN -->
-<link rel="preload" as="font" type="font/woff2" href="assets/fonts/fusion-pixel-sc.woff2" crossorigin>
-<!-- 优雅入口/请帖(#gate,#lux)指定 Noto Serif SC；多数设备未本地安装，需显式加载才能呈现设计中的衬线质感 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600&display=swap">
+<!-- 首屏关键样式内联：样式表还在路上时也能先画出米色入口页，不会闪白/闪出未样式化的控件 -->
+<style>
+html,body{height:100%;margin:0;overflow:hidden;background:#f4efe6}
+/* ⚠ 下面这行只能放「style.css 里本来就 display:none」的元素——这里只是把隐藏提前一步。
+   #game 千万不能加进来：它在 style.css 里没有 display 声明，加了就等于永久隐藏游戏画布。
+   tests/perf.test.js 会守住这条线。 */
+#title,#hud,#padL,#padHint,#toolBar,#btns,#dialog,#overlay,#fishHint,#lightbox,#lux,#luxBox,#edgeArrow{display:none}
+#game{position:fixed;inset:0;width:100%;height:100%;background:#2a6b30}
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:70;
+  color:#2e2a23;font-family:"Wedding Serif SC","Songti SC",STSong,"SimSun",serif;text-align:center}
+</style>
+<!-- 字体全部自托管+按用字裁剪（tools/build-fonts.py；原先 fonts.googleapis.com 国内被墙，
+     且是 <head> 阻塞样式表，首屏要干等它超时 → 白屏元凶，已彻底移除）。
+
+     以下三样只在 http(s) 下挂载：file:// 直开时页面 origin 是 null，
+     字体 / manifest 一律走 CORS，浏览器必然拒绝（不是代码问题，是浏览器安全模型）。
+     挂上去只会刷一屏红字，还换不来任何效果；不挂则静默回退系统衬线/等宽字体，控制台干净。
+     想要和线上完全一致的本地预览（字体+PWA+wedding-config.json 全部生效）：python3 tools/serve.py -->
+<script>
+if(location.protocol!=='file:')document.write(
+  '<link rel="manifest" href="manifest.json">'+
+  '<link rel="preload" as="font" type="font/woff2" href="assets/fonts/serif-sc.woff2" crossorigin>'+
+  '<style>'+
+  '@font-face{font-family:"Fusion Pixel 12px Proportional SC";font-style:normal;font-weight:400;font-display:swap;'+
+    'src:url(assets/fonts/fusion-pixel-latin.woff2) format("woff2");'+
+    'unicode-range:U+0000-00FF,U+0100-024F,U+2000-206F,U+2190-21FF,U+2460-24FF}'+
+  '@font-face{font-family:"Fusion Pixel 12px Proportional SC";font-style:normal;font-weight:400;font-display:swap;'+
+    'src:url(assets/fonts/fusion-pixel-sc.woff2) format("woff2")}'+
+  '@font-face{font-family:"Wedding Serif SC";font-style:normal;font-weight:400 700;font-display:swap;'+
+    'src:url(assets/fonts/serif-sc.woff2) format("woff2")}'+
+  '<\/style>');
+</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -27,8 +54,9 @@
   <div id="guestHello"></div>
   <div class="pick">▼ 选择你要扮演的角色 ▼</div>
   <div class="char-row">
-    <div class="char-card" id="pickGroom"><canvas width="16" height="32"></canvas><div class="nm" id="pickGroomNm">新郎</div></div>
-    <div class="char-card" id="pickBride"><canvas width="16" height="32"></canvas><div class="nm" id="pickBrideNm">新娘</div></div>
+    <!-- 画布按 CSS 尺寸的 2 倍开(88×100 → 176×200)，高分屏也清楚；比例贴合头像原图 684×767，几乎不裁 -->
+    <div class="char-card" id="pickGroom"><span class="cc-frame"><canvas width="176" height="200"></canvas></span><div class="nm" id="pickGroomNm">新郎</div></div>
+    <div class="char-card" id="pickBride"><span class="cc-frame"><canvas width="176" height="200"></canvas></span><div class="nm" id="pickBrideNm">新娘</div></div>
   </div>
   <button class="sdv-btn ghost" id="skipBtn">不想玩游戏？直接查看请帖 »</button>
   <div class="tip">手机：左侧摇杆移动 · A 互动 · B 跳跃<br>电脑：方向键/WASD 移动 · 空格/E 互动 · X 跳跃</div>
@@ -41,7 +69,20 @@
     <div class="gate-names" id="gateNames">新郎 &amp; 新娘</div>
     <div class="gate-rule"><span>❦</span></div>
     <div class="gate-q">请选择你的入场方式</div>
-    <button class="gate-btn" id="gate18">
+    <!-- 小孩桌：像素花瓣飘落（对位老登版的流光扫光，两颗按钮各有各的脾气）。
+         花瓣是纯 CSS + 内联 SVG，不多一个请求；--x 起点 / --d 延迟 / --s 大小 / --r 飘移错开节奏，
+         --y 只在「减少动态效果」偏好下用作静止落点 -->
+    <button class="gate-btn sdv" id="gate18">
+      <span class="gb-petals" aria-hidden="true">
+        <i style="--x:4%;--d:0s;--s:13px;--r:14px;--y:16%"></i>
+        <i style="--x:11%;--d:-4.4s;--s:9px;--r:-16px;--y:64%"></i>
+        <i style="--x:18%;--d:-2.1s;--s:11px;--r:-22px;--y:34%"></i>
+        <i style="--x:25%;--d:-6.2s;--s:8px;--r:-18px;--y:78%"></i>
+        <i style="--x:74%;--d:-3.2s;--s:8px;--r:20px;--y:22%"></i>
+        <i style="--x:81%;--d:-5.5s;--s:11px;--r:24px;--y:70%"></i>
+        <i style="--x:88%;--d:-1.1s;--s:9px;--r:16px;--y:44%"></i>
+        <i style="--x:95%;--d:-7.3s;--s:13px;--r:-12px;--y:12%"></i>
+      </span>
       <span class="gb-main">我坐 小孩桌</span>
       <span class="gb-sub">星露谷物语风味请帖</span>
     </button>
@@ -110,19 +151,20 @@
 <!-- 点击头像/合照查看大图 -->
 <div id="lightbox"><div class="lb-inner"><img id="lightboxImg" alt="大图"><button id="lightboxClose" type="button" aria-label="关闭">✕</button></div></div>
 
-<!-- 模块按依赖顺序加载（经典脚本共享全局作用域，零构建、可 file:// 直开） -->
-<script src="js/config.js"></script>
-<script src="js/assets.js"></script>
-<script src="js/scene.js"></script>
-<script src="js/core.js"></script>
-<script src="js/play.js"></script>
-<script src="js/render.js"></script>
-<script src="js/interior.js"></script>
-<script src="js/hud.js"></script>
-<script src="js/invite.js"></script>
-<script src="js/interact.js"></script>
-<script src="js/scenefx.js"></script>
-<script src="js/boot.js"></script>
+<!-- 模块按依赖顺序加载（经典脚本共享全局作用域，零构建、可 file:// 直开）。
+     defer：并行下载、不阻塞解析、仍严格按书写顺序执行 —— 入口页先画出来，脚本随后到。 -->
+<script defer src="js/config.js"></script>
+<script defer src="js/assets.js"></script>
+<script defer src="js/scene.js"></script>
+<script defer src="js/core.js"></script>
+<script defer src="js/play.js"></script>
+<script defer src="js/render.js"></script>
+<script defer src="js/interior.js"></script>
+<script defer src="js/hud.js"></script>
+<script defer src="js/invite.js"></script>
+<script defer src="js/interact.js"></script>
+<script defer src="js/scenefx.js"></script>
+<script defer src="js/boot.js"></script>
 <!-- PWA：离线可用（file:// 直开时跳过） -->
 <script>
 if('serviceWorker' in navigator && location.protocol!=='file:')

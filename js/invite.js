@@ -45,7 +45,7 @@ function avatarFrame(who,cls){
 function coupleHTML(){
   const cp=CONFIG.couplePhoto?resolveImg(CONFIG.couplePhoto):'';
   return `<h3>♥ 新人介绍 ♥</h3>`+
-  (cp?`<div class="couple-photo"><span class="zoomable" data-big="${esc(cp)}"><img src="${esc(cp)}" alt="合照"></span></div>`:'')+
+  (cp?`<div class="couple-photo"><span class="zoomable" data-big="${esc(cp)}"><img src="${esc(cp)}" alt="合照" loading="lazy" decoding="async"></span></div>`:'')+
   `<div class="zoom-hint">🔍 点头像或合照可看大图</div>
   <div class="couple-row">
     <div>${avatarFrame('groom','pcg')}
@@ -218,7 +218,7 @@ function posterHeroHTML(){
   <div class="hero-photo">
     <div class="hero-frame${arch?' zoomable':''}"${arch?` data-big="${arch}"`:''}>
       ${arch
-        ? `<img src="${arch}" alt="主婚纱照" draggable="false">`
+        ? `<img src="${arch}" alt="主婚纱照" draggable="false" decoding="async" fetchpriority="high">`
         : `<div class="hero-ph"><span class="o">❀</span><span class="t">主婚纱照</span></div>`}
     </div>
     <img class="hero-garland" src="assets/elem/garland.png" alt="">

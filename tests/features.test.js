@@ -176,7 +176,9 @@ test('婚纱照可点开看大图：archPhoto / luxHero / hallPhotos', () => {
   const h = ov.match(/class="zoomable exhibit-zoom" data-big="([^"]+)"/);
   assert.ok(h, '展板大图应挂 data-big');
   assert.strictEqual(h[1], 'assets/imgs/' + g.RT.hallPhotos[first].img);
-  assert.ok(ov.includes(`<img class="exhibit-img" src="${h[1]}"`), '展板缩略图与大图同源');
+  /* 只认「同一个 src」这件事本身，不锁属性书写顺序(decoding/loading 等提示随时可能加) */
+  const thumb = ov.match(/<img class="exhibit-img"[^>]*\ssrc="([^"]+)"/);
+  assert.ok(thumb && thumb[1] === h[1], '展板缩略图与大图同源');
   /* 加载失败要换掉整个可点区(而非只换 img)，否则留下一个点开全黑的空壳 */
   assert.ok(/onerror="this\.parentNode\.outerHTML=/.test(ov), 'onerror 应替换整个可点区');
   const none = (g.RT.hallPhotos || []).findIndex(p => !p || !p.img);

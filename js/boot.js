@@ -378,7 +378,7 @@ function buildLux(){
   const gallery=R.map((p,i)=>{
     const src=p&&p.img?esc(resolveImg(p.img)):'';
     return `<figure class="lux-photo" ${src?`data-full="${src}"`:''}>
-      ${src?`<img src="${src}" alt="" draggable="false">`:`<div class="lux-photo-ph">婚纱照 ${i+1}</div>`}
+      ${src?`<img src="${src}" alt="" draggable="false" loading="lazy" decoding="async">`:`<div class="lux-photo-ph">婚纱照 ${i+1}</div>`}
       ${p&&p.title?`<figcaption>${esc(p.title)}</figcaption>`:''}</figure>`;
   }).join('');
   const sched=(c.schedule||[]).map(([t,w])=>`<div class="lux-tl"><span class="lux-tl-t">${esc(t)}</span><span class="lux-tl-w">${esc(w)}</span></div>`).join('');
@@ -389,7 +389,7 @@ function buildLux(){
       <div class="lux-date">${esc(c.dateText)}</div>
       <div class="lux-divider"><span>❦</span></div>
       <div class="lux-hero-photo"${heroSrc?` data-full="${heroSrc}"`:''}>${heroSrc
-        ? `<img src="${heroSrc}" alt="" draggable="false">`
+        ? `<img src="${heroSrc}" alt="" draggable="false" decoding="async" fetchpriority="high">`
         : `<div class="lux-hero-ph"><span class="orn">❦</span><span class="t">主 婚 纱 照</span></div>`}</div>
       ${heroSrc?`<div class="lux-tap">轻触照片 · 查看大图</div>`:''}
     </header>
