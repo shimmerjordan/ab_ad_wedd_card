@@ -14,7 +14,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:#f4efe6}
 /* ⚠ 下面这行只能放「style.css 里本来就 display:none」的元素——这里只是把隐藏提前一步。
    #game 千万不能加进来：它在 style.css 里没有 display 声明，加了就等于永久隐藏游戏画布。
    tests/perf.test.js 会守住这条线。 */
-#title,#hud,#padL,#padHint,#toolBar,#btns,#dialog,#overlay,#fishHint,#lightbox,#lux,#luxBox,#edgeArrow{display:none}
+#title,#hud,#padL,#padHint,#toolBar,#btns,#dialog,#overlay,#fishHint,#lightbox,#lux,#luxBox,#edgeArrow,#navBack{display:none}
 #game{position:fixed;inset:0;width:100%;height:100%;background:#2a6b30}
 #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:70;
   color:#2e2a23;font-family:"Wedding Serif SC","Songti SC",STSong,"SimSun",serif;text-align:center}
@@ -147,6 +147,10 @@ if(location.protocol!=='file:')document.write(
 
 <div id="toasts"></div>
 <div id="fade"></div>
+
+<!-- 常驻返回按钮：iOS 装到桌面(standalone)和微信内置浏览器都没有返回手势/地址栏，
+     得在屏幕左上角给条明路。显示时机与配色由 setNavBack() 按当前界面切换。 -->
+<button id="navBack" type="button" aria-label="返回入口">‹ 返回</button>
 
 <!-- 点击头像/合照查看大图 -->
 <div id="lightbox"><div class="lb-inner"><img id="lightboxImg" alt="大图"><button id="lightboxClose" type="button" aria-label="关闭">✕</button></div></div>

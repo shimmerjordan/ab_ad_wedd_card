@@ -62,14 +62,20 @@ function routeApply(path){
  * 浮层不上地址栏（你要的是「只有四个界面有地址」），所以压的历史条目 URL 不变，
  * 纯粹是给返回键留个可退的台阶。 */
 const _routeOverlays = [];
+/* 有浮层时给 body 挂标记：常驻返回按钮等浮动控件靠它让位（见 css 的 body.has-overlay） */
+function _routeMarkOverlay(){
+  if (typeof document !== 'undefined' && document.body && document.body.classList)
+    document.body.classList.toggle('has-overlay', _routeOverlays.length > 0);
+}
 /* 浮层打开时调：close 是关掉它的函数，要和用户自己点关闭走同一条路径 */
 function routeOverlayOpen(close){
   _routeOverlays.push(close);
+  _routeMarkOverlay();
   history.pushState({ov: _routeOverlays.length}, '', location.hash || '#/');
 }
 /* 浮层被用户自己关掉时调：把台阶撤掉，免得返回键白退一次 */
 function routeOverlayClosed(){
-  if (_routeOverlays.length) { _routeOverlays.pop(); _routeSkipBack++; history.back(); }
+  if (_routeOverlays.length) { _routeOverlays.pop(); _routeMarkOverlay(); _routeSkipBack++; history.back(); }
 }
 let _routeSkipBack = 0;   // 上面那次 history.back() 引发的 popstate 不该再被当成用户按了返回
 function routeOverlayCount(){ return _routeOverlays.length; }
@@ -84,7 +90,9 @@ function routeInit(handlers){
     addEventListener('hashchange', () => routeApply(routePath()));
     addEventListener('popstate', () => {
       if (_routeSkipBack > 0) { _routeSkipBack--; return; }   // 是我们自己撤台阶，不是用户按返回
-      if (_routeOverlays.length) { _routeOverlays.pop()(); return; }   // 先关最上面那层浮层
+      if (_routeOverlays.length) {                                     // 先关最上面那层浮层
+        const close = _routeOverlays.pop(); _routeMarkOverlay(); close(); return;
+      }
       routeApply(routePath());
     });
   }

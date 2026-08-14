@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const { loadGame } = require('./harness');
 
 function app(opts = {}){
-  const g = loadGame(['startGame', 'openLux', 'routePath', 'backToGate'], opts);
+  const g = loadGame(['startGame', 'openLux', 'routePath', 'backToGate', 'showOverlay'], opts);
   const doc = g.__sandbox.document;
   return {
     g, doc,
@@ -83,4 +83,41 @@ test('老登版「返回入口」按钮走路由，不再手工切 display', () 
   a.el('luxBack').click();
   assert.strictEqual(a.loc.hash, '#/');
   assert.strictEqual(a.shown('gate'), 'flex');
+});
+
+/* ——— 常驻返回按钮：iOS PWA / 微信内置浏览器没有返回手势，得给条明路 ——— */
+
+test('标题屏和老登版有常驻返回按钮，入口门和游戏里没有', () => {
+  const at = h => app({ hash: h }).shown('navBack');
+  assert.notStrictEqual(at('#/sdv'), 'none', '标题屏该有');
+  assert.notStrictEqual(at('#/lux'), 'none', '老登版该有（请帖很长，滚到哪都能返回）');
+  assert.strictEqual(at('#/'), 'none', '入口门是根页，不需要');
+  const a = app();
+  a.el('gate18').click(); a.g.startGame('groom');
+  assert.strictEqual(a.shown('navBack'), 'none', '游戏里左上角是任务栏，出口在 ⚙ 里');
+});
+
+test('点常驻返回按钮回到入口门', () => {
+  for (const h of ['#/sdv', '#/lux']) {
+    const a = app({ hash: h });
+    a.el('navBack').click();
+    assert.strictEqual(a.loc.hash, '#/', `${h} 点返回该到入口门`);
+    assert.strictEqual(a.shown('gate'), 'flex');
+  }
+});
+
+test('从分享链接直接落在 #/sdv 时，返回按钮不能把人退出站点', () => {
+  const a = app({ hash: '#/sdv' });
+  assert.strictEqual(a.hist.length, 1, '直接落地时 history 里没有上一页');
+  a.el('navBack').click();
+  assert.strictEqual(a.loc.hash, '#/', '要真的到入口门');
+  assert.ok(a.hist.length > 1, '必须用 routeGo 前进一步，用 history.back() 会直接离站');
+});
+
+test('浮层打开时藏起常驻返回按钮，免得浮在浮层上面', () => {
+  const a = app({ hash: '#/sdv' });
+  a.g.showOverlay('<p>请帖</p>');
+  assert.ok(a.doc.body.classList.contains('has-overlay'), '开浮层应给 body 挂标记');
+  a.el('ovOk').click();
+  assert.ok(!a.doc.body.classList.contains('has-overlay'), '关掉后标记要撤掉');
 });

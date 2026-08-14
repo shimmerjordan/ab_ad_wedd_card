@@ -706,6 +706,38 @@ body.lux-bg{ background:var(--lux-bg); }   /* 入口/典雅页时给 body 垫米
 .lux-foot{ text-align:center; margin-top:44px; }
 .lux-foot-names{ font-size:18px; letter-spacing:2px; color:var(--g2); }
 .lux-foot-date{ font-size:12px; letter-spacing:3px; color:var(--soft); margin-top:6px; }
+/* ============ 常驻返回按钮 ============
+ * iOS 装到桌面(standalone)、微信/QQ 内置浏览器都没有返回手势或地址栏，
+ * 屏幕左上角必须有条明路。z-index 56：压得住标题屏(50)与老登版(55)，
+ * 又在灯箱(66)/入口门(70)/回执弹窗(60) 之下；开浮层时由 body.has-overlay 藏起来。 */
+#navBack{
+  position:fixed; z-index:56; cursor:pointer; font-family:inherit;
+  top:calc(env(safe-area-inset-top, 0px) + 12px);
+  left:calc(env(safe-area-inset-left, 0px) + 12px);
+  display:none; align-items:center; gap:2px;
+  transition:transform .1s, box-shadow .1s, color .2s, border-color .2s;
+}
+/* 视觉上是个小按钮，但可点区域撑到 ≥44×44（iOS HIG 下限）——
+ * 这颗按钮正是给没有返回手势的人用的，按不中比没有更糟 */
+#navBack::after{ content:""; position:absolute; inset:-8px -10px; }
+body.has-overlay #navBack{ display:none !important; }   /* 浮层/灯箱开着时让位 */
+/* 星露谷标题屏：木牌像素风，与 .sdv-btn 一套 */
+#navBack.sdv{
+  background:linear-gradient(180deg,#ffd789,#f0a94e); color:var(--wood-dark);
+  border:3px solid var(--wood-dark); border-radius:4px;
+  box-shadow:0 3px 0 var(--wood-dark), inset 0 2px 0 rgba(255,255,255,.5);
+  font-size:13px; letter-spacing:2px; padding:7px 13px;
+}
+#navBack.sdv:active{ transform:translateY(3px); box-shadow:0 0 0 var(--wood-dark); }
+/* 老登版：细金描边，与 .lux-back 一套 */
+#navBack.lux{
+  background:rgba(12,10,17,.55); backdrop-filter:blur(6px);
+  border:1px solid rgba(216,179,106,.4); border-radius:20px;
+  color:#c9bda6; font-size:12px; letter-spacing:2px; padding:7px 15px;
+}
+#navBack.lux:hover{ color:#f3dca0; border-color:rgba(216,179,106,.85); }
+@media (prefers-reduced-motion:reduce){ #navBack{ transition:none; } }
+
 .lux-back{ margin-top:28px; background:none; border:1px solid var(--line); border-radius:20px; padding:8px 20px; color:var(--soft); font-family:inherit; font-size:12px; letter-spacing:2px; cursor:pointer; transition:.2s; }
 .lux-back:hover{ color:var(--g2); border-color:var(--g); box-shadow:0 0 18px rgba(212,176,106,.25); }
 .reveal{ opacity:0; transform:translateY(30px) scale(.98); filter:blur(6px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1), filter .8s ease; }

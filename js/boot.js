@@ -252,6 +252,7 @@ function showPlayScreen(){
     document.getElementById('padL').style.display='block';
     document.getElementById('btns').style.display='flex';
   }
+  setNavBack(null);              // 游戏里左上角是任务栏，出口在 ⚙ 里
   if(game.mode==='title')game.mode='play';
 }
 function startGame(role,resume){
@@ -474,6 +475,18 @@ function luxBoxHide(fromBack){ const b=document.getElementById('luxBox');
  * 路由：四个顶层界面的显示切换全部收口在这里。
  * 点按钮、按后退键、直接改地址栏，走的都是同一条路径 —— 不会出现两套显隐逻辑对不上。
  * ============================================================ */
+/* 常驻返回按钮：iOS 装到桌面、微信内置浏览器都没有返回手势/地址栏，得给条明路。
+ * variant 为 'sdv'|'lux' 时显示并套上对应界面的配色，null 则隐藏。
+ * 它走 routeGo('/') 而不是 history.back() —— 宾客很可能从分享链接直接落在
+ * #/sdv 或 #/lux 上，此时 history 里没有上一页，back() 会把人退出站点。 */
+function setNavBack(variant){
+  const b=document.getElementById('navBack'); if(!b)return;
+  b.classList.remove('sdv','lux');
+  if(!variant){ b.style.display='none'; return; }
+  b.classList.add(variant);
+  b.style.display='inline-flex';
+}
+{ const b=document.getElementById('navBack'); if(b)b.onclick=()=>{ sfx&&sfx('blip'); routeGo('/'); }; }
 /* 离开游戏时把 HUD/摇杆/浮层一并收走，免得盖在入口页或请帖上 */
 function hideGameChrome(){
   ['hud','padL','btns','toolBar','padHint','fishHint','overlay','dialog'].forEach(id=>{
@@ -486,6 +499,7 @@ function showGateScreen(){
   luxEl.style.display='none';
   document.getElementById('title').style.display='none';
   gateEl.classList.remove('fade'); gateEl.style.display='flex';
+  setNavBack(null);            // 入口门是根页，没有上一页
   game.mode='title';
 }
 function showTitleScreen(){
@@ -494,6 +508,7 @@ function showTitleScreen(){
   hideGameChrome();
   luxEl.style.display='none';
   gateLeave(()=>{ document.getElementById('title').style.display='flex'; });
+  setNavBack('sdv');
   game.mode='title';
 }
 function showLuxScreen(){
@@ -501,6 +516,7 @@ function showLuxScreen(){
   hideGameChrome();
   document.getElementById('title').style.display='none';
   gateLeave(openLux);
+  setNavBack('lux');            // 请帖很长，滚到哪儿都得能返回
   game.mode='title';
 }
 routeInit({ gate:showGateScreen, title:showTitleScreen, play:showPlayScreen, lux:showLuxScreen });
