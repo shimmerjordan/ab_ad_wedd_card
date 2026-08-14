@@ -102,6 +102,34 @@
 
 宾客打开链接：标题屏显示欢迎横幅，殿堂内对应桌子金色高亮，最终请帖附桌位卡。
 
+## 🔗 URL 路由
+四个顶层界面各有地址，可分享、可刷新、可后退：
+
+| 地址 | 界面 |
+|---|---|
+| `index.html#/` | 入口门（默认） |
+| `index.html#/sdv` | 星露谷标题屏 |
+| `index.html#/play` | 游戏中 |
+| `index.html#/lux` | 老登版·典雅请帖 |
+
+用 hash 不用 query，是因为宾客链接 `?gn=张三&gt=3` 和调试参数 `?lux=1/?show=…` 都在 query 里，
+两者互不干扰 —— **已经发出去的链接一个都不会失效**，静态托管也不需要 rewrite 规则。
+`index.html?gn=张三&gt=3#/lux` 这种组合正常工作；老链接首屏落地时会用 `replaceState` 改写成等价 hash。
+
+**返回键**：浮层（请帖/展品/看大图/设置/回执…）不占地址栏，但打开时会压一条历史条目。
+手机返回键先逐层关浮层，退到没有浮层了才切界面，退到入口门才真的离开站点。
+
+`#/play` 刷新时内存里的游戏状态已经没了，会落到标题屏（那儿有「▶ 继续上次旅程」），不假装能恢复。
+
+## 👀 本地预览
+```bash
+python3 tools/serve.py        # 自动开浏览器，端口占用会顺延
+```
+**别直接双击 index.html。** 浏览器给 `file://` 页面的 origin 是 `null`，凡是走 CORS 的东西一律拒绝：
+自托管字体、`manifest.json`、`fetch('wedding-config.json')`、Service Worker 全部失效 —— 这是浏览器安全模型，
+任何静态站点都一样，不是本项目的 bug。代码里已按 `location.protocol` 判断，`file://` 下**不发**这些注定失败的请求
+（静默回退系统字体，控制台干净，游戏本身照常能玩），但要看到和线上一致的效果还是得走 http。
+
 ## 🚀 部署
 任意静态托管（GitHub Pages / Vercel / Netlify）：
 
@@ -117,7 +145,7 @@
 零依赖（自带 DOM/Canvas stub + vm 沙箱按加载顺序执行全部模块），覆盖钓鱼物理与状态机、好感度、挖矿捐赠、农务与交互探测、存档往返、成就表、通关评分、抛捧花物理：
 
 ```bash
-node --test tests/*.test.js    # 35 个用例（新增：存档往返 / 成就表 / 通关评分 / 抛捧花物理 / 场景冒烟）
+node --test tests/*.test.js    # 77 个用例（新增：首屏加载红线 perf.test.js + 路由 router/route-wiring/route-back.test.js）
 ```
 
 ## 📁 文件结构
@@ -142,14 +170,31 @@ assets/elem/          界面/游戏素材（建筑立面/角色/家具/花卉/�
 assets/imgs/          ★ 个人照片目录（配置里按文件名索引）
 classic.html          （旧链接兼容）自动跳转到主页优雅版请帖（原经典滚动版已并入 index 的「老登」入口）
 manifest.json/sw.js   PWA 清单 + Service Worker 离线缓存
-assets/fonts/         ★ 自托管中文像素字体（Fusion Pixel woff2）
+assets/fonts/         ★ 自托管字体子集（像素 Fusion Pixel ×2 + 优雅版衬线 serif-sc，共 380KB）
+tools/build-fonts.py  字体子集构建（改了 config 文案后重跑）
+tools/optimize-images.py  照片瘦身（默认预演，--apply 才改写）
+tools/serve.py        本地预览服务器（别用 file:// 直开，见「本地预览」）
+js/router.js          URL 路由：四个顶层界面 ↔ hash + 返回键浮层栈
 wedding-config.json   （可选）DEBUG 导出的展品/桌位/碎片配置
 ```
 
 ## 🛠 技术
 Canvas 2D 像素渲染（spritesheet + 程序化绘制混合），Web Audio 实时合成 8-bit BGM 与音效，
 多场景引擎（户外 + 博物馆/殿堂/矿洞 3 内景），移动端虚拟摇杆。
-中文像素字体 **Fusion Pixel 自托管**于 `assets/fonts/`（此前 jsDelivr `@fontsource` 无中文子集、中文会回退系统字体，已修复；国内可靠、离线可用）；优雅版衬线 Noto Serif SC 走 CDN，失败回退系统宋体。
+### 首屏加载（国内网络专项）
+零跨域依赖：**所有**字体自托管在 `assets/fonts/`，且按仓库真实用字做过子集（`python3 tools/build-fonts.py`，改完 config 文案重跑一次）。
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| 优雅版衬线 | fonts.googleapis.com（国内被墙的**阻塞样式表** → 白屏等超时） | 自托管 `serif-sc.woff2` 175KB |
+| 像素字体 | 两个「子集」实为 36512 字全量，共 1.39MB，还在 `<head>` 里高优先级 preload | 12.6KB + 192KB，且进星露谷前一刻才拉 |
+| 12 个游戏脚本 | 阻塞解析 | `defer`，并行下载不挡渲染 |
+| 150 张像素素材 | 脚本一解析就整批发请求（老登版宾客纯白下 2MB） | `preloadAssets()`，点「小孩桌」/直达参数才拉 |
+| 标题屏 `#title` | 一直 `display:flex` 垫在入口页底下（40 颗星白跑动画 + 拖着像素字体一起下载） | 默认隐藏，进星露谷才显示 |
+| **入口页首屏合计** | **~1.9MB + 一次翻墙超时** | **510KB / 18 个请求，全同源** |
+
+照片另有 `python3 tools/optimize-images.py`（默认只预演，`--apply` 才改写、原图备份到 `assets/imgs.orig/`）：长边压到 2000px、转渐进式 JPEG，85MB → 8MB。
+> GitHub Pages 在国内本身就慢且不稳，代码侧只能把「必须等的东西」压到最少；要再快得换国内可达的托管（自建 NAS / Cloudflare + 国内 CDN 回源）。
 **PWA**：`manifest.json` + `sw.js`，首访后离线可用、可添加到主屏。
 素材图加载失败时自动回退到内置程序化像素画，离线/file:// 也能玩。
 
